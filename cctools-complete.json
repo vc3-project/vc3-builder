@@ -1,0 +1,209 @@
+{
+    "cctools": {
+        "name":"cctools",
+        "version":"v5.4.13",
+        "versioncmd":"parrot_run --version",
+        "versionreg":"^parrot_run version ([0-9.]*)",
+        "source":[
+            "distfiles:cctools-5.4.13.tar.gz"
+        ],
+        "dependencies":{
+            "cvmfs":[
+                "v18"
+            ],
+            "globus":[
+                "v5.0.3"
+            ],
+            "irods":[
+                "v3.0"
+            ],
+            "xrootd":[
+                "v3.0.2"
+            ],
+            "mysql":[
+                "v5.6.20"
+            ],
+            "swig":[
+                "v3.0.2"
+            ],
+            "perl":[
+                "v5.22.1"
+            ],
+            "python":[
+                "v2.7.11"
+            ]
+        },
+        "envappend":{
+            "PATH":"bin",
+            "PYTHONPATH":"lib/python2.7/site-packages",
+            "PERL5LIB":"lib/perl5/site_perl/5.22.1"
+        }
+    },
+
+    "cvmfs":{
+        "name":"cvmfs",
+        "source":[
+            "distfiles:cvmfs.tar.gz"
+        ],
+        "dependencies":{
+            "uuid":[
+                "v1.0.9",
+                "v1.0.0"
+            ],
+            "fuse":[
+                "v2.9.5",
+                "v2.0"
+            ],
+            "cmake":[
+                "v3.0.2",
+                "v3.0.0"
+            ]
+        },
+        "envappend":{
+            "LD_LIBRARY_PATH":"lib64"
+        }
+    },
+
+    "fuse":{
+        "name":"fuse",
+        "source":[
+            "distfiles:fuse-2.9.3.tar.gz"
+        ],
+        "envappend":{
+            "C_INCLUDE_DIR":"include",
+            "LD_LIBRARY_PATH":"lib"
+        }
+    },
+
+    "uuid":{
+        "name":"uuid",
+        "source":[
+            "distfiles:libuuid-1.0.3.tar.gz"
+        ],
+        "envappend":{
+            "LD_LIBRARY_PATH":"lib",
+            "C_INCLUDE_DIR":"include"
+        }
+    },
+
+    "swig":{
+        "name":"swig",
+        "version":"v3.0.2",
+        "versioncmd":"swig -version",
+        "versionreg":"SWIG Version ([0-9.]*)",
+        "source":[
+            "distfiles:swig-3.0.2.tar.gz"
+        ],
+        "envappend":{
+            "PATH":"bin"
+        },
+        "dependencies":{
+            "python":[
+                "v2.7.11",
+                "v2.4.6"
+            ],
+            "perl":[
+                "v5.22.9",
+                "v5.8.0"
+            ]
+        }
+    },
+
+    "python":{
+        "name":"python",
+        "version":"v2.7.8",
+        "versioncmd":"python --version",
+        "versionreg":"Python ([0-9.]*).*",
+        "source":[
+            "distfiles:Python-2.7.8.tgz",
+            "https://www.python.org/ftp/python2.7.8/Python-2.7.8.tgz"
+        ],
+        "envappend":{
+            "PYTHONPATH":"libpython2.7site-packages",
+            "PATH":"bin"
+        }
+    },
+
+    "perl":{
+        "name":"perl",
+        "version":"v5.22.1",
+        "versioncmd":"perl -e 'print qq($^V)'",
+        "versionreg":"(v[0-9.]*)",
+        "source":[
+            "distfiles:perl-5.16.3.tar.gz"
+        ],
+        "envappend":{
+            "PATH":"bin",
+            "PERL5LIB":"lib/perl5/site_perl/5.22.1"
+        }
+    },
+
+    "globus":{
+        "name":"globus",
+        "envappend":{
+            "PATH":"bin"
+        },
+        "source":[
+            "distfiles:gt5.0.3-all-source-installer.tar.gz"
+        ]
+    },
+
+    "mysql":{
+        "name":"mysql",
+        "version":"v5.6.20",
+        "versioncmd":"mysql --version",
+        "versionreg":"Distribs+([0-9]*)",
+        "source":[
+            "distfiles:mysql-5.6.20.tar.gz"
+        ],
+        "dependencies":{
+            "cmake":[
+                "v3.0.2",
+                "v3.0.0"
+            ]
+        }
+    },
+
+    "irods":{
+        "name":"irods",
+        "version":"3.0",
+        "versioncmd":"ienv -h",
+        "versionreg":"iRODS Version ([0-9.]*)",
+        "source":[
+            "distfiles:irods3.0.tgz"
+        ],
+        "dependencies":{
+            "help2man":[
+                "v2.0",
+                "v1.0"
+            ]
+        },
+        "envappend":{
+            "PATH":"clientsicommandsbin"
+        }
+    },
+
+    "xrootd":{
+        "name":"xrootd",
+        "envappend":{
+            "PATH":"bin"
+        },
+        "source":[
+            "distfiles:xrootd-3.0.2.tar.gz"
+        ]
+    },
+
+    "cmake":{
+        "name":"cmake",
+        "version":"v3.0.2",
+        "versioncmd":"cmake --version",
+        "versionreg":"cmake version ([0-9.]*)",
+        "source":[
+            "distfiles:cmake-3.0.2.tar.gz"
+        ],
+        "envappend":{
+            "PATH":"bin"
+        }
+    }
+}
+

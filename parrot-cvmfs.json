@@ -1,0 +1,148 @@
+{
+    "parrot": {
+        "name":"cctools",
+        "version":"v5.4.13",
+        "versioncmd":"parrot_run --version",
+        "versionreg":"^parrot_run version ([0-9.]*)",
+        "source":[
+            {
+                "tarball":"cctools-5.4.13-source.tar.gz",
+                "recipe":"./configure --prefix ${VC3_PREFIX} --with-cvmfs-path ${VC3_CVMFS_ROOT} && make && make install"
+            }
+        ],
+        "dependencies":{
+            "swig":[
+                "v3.0.2"
+            ],
+            "python":[
+                "v2.7.11"
+            ],
+            "cvmfs":[
+                "v2.2"
+            ]
+        },
+        "envappend":{
+            "PATH":"bin",
+            "PYTHONPATH":"lib/python2.7/site-packages",
+            "HTTP_PROXY":"http://cache01.hep.wisc.edu:3128"
+        }
+    },
+
+    "swig":{
+        "name":"swig",
+        "version":"v3.0.2",
+        "versioncmd":"swig -version",
+        "versionreg":"SWIG Version ([0-9.]*)",
+        "source":[
+            {
+                "tarball":"swig-3.0.2.tar.gz",
+                "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install"
+            }
+        ],
+        "envappend":{
+            "PATH":"bin"
+        },
+        "dependencies":{
+            "python":[
+                "v2.7.8",
+                "v2.4.6"
+            ]
+        }
+    },
+
+    "cmake":{
+        "name":"cmake",
+        "version":"v3.0.2",
+        "versioncmd":"cmake --version",
+        "versionreg":"cmake version ([0-9.]*)",
+        "source":[
+            {
+                "tarball":"cmake-3.0.2.tar.gz",
+                "recipe":"./bootstrap --prefix=${VC3_PREFIX} && make && make install"
+            }
+        ],
+        "envappend":{
+            "PATH":"bin"
+        }
+    },
+
+    "cvmfs":{
+        "name":"cvmfs",
+        "version":"v2.2",
+        "source":[
+            {
+                "tarball":"cvmfs.tar.gz",
+                "recipe":"mkdir -p build && cd build && cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} .. && make libpacparser && cd cvmfs && make && make install"
+            }
+        ],
+        "dependencies":{
+            "uuid":[
+                "v1.0.9",
+                "v1.0.0"
+            ],
+            "fuse":[
+                "v2.9.5",
+                "v2.0"
+            ],
+            "cmake":[
+                "v3.0.2",
+                "v3.0.0"
+            ]
+        },
+        "envappend":{
+            "LD_LIBRARY_PATH":"lib64",
+            "VC3_CVMFS_ROOT":""
+        }
+    },
+
+    "uuid":{
+        "name":"uuid",
+        "version":"v1.0.3",
+        "source":[
+            {
+                "tarball":"libuuid-1.0.3.tar.gz",
+                "recipe":"./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared && make && make install"
+            }
+        ],
+        "envappend":{
+            "LD_LIBRARY_PATH":"lib",
+            "C_INCLUDE_DIR":"include",
+            "CPLUS_INCLUDE_PATH":"include"
+        }
+    },
+
+    "fuse":{
+        "name":"fuse",
+        "version":"v2.9.3",
+        "source":[
+            {
+                "tarball":"fuse-2.9.3.tar.gz",
+                "recipe":"./configure --prefix=${VC3_PREFIX}  --enable-lib --disable-util && make && make install"
+            }
+        ],
+        "envappend":{
+            "LD_LIBRARY_PATH":"lib",
+            "FUSE_LIBRARY":"lib",
+            "FUSE_INCLUDE_DIR":"include",
+            "C_INCLUDE_DIR":"include"
+        }
+    },
+
+    "python":{
+        "name":"python",
+        "version":"v2.7.8",
+        "versioncmd":"python --version",
+        "versionreg":"Python ([0-9.]*).*",
+        "source":[
+            {
+                "tarball":"Python-2.7.8.tgz",
+                "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install"
+            }
+        ],
+        "envappend":{
+            "PYTHONPATH":"lib/python2.7/site-packages",
+            "PATH":"bin"
+        }
+    }
+}
+

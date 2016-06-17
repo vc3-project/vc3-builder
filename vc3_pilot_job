@@ -34,7 +34,7 @@ sub decode_specs {
 }
 
 sub architecture {
-    chomp (my $architecture = qx(uname -m));
+    chomp (my $architecture = qx(/bin/uname -m));
     $architecture
 }
 

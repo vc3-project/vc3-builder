@@ -42,7 +42,7 @@
         "source":[
             {
                 "tarball":"swig-3.0.2.tar.gz",
-                "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install"
+                "recipe":"./configure --prefix=${VC3_PREFIX} --without-pcre && make && make install"
             }
         ],
         "env_append":{

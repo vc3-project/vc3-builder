@@ -135,7 +135,7 @@
         "source":[
             {
                 "tarball":"Python-2.7.8.tgz",
-                "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install"
+                "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install && ln -s ${VC3_PREFIX}/bin/pydoc{,2}"
             }
         ],
         "env_append":{

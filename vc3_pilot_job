@@ -9,9 +9,10 @@ use autodie;
 use Carp qw/carp croak/;
 use B;
 
-use File::Spec;
 use File::Basename;
+use File::Fetch;
 use File::Path;
+use File::Spec;
 
 use Getopt::Long qw/GetOptions/;
 
@@ -38,6 +39,8 @@ sub main {
     $vc3_environment->{PATH}{'/usr/bin'} = 1;
 
     build_tarball($goal_pkg, $specs);
+
+    delete $ENV{VC3_PREFIX}; 
 
     exec qq(@command_and_args);
 }
@@ -150,16 +153,12 @@ sub build_tarball {
         my $build  = "${vc3_root}/builds/${name}";
 
         my $tarball_spec = $pkg->{source}[0]
-        || croak "This spec does not have a tarball defined.";
-
-        my $tarball = $tarball_spec->{tarball}
-        || croak "No tarball is defined for $name.";
+        || croak "No source defined for " . $pkg->{name};
 
         my $recipe = $tarball_spec->{recipe}
         || croak "No recipe to build $name.";
-        
-        $tarball = File::Spec->rel2abs( $vc3_distfiles . "/$tarball");
-        croak "Could not find $tarball!" unless -f $tarball;
+
+        my $tarball = download_tarball($pkg);
 
         print "Building ${name} from $tarball for ", target, "\n";
 
@@ -188,6 +187,31 @@ sub build_tarball {
     }
 
     append_environment($pkg);
+}
+
+sub download_tarball {
+    my ($pkg) = @_;
+
+    my $tarball_spec = $pkg->{source}[0]
+    || croak 'No source defined for ' . $pkg->{name};
+
+    unless($tarball_spec->{tarball}) {
+        croak 'No tarball is defined for ' . $pkg->{name};
+    }
+
+    my $tarball_name = $tarball_spec->{tarball};
+    my $tarball_full = File::Spec->rel2abs( $vc3_distfiles . '/' . $tarball_name);
+
+    unless(-f $tarball_full) {
+        print "Downloading $pkg->{name} from $vc3_repository\n";
+        my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $tarball_name);
+
+        File::Path::make_path($vc3_distfiles);
+        $ff->fetch( to => $vc3_distfiles );
+    }
+
+    croak "Could not download $tarball_full!" unless -f $tarball_full;
+    return $tarball_full;
 }
 
 sub append_environment {

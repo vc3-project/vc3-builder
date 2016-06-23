@@ -7,7 +7,7 @@
         "source":[
             {
                 "tarball":"cctools-5.4.13-source.tar.gz",
-                "recipe":"./configure --prefix ${VC3_PREFIX} --with-cvmfs-path ${VC3_CVMFS_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} && make && make install"
+                "recipe":"./configure --prefix ${VC3_PREFIX} --with-cvmfs-path ${VC3_CVMFS_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} && make && make install"
             }
         ],
         "dependencies":{
@@ -19,6 +19,9 @@
             ],
             "zlib":[
                 "v1.2.8"
+            ],
+            "irods":[
+                "v3.0"
             ],
             "cvmfs":[
                 "v2.2"
@@ -160,6 +163,42 @@
             "LD_LIBRARY_PATH":"lib",
             "C_INCLUDE_DIR":"include",
             "CPLUS_INCLUDE_PATH":"include"
+        }
+    },
+
+    "irods": {
+        "name":"irods",
+        "version":"v3.0",
+        "source":[
+            {
+                "tarball":"irods3.0.tgz",
+                "recipe":"mv * ${VC3_PREFIX} && cd ${VC3_PREFIX} && ./scripts/configure && make"
+            }
+        ],
+        "dependencies":{
+            "help2man":[
+                "v1.0.0",
+                "v1.44"
+            ]
+        },
+        "env_append":{
+            "PATH":"bin",
+            "LD_LIBRARY_PATH":"lib/core/obj",
+            "C_INCLUDE_DIR":"lib/api/include"
+        }
+    },
+
+    "help2man": {
+        "name":"help2man",
+        "version":"v1.43.3",
+        "source":[
+            {
+                "tarball":"help2man-1.43.3.tar.gz",
+                "recipe":"./configure --prefix=${VC3_PREFIX} make && make install"
+            }
+        ],
+        "env_append":{
+            "PATH":"bin"
         }
     }
 }

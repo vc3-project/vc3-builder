@@ -7,7 +7,7 @@
         "source":[
             {
                 "tarball":"cctools-5.4.13-source.tar.gz",
-                "recipe":"./configure --prefix ${VC3_PREFIX} --with-cvmfs-path ${VC3_CVMFS_ROOT} && make && make install"
+                "recipe":"./configure --prefix ${VC3_PREFIX} --with-cvmfs-path ${VC3_CVMFS_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} && make && make install"
             }
         ],
         "dependencies":{
@@ -16,6 +16,9 @@
             ],
             "python":[
                 "v2.7.11"
+            ],
+            "zlib":[
+                "v1.2.8"
             ],
             "cvmfs":[
                 "v2.2"
@@ -141,6 +144,22 @@
         "env_append":{
             "PYTHONPATH":"lib/python2.7/site-packages",
             "PATH":"bin"
+        }
+    },
+
+    "zlib": {
+        "name":"zlib",
+        "version":"v1.2.8",
+        "source":[
+            {
+                "tarball":"zlib-1.2.8.tar.gz",
+                "recipe":"./configure --prefix=${VC3_PREFIX} --static && make && make install"
+            }
+        ],
+        "env_append":{
+            "LD_LIBRARY_PATH":"lib",
+            "C_INCLUDE_DIR":"include",
+            "CPLUS_INCLUDE_PATH":"include"
         }
     }
 }

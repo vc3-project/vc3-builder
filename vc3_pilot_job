@@ -94,7 +94,9 @@ sub completion_ribbon {
 	. '/.VC3_DEPENDENCY_BUILD_COMPLETE';
 }
 
-# range is: [max_version, min_allowable];
+# range is: [min_version, max_version];
+# max_version is the prefered version. 
+# [version] is considered as [version, version]
 sub check_version {
     my ($pkg, @range) = @_;
 
@@ -115,8 +117,8 @@ sub check_version {
 
     print $observed_version . "\n";
 
-    return 0 if $observed_version > $range[0];
-    return 0 if $observed_version < $range[$#range];
+    return 0 if $observed_version < $range[0];
+    return 0 if $observed_version > $range[$#range];
 
     return $observed_version;
 }

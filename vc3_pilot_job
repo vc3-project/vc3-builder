@@ -13,20 +13,30 @@ use File::Spec;
 use File::Basename;
 use File::Path;
 
+use Getopt::Long qw/GetOptions/;
+
 my $vc3_root      = $ENV{VC3_ROOT} || "vc3_root";
-my $vc3_distfiles = '/afs/crc.nd.edu/group/ccl/software/cctools-dependencies/distfiles';
+my $vc3_distfiles = $ENV{VC3_DISTFILES} || "$vc3_root/distfiles";
 
-my ($goal_pkg, $specs_filename, $command) = @ARGV;
+main();
 
-my $specs = decode_specs($specs_filename);
+sub main {
+    my $catalog = 'vc3_catalog.json';
 
-build_tarball($goal_pkg, $specs);
+    GetOptions("catalog=s" => \$catalog);
 
-exec qq(parrot_run $command);
+    my ($goal_pkg, @command_and_args) = @ARGV;
+
+    my $specs = decode_specs($catalog);
+
+    build_tarball($goal_pkg, $specs);
+
+    exec qq(@command_and_args);
+}
 
 sub decode_specs {
     my ($filename) = @_;
-    open( my $specs_f, '<:encoding(UTF-8)', $specs_filename); 
+    open( my $specs_f, '<:encoding(UTF-8)', $filename); 
     my $contents = do { local($/); <$specs_f> };
     close($specs_f);
 
@@ -81,7 +91,7 @@ sub completion_ribbon {
 	. '/' 
 	. $pkg->{name}  
 	. $pkg->{version}  
-	. '/.CCTOOLS_DEPENDENCY_BUILD_COMPLETE';
+	. '/.VC3_DEPENDENCY_BUILD_COMPLETE';
 }
 
 # range is: [max_version, min_allowable];

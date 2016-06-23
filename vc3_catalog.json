@@ -21,7 +21,7 @@
                 "v2.2"
             ]
         },
-        "envappend":{
+        "env_append":{
             "PATH":"bin",
             "PYTHONPATH":"lib/python2.7/site-packages",
             "HTTP_PROXY":"http://cache01.hep.wisc.edu:3128"
@@ -39,7 +39,7 @@
                 "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install"
             }
         ],
-        "envappend":{
+        "env_append":{
             "PATH":"bin"
         },
         "dependencies":{
@@ -61,7 +61,7 @@
                 "recipe":"./bootstrap --prefix=${VC3_PREFIX} && make && make install"
             }
         ],
-        "envappend":{
+        "env_append":{
             "PATH":"bin"
         }
     },
@@ -89,9 +89,8 @@
                 "v3.0.0"
             ]
         },
-        "envappend":{
-            "LD_LIBRARY_PATH":"lib64",
-            "VC3_CVMFS_ROOT":""
+        "env_append":{
+            "LD_LIBRARY_PATH":"lib64"
         }
     },
 
@@ -104,7 +103,7 @@
                 "recipe":"./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared && make && make install"
             }
         ],
-        "envappend":{
+        "env_append":{
             "LD_LIBRARY_PATH":"lib",
             "C_INCLUDE_DIR":"include",
             "CPLUS_INCLUDE_PATH":"include"
@@ -120,7 +119,7 @@
                 "recipe":"./configure --prefix=${VC3_PREFIX}  --enable-lib --disable-util && make && make install"
             }
         ],
-        "envappend":{
+        "env_append":{
             "LD_LIBRARY_PATH":"lib",
             "FUSE_LIBRARY":"lib",
             "FUSE_INCLUDE_DIR":"include",
@@ -139,7 +138,7 @@
                 "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install"
             }
         ],
-        "envappend":{
+        "env_append":{
             "PYTHONPATH":"lib/python2.7/site-packages",
             "PATH":"bin"
         }

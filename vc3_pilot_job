@@ -1,6 +1,6 @@
 #! /usr/bin/env perl
 
-use v5.007;
+use v5.009;
 use strict;
 use warnings;
 
@@ -15,8 +15,11 @@ use File::Path;
 
 use Getopt::Long qw/GetOptions/;
 
-my $vc3_root      = $ENV{VC3_ROOT} || "vc3_root";
-my $vc3_distfiles = $ENV{VC3_DISTFILES} || "$vc3_root/distfiles";
+my $vc3_root       = $ENV{VC3_ROOT}       || "vc3_root";
+my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$vc3_root/distfiles";
+my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://ccl.cse.nd.edu/vc3_repo";
+
+my $vc3_environment = {};
 
 main();
 
@@ -29,6 +32,7 @@ sub main {
 
     my $specs = decode_specs($catalog);
 
+    %ENV = ();
     build_tarball($goal_pkg, $specs);
 
     exec qq(@command_and_args);
@@ -123,7 +127,7 @@ sub check_version {
     return $observed_version;
 }
 
-# BUG!!!!! Only works for local distfiles!!!!
+
 sub build_tarball {
     my ($pkg_name, $specs) = @_;
 
@@ -185,15 +189,24 @@ sub build_tarball {
 sub append_environment {
     my ($pkg) = @_; 
 
-    my $appends = $pkg->{envappend}
+    my $root_name = 'VC3_' . uc($pkg->{name}) . '_ROOT';
+
+    $vc3_environment->{$root_name} = prefix($pkg);
+    $ENV{$root_name} = $vc3_environment->{$root_name};
+
+    my $appends = $pkg->{env_append}
     || return;
 
-    for my $varname (keys %$appends) {
-        if($ENV{$varname}) {
-            $ENV{$varname} = prefix($pkg) . "/$appends->{$varname}:$ENV{$varname}";
-        } else {
-            $ENV{$varname} = prefix($pkg) . "/$appends->{$varname}";
-        }
+    for my $varname (keys %{$appends}) {
+        $vc3_environment->{$varname} = {} unless $vc3_environment;
+
+        my $value = prefix($pkg) . '/' . $appends->{$varname};
+
+        # we keep a hash as a set of added paths of environment variables
+        $vc3_environment->{$varname}{$value} = 1;
+
+        my $dotted = join(':', keys %{$vc3_environment->{$varname}});
+        $ENV{$varname} = $dotted;
     }
 }
 

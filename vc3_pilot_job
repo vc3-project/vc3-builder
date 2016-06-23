@@ -32,7 +32,11 @@ sub main {
 
     my $specs = decode_specs($catalog);
 
-    %ENV = ();
+    # set default paths
+    %ENV = (PATH => '/bin:/usr/bin');
+    $vc3_environment->{PATH}{'/bin'} = 1;
+    $vc3_environment->{PATH}{'/usr/bin'} = 1;
+
     build_tarball($goal_pkg, $specs);
 
     exec qq(@command_and_args);

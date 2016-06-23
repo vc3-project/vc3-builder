@@ -60,6 +60,7 @@ sub main {
 
     delete $ENV{VC3_PREFIX}; 
 
+    print "building phase done!\n";
     exec qq(@command_and_args);
 }
 
@@ -180,8 +181,7 @@ sub build_tarball {
     }
 
     unless(-f completion_ribbon($pkg)) {
-        my $prefix = prefix($pkg);
-        my $name   = File::Basename::basename($prefix);
+        my $name   = File::Basename::basename(prefix($pkg));
         my $build  = "${vc3_root}/builds/${name}";
 
         my $tarball_spec = $pkg->{source}[0]
@@ -192,25 +192,29 @@ sub build_tarball {
 
         my $tarball = download_tarball($pkg);
 
-        print "Building ${name} from $tarball for ", target, "\n";
 
         if( -d $build ) {
             File::Path::rmtree($build);
         }
 
+        print "Expanding $tarball\n";
         my $sh_out;
-        File::Path::make_path($prefix);
+        File::Path::make_path(prefix($pkg));
         $sh_out = qx(mkdir -p ${build} && /bin/tar -C ${build} --strip-components=1 -xpf ${tarball});
         if($?) {
             croak "Could not expand tarball $tarball:\n$sh_out\n";
         }
 
-        $ENV{'VC3_PREFIX'} = $prefix;
+        $ENV{'VC3_PREFIX'} = prefix($pkg);
 
-        printf "${build}\n";
-        $sh_out = qx^cd ${build} && ($recipe)^;
+        my $building_info = prefix($pkg) . '/' . $name . '-building-log';
+
+        print "Building ${name} from $tarball for ", target, "\n";
+        print "for building details do: tail -f $building_info\n";
+        $sh_out = qx^cd ${build} && ($recipe) > $building_info 2>&1^;
         if ($?) {
             print "$name failed to build for ", target, "\n";
+            print "details in $building_info.\n";
             return $?;
         }
 

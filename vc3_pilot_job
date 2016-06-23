@@ -210,8 +210,13 @@ sub build_tarball {
         my $building_info = prefix($pkg) . '/' . $name . '-building-log';
 
         print "Building ${name} from $tarball for ", target, "\n";
-        print "for building details do:\ntail -f $building_info\n";
-        $sh_out = qx^cd ${build} && ($recipe) > $building_info 2>&1^;
+        print "for building details:\ntail -f $building_info\n";
+
+        open my $build_f, '>', $building_info;
+        print { $build_f } $recipe . "\n";
+        close($build_f);
+
+        $sh_out = qx^cd ${build} && ($recipe) >> $building_info 2>&1^;
         if ($?) {
             print "$name failed to build for ", target, "\n";
             print "details in $building_info\n";

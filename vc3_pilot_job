@@ -269,7 +269,7 @@ sub append_environment {
         # we keep a hash as a set of added paths of environment variables
         $vc3_environment->{$varname}{$value} = 1;
 
-        my $dotted = join(':', keys %{$vc3_environment->{$varname}});
+        my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment->{$varname}});
         $ENV{$varname} = $dotted;
     }
 }

@@ -25,24 +25,56 @@ my $vc3_environment = {};
 main();
 
 sub main {
-    my $catalog = 'vc3_catalog.json';
+    my $catalog    = 'vc3_catalog.json';
+    my $print_help = 0;
 
-    GetOptions("catalog=s" => \$catalog);
+    GetOptions(
+        "catalog=s" => \$catalog,
+        "help"      => \$print_help,
+    );
+
+    if($print_help) {
+        print usage();
+        exit 0;
+    }
 
     my ($goal_pkg, @command_and_args) = @ARGV;
 
-    my $specs = decode_specs($catalog);
+    if(!$goal_pkg) {
+        print "No software goal given.\n\n" . usage();
+        exit 1;
+    }
 
-    # set default paths
+    # set defaults
+    if(!@command_and_args) {
+        @command_and_args = ('/bin/sh',);
+    }
+
     %ENV = (PATH => '/bin:/usr/bin');
     $vc3_environment->{PATH}{'/bin'} = 1;
     $vc3_environment->{PATH}{'/usr/bin'} = 1;
+
+    my $specs = decode_specs($catalog);
 
     build_tarball($goal_pkg, $specs);
 
     delete $ENV{VC3_PREFIX}; 
 
     exec qq(@command_and_args);
+}
+
+sub usage {
+    return <<EOF;
+$0 [--catalog software-recipes] software-goal [-- command-and-args]
+
+    sofware-recipes defaults to ./vc3_catalog.json
+    comman-and-args defaults to /bin/sh
+
+Examples:
+    $0 parrot -- parrot_run python examples/read-file-from-cvmfs.py
+    $0 python -- /bin/sh
+
+EOF
 }
 
 sub decode_specs {

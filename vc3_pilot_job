@@ -184,12 +184,10 @@ sub build_tarball {
         }
     }
 
-    unless(-f completion_ribbon($pkg)) {
+    my $tarball_spec = $pkg->{source};
+    unless(-f completion_ribbon($pkg) || !$tarball_spec) {
         my $name   = File::Basename::basename(prefix($pkg));
         my $build  = "${vc3_root}/builds/${name}";
-
-        my $tarball_spec = $pkg->{source}
-        || croak "No source defined for " . $pkg->{name};
 
         my $recipe = $tarball_spec->{recipe}
         || croak "No recipe to build $name.";

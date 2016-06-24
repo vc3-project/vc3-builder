@@ -2,6 +2,20 @@
     "parrot":[
         {
             "version":"v5.4.13",
+            "name":"parrot",
+            "versioncmd":"parrot_run --version",
+            "versionreg":"^parrot_run version ([0-9.]*)",
+            "dependencies":{
+                "cctools":[
+                    "v5.4.13"
+                ]
+            }
+        }
+    ],
+
+    "cctools":[
+        {
+            "version":"v5.4.13",
             "name":"cctools",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",

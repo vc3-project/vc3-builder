@@ -18,7 +18,7 @@ use Getopt::Long qw/GetOptions/;
 
 my $vc3_root       = $ENV{VC3_ROOT}       || "vc3_root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$vc3_root/distfiles";
-my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://ccl.cse.nd.edu/vc3_repo";
+my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
 
 my $vc3_environment = {};
 
@@ -52,7 +52,7 @@ sub main {
         @command_and_args = ('/bin/sh',);
     }
 
-    %ENV = (PATH => '/bin:/usr/bin', MAKEFLAGS => '-j4');
+    %ENV = (PATH => '/bin:/usr/bin');
     $vc3_environment->{PATH}{'/bin'} = 1;
     $vc3_environment->{PATH}{'/usr/bin'} = 1;
 
@@ -251,7 +251,13 @@ sub download_tarball {
         my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $tarball_name);
 
         File::Path::make_path($vc3_distfiles);
+
+        # disable noisy stderr from file fetch
+        use vars qw(*OLDER);
+        open OLDERR, ">&STDERR";
+        open STDERR, ">/dev/null";
         $ff->fetch( to => $vc3_distfiles );
+        open STDERR, ">&OLDERR";
     }
 
     croak "Could not download $tarball_full!" unless -f $tarball_full;

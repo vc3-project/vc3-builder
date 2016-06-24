@@ -7,7 +7,7 @@
             "versionreg":"^parrot_run version ([0-9.]*)",
             "source":{
                 "tarball":"cctools-5.4.13-source.tar.gz",
-                "recipe":"./configure --prefix ${VC3_PREFIX} --with-cvmfs-path ${VC3_CVMFS_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} && make && make install"
+                "recipe":"./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} && make && make install"
             },
             "dependencies":{
                 "swig":[
@@ -15,6 +15,9 @@
                 ],
                 "python":[
                     "v2.6"
+                ],
+                "perl":[
+                    "v5.8"
                 ],
                 "zlib":[
                     "v1.2"
@@ -29,6 +32,7 @@
             "env_append":{
                 "PATH":"bin",
                 "PYTHONPATH":"lib/python2.7/site-packages",
+                "PERL5LIB":"lib/perl5/site_perl/5.22.1",
                 "HTTP_PROXY":"http://cache01.hep.wisc.edu:3128"
             }
         }
@@ -50,6 +54,12 @@
             "dependencies":{
                 "python":[
                     "v2.6"
+                ],
+                "perl":[
+                    "v5.8"
+                ],
+                "pcre":[
+                    "v8.34"
                 ]
             }
         }
@@ -112,6 +122,24 @@
         }
     ],
 
+    "pcre":[
+        {
+            "version":"v8.39",
+            "name":"pcre",
+            "source":{
+                    "tarball":"pcre-8.39.tar.gz",
+                    "recipe":"./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared && make && make install"
+                },
+            "env_append":{
+                "PATH":"bin",
+                "LD_LIBRARY_PATH":"lib",
+                "C_INCLUDE_DIR":"include",
+                "CPLUS_INCLUDE_PATH":"include"
+            }
+        }
+    ],
+
+
     "fuse":[
         {
             "version":"v2.9.3",
@@ -125,6 +153,23 @@
                 "FUSE_LIBRARY":"lib",
                 "FUSE_INCLUDE_DIR":"include",
                 "C_INCLUDE_DIR":"include"
+            }
+        }
+    ],
+
+    "perl":[
+        {
+            "version":"v5.24.0",
+            "name":"perl",
+            "versioncmd":"perl -e 'print qq($^V)'",
+            "versionreg":"(v[0-9.]*)",
+            "source":{
+                "tarball":"perl-5.24.0.tar.gz",
+                "recipe":"CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -des -A ccflags=-fPIC make && make install"
+            },
+            "env_append":{
+                "PATH":"bin",
+                "PERL5LIB":"lib/perl5/site_perl/5.24.0"
             }
         }
     ],

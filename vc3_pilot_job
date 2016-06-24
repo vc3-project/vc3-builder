@@ -56,6 +56,9 @@ sub main {
     $vc3_environment->{PATH}{'/bin'} = 1;
     $vc3_environment->{PATH}{'/usr/bin'} = 1;
 
+    # disable stdout buffering
+    select(STDOUT); $| = 1;
+
     my $specs = decode_specs($catalog);
 
     # recipes, goal, min-version, max-version

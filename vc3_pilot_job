@@ -56,7 +56,7 @@ sub main {
         @command_and_args = ('/bin/sh',);
     }
 
-    %ENV = (PATH => '/bin:/usr/bin', MAKEFLAGS => "-j${make_jobs}");
+    %ENV = (PATH => '/bin:/usr/bin', HOME => $ENV{PWD}, MAKEFLAGS => "-j${make_jobs}");
     $vc3_environment->{PATH}{'/bin'} = 1;
     $vc3_environment->{PATH}{'/usr/bin'} = 1;
 

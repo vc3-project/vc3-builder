@@ -221,6 +221,50 @@
         }
     ],
 
+    "xrootd": [
+        {
+            "version":"v3.0.2",
+            "name":"xrootd",
+            "source":{
+                    "tarball":"xrootd-3.0.2.tar.gz",
+                    "recipe":"/bin/env LDFLAGS=-L${VC3_E2FSPROGS_ROOT}/lib /bin/sh -c './configure.classic --enable-posix --enable-pwd --enable-ssl --disable-shared --no-arch-subdirs  --prefix=${VC3_PREFIX} && make && make install'"
+                },
+            "dependencies":{
+                "e2fsprogs":[
+                    "v1.43"
+                ]
+            },
+            "env_append":{
+                "PATH":"bin",
+                "LD_LIBRARY_PATH":"lib",
+                "C_INCLUDE_DIR":"include",
+                "CPLUS_INCLUDE_PATH":"include"
+            }
+        }
+    ],
+
+    "e2fsprogs": [
+        {
+            "version":"v1.43.1",
+            "name":"e2fsprogs",
+            "source":{
+                    "tarball":"e2fsprogs-libs-1.43.1.tar.gz",
+                    "recipe":"./configure --prefix=${VC3_PREFIX} --enable-symlink-install --enable-relative-symlinks CFLAGS=-fPIC LDFLAGS=-L${VC3_UUID_ROOT}/lib && make && make install"
+                },
+            "dependencies":{
+                "uuid":[
+                    "v1.0"
+                ]
+            },
+            "env_append":{
+                "PATH":"bin",
+                "LD_LIBRARY_PATH":"lib",
+                "C_INCLUDE_DIR":"include",
+                "CPLUS_INCLUDE_PATH":"include"
+            }
+        }
+    ],
+
     "irods":[
         {
             "version":"v3.0",

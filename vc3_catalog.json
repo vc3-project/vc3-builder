@@ -1,205 +1,200 @@
 {
-    "parrot": {
-        "name":"cctools",
-        "version":"v5.4.13",
-        "versioncmd":"parrot_run --version",
-        "versionreg":"^parrot_run version ([0-9.]*)",
-        "source":[
-            {
+    "parrot":[
+        {
+            "version":"v5.4.13",
+            "name":"cctools",
+            "versioncmd":"parrot_run --version",
+            "versionreg":"^parrot_run version ([0-9.]*)",
+            "source":{
                 "tarball":"cctools-5.4.13-source.tar.gz",
                 "recipe":"./configure --prefix ${VC3_PREFIX} --with-cvmfs-path ${VC3_CVMFS_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} && make && make install"
+            },
+            "dependencies":{
+                "swig":[
+                    "v3.0"
+                ],
+                "python":[
+                    "v2.6"
+                ],
+                "zlib":[
+                    "v1.2"
+                ],
+                "irods":[
+                    "v3.0"
+                ],
+                "cvmfs":[
+                    "v2.2"
+                ]
+            },
+            "env_append":{
+                "PATH":"bin",
+                "PYTHONPATH":"lib/python2.7/site-packages",
+                "HTTP_PROXY":"http://cache01.hep.wisc.edu:3128"
             }
-        ],
-        "dependencies":{
-            "swig":[
-                "v3.0.2"
-            ],
-            "python":[
-                "v2.7.11"
-            ],
-            "zlib":[
-                "v1.2.8"
-            ],
-            "irods":[
-                "v3.0"
-            ],
-            "cvmfs":[
-                "v2.2"
-            ]
-        },
-        "env_append":{
-            "PATH":"bin",
-            "PYTHONPATH":"lib/python2.7/site-packages",
-            "HTTP_PROXY":"http://cache01.hep.wisc.edu:3128"
         }
-    },
+    ],
 
-    "swig":{
-        "name":"swig",
-        "version":"v3.0.2",
-        "versioncmd":"swig -version",
-        "versionreg":"SWIG Version ([0-9.]*)",
-        "source":[
-            {
-                "tarball":"swig-3.0.2.tar.gz",
-                "recipe":"./configure --prefix=${VC3_PREFIX} --without-pcre && make && make install"
+    "swig":[
+        {
+            "version":"v3.0.2",
+            "name":"swig",
+            "versioncmd":"swig -version",
+            "versionreg":"SWIG Version ([0-9.]*)",
+            "source":{
+                    "tarball":"swig-3.0.2.tar.gz",
+                    "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install"
+                },
+            "env_append":{
+                "PATH":"bin"
+            },
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ]
             }
-        ],
-        "env_append":{
-            "PATH":"bin"
-        },
-        "dependencies":{
-            "python":[
-                "v2.7.8",
-                "v2.4.6"
-            ]
         }
-    },
+    ],
 
-    "cmake":{
-        "name":"cmake",
-        "version":"v3.0.2",
-        "versioncmd":"cmake --version",
-        "versionreg":"cmake version ([0-9.]*)",
-        "source":[
-            {
-                "tarball":"cmake-3.0.2.tar.gz",
-                "recipe":"./bootstrap --prefix=${VC3_PREFIX} && make && make install"
+    "cmake":[
+        {
+            "version":"v3.0.2",
+            "name":"cmake",
+            "versioncmd":"cmake --version",
+            "versionreg":"cmake version ([0-9.]*)",
+            "source":{
+                    "tarball":"cmake-3.0.2.tar.gz",
+                    "recipe":"./bootstrap --prefix=${VC3_PREFIX} && make && make install"
+                },
+            "env_append":{
+                "PATH":"bin"
             }
-        ],
-        "env_append":{
-            "PATH":"bin"
         }
-    },
+    ],
 
-    "cvmfs":{
-        "name":"cvmfs",
-        "version":"v2.2",
-        "source":[
-            {
+    "cvmfs":[
+        {
+            "version":"v2.2",
+            "name":"cvmfs",
+            "source":{
                 "tarball":"cvmfs.tar.gz",
                 "recipe":"mkdir -p build && cd build && cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} .. && make libpacparser && cd cvmfs && make && make install"
+            },
+            "dependencies":{
+                "uuid":[
+                    "v1.0"
+                ],
+                "fuse":[
+                    "v2.9"
+                ],
+                "cmake":[
+                    "v3.0"
+                ]
+            },
+            "env_append":{
+                "LD_LIBRARY_PATH":"lib64"
             }
-        ],
-        "dependencies":{
-            "uuid":[
-                "v1.0.9",
-                "v1.0.0"
-            ],
-            "fuse":[
-                "v2.9.5",
-                "v2.0"
-            ],
-            "cmake":[
-                "v3.0.2",
-                "v3.0.0"
-            ]
-        },
-        "env_append":{
-            "LD_LIBRARY_PATH":"lib64"
         }
-    },
+    ],
 
-    "uuid":{
-        "name":"uuid",
-        "version":"v1.0.3",
-        "source":[
-            {
-                "tarball":"libuuid-1.0.3.tar.gz",
-                "recipe":"./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared && make && make install"
+    "uuid":[
+        {
+            "version":"v1.0.3",
+            "name":"uuid",
+            "source":{
+                    "tarball":"libuuid-1.0.3.tar.gz",
+                    "recipe":"./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared && make && make install"
+                },
+            "env_append":{
+                "LD_LIBRARY_PATH":"lib",
+                "C_INCLUDE_DIR":"include",
+                "CPLUS_INCLUDE_PATH":"include"
             }
-        ],
-        "env_append":{
-            "LD_LIBRARY_PATH":"lib",
-            "C_INCLUDE_DIR":"include",
-            "CPLUS_INCLUDE_PATH":"include"
         }
-    },
+    ],
 
-    "fuse":{
-        "name":"fuse",
-        "version":"v2.9.3",
-        "source":[
-            {
-                "tarball":"fuse-2.9.3.tar.gz",
-                "recipe":"./configure --prefix=${VC3_PREFIX}  --enable-lib --disable-util && make && make install"
+    "fuse":[
+        {
+            "version":"v2.9.3",
+            "name":"fuse",
+            "source":{
+                    "tarball":"fuse-2.9.3.tar.gz",
+                    "recipe":"./configure --prefix=${VC3_PREFIX}  --enable-lib --disable-util && make && make install"
+                },
+            "env_append":{
+                "LD_LIBRARY_PATH":"lib",
+                "FUSE_LIBRARY":"lib",
+                "FUSE_INCLUDE_DIR":"include",
+                "C_INCLUDE_DIR":"include"
             }
-        ],
-        "env_append":{
-            "LD_LIBRARY_PATH":"lib",
-            "FUSE_LIBRARY":"lib",
-            "FUSE_INCLUDE_DIR":"include",
-            "C_INCLUDE_DIR":"include"
         }
-    },
+    ],
 
-    "python":{
-        "name":"python",
-        "version":"v2.7.8",
-        "versioncmd":"python --version",
-        "versionreg":"Python ([0-9.]*).*",
-        "source":[
-            {
+    "python":[
+        {
+            "version":"v2.7.8",
+            "name":"python",
+            "versioncmd":"python --version",
+            "versionreg":"Python ([0-9.]*).*",
+            "source":{
                 "tarball":"Python-2.7.8.tgz",
                 "recipe":"./configure --prefix=${VC3_PREFIX} && make && make install && ln -s ${VC3_PREFIX}/bin/pydoc{,2}"
+            },
+            "env_append":{
+                "PYTHONPATH":"lib/python2.7/site-packages",
+                "PATH":"bin"
             }
-        ],
-        "env_append":{
-            "PYTHONPATH":"lib/python2.7/site-packages",
-            "PATH":"bin"
         }
-    },
+    ],
 
-    "zlib": {
-        "name":"zlib",
-        "version":"v1.2.8",
-        "source":[
-            {
-                "tarball":"zlib-1.2.8.tar.gz",
-                "recipe":"./configure --prefix=${VC3_PREFIX} --static && make && make install"
+    "zlib": [
+        {
+            "version":"v1.2.8",
+            "name":"zlib",
+            "source":{
+                    "tarball":"zlib-1.2.8.tar.gz",
+                    "recipe":"./configure --prefix=${VC3_PREFIX} --static && make && make install"
+                },
+            "env_append":{
+                "LD_LIBRARY_PATH":"lib",
+                "C_INCLUDE_DIR":"include",
+                "CPLUS_INCLUDE_PATH":"include"
             }
-        ],
-        "env_append":{
-            "LD_LIBRARY_PATH":"lib",
-            "C_INCLUDE_DIR":"include",
-            "CPLUS_INCLUDE_PATH":"include"
         }
-    },
+    ],
 
-    "irods": {
-        "name":"irods",
-        "version":"v3.0",
-        "source":[
-            {
-                "tarball":"irods3.0.tgz",
-                "recipe":"mv * ${VC3_PREFIX} && cd ${VC3_PREFIX} && ./scripts/configure && make"
+    "irods":[
+        {
+            "version":"v3.0",
+            "name":"irods",
+            "source":{
+                    "tarball":"irods3.0.tgz",
+                    "recipe":"mv * ${VC3_PREFIX} && cd ${VC3_PREFIX} && ./scripts/configure && make"
+                },
+            "dependencies":{
+                "help2man":[
+                    "v1.0.0"
+                ]
+            },
+            "env_append":{
+                "PATH":"bin",
+                "LD_LIBRARY_PATH":"lib/core/obj",
+                "C_INCLUDE_DIR":"lib/api/include"
             }
-        ],
-        "dependencies":{
-            "help2man":[
-                "v1.0.0",
-                "v1.44"
-            ]
-        },
-        "env_append":{
-            "PATH":"bin",
-            "LD_LIBRARY_PATH":"lib/core/obj",
-            "C_INCLUDE_DIR":"lib/api/include"
         }
-    },
+    ],
 
-    "help2man": {
-        "name":"help2man",
-        "version":"v1.43.3",
-        "source":[
-            {
-                "tarball":"help2man-1.43.3.tar.gz",
-                "recipe":"./configure --prefix=${VC3_PREFIX} make && make install"
+    "help2man":[
+        {
+            "name":"help2man",
+            "version":"v1.43.3",
+            "source":{
+                    "tarball":"help2man-1.43.3.tar.gz",
+                    "recipe":"./configure --prefix=${VC3_PREFIX} make && make install"
+                },
+            "env_append":{
+                "PATH":"bin"
             }
-        ],
-        "env_append":{
-            "PATH":"bin"
         }
-    }
+    ]
 }
 

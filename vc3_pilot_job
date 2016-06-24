@@ -25,12 +25,14 @@ my $vc3_environment = {};
 main();
 
 sub main {
-    my $catalog    = 'vc3_catalog.json';
-    my $print_help = 0;
+    my $catalog      = 'vc3_catalog.json';
+    my $print_help   = 0;
+    my $goal_version = 0;
 
     GetOptions(
-        "catalog=s" => \$catalog,
-        "help"      => \$print_help,
+        "catalog=s"      => \$catalog,
+        "goal-version=s" => \$goal_version,
+        "help"           => \$print_help,
     );
 
     if($print_help) {
@@ -50,13 +52,14 @@ sub main {
         @command_and_args = ('/bin/sh',);
     }
 
-    %ENV = (PATH => '/bin:/usr/bin');
+    %ENV = (PATH => '/bin:/usr/bin', MAKEFLAGS => '-j4');
     $vc3_environment->{PATH}{'/bin'} = 1;
     $vc3_environment->{PATH}{'/usr/bin'} = 1;
 
     my $specs = decode_specs($catalog);
 
-    build_tarball($goal_pkg, $specs);
+    # recipes, goal, min-version, max-version
+    build_tarball($specs, $goal_pkg, $goal_version, $goal_version);
 
     delete $ENV{VC3_PREFIX}; 
 
@@ -123,24 +126,19 @@ sub prefix {
 
     croak "pkg not specified!\n" unless $pkg->{name};
     
-    File::Spec->rel2abs($vc3_root) . '/' . target . '/' . $pkg->{name} . $pkg->{version};
+    File::Spec->rel2abs($vc3_root) . '/' . target . '/' . $pkg->{name} . '-' . $pkg->{version};
 }
 
 sub completion_ribbon {
     my $pkg = shift;
-    my $ribbon 
-	= $vc3_root
-	. '/' 
-	. target
-	. '/' 
-	. $pkg->{name}  
-	. $pkg->{version}  
-	. '/.VC3_DEPENDENCY_BUILD_COMPLETE';
+    my $ribbon = prefix($pkg) . '/.VC3_DEPENDENCY_BUILD_COMPLETE';
+
+    return $ribbon;
 }
 
 # range is: [min_version, max_version];
 # max_version is the prefered version. 
-# [version] is considered as [version, version]
+# [version] is considered as [min_version]
 sub check_version {
     my ($pkg, @range) = @_;
 
@@ -169,14 +167,17 @@ sub check_version {
 
 
 sub build_tarball {
-    my ($pkg_name, $specs) = @_;
+    my ($specs, $pkg_name, $min_version, $max_version) = @_;
 
-    my $pkg = $specs->{$pkg_name} 
-    || croak "I do not know how to make '$pkg_name'.";
+    my $pkg_versions = $specs->{$pkg_name} 
+    || croak "I do not know anything about '$pkg_name'.";
+
+    my $pkg = select_version($pkg_name, $pkg_versions, $min_version, $max_version);
 
     if($pkg->{dependencies}) {
         for my $dependency (keys %{$pkg->{dependencies}}) {
-            build_tarball($dependency, $specs);
+            my ($min_dep_ver, $max_dep_ver) = @{$pkg->{dependencies}{$dependency}};
+            build_tarball($specs, $dependency, $min_dep_ver, $max_dep_ver);
         }
     }
 
@@ -184,14 +185,13 @@ sub build_tarball {
         my $name   = File::Basename::basename(prefix($pkg));
         my $build  = "${vc3_root}/builds/${name}";
 
-        my $tarball_spec = $pkg->{source}[0]
+        my $tarball_spec = $pkg->{source}
         || croak "No source defined for " . $pkg->{name};
 
         my $recipe = $tarball_spec->{recipe}
         || croak "No recipe to build $name.";
 
         my $tarball = download_tarball($pkg);
-
 
         if( -d $build ) {
             File::Path::rmtree($build);
@@ -233,7 +233,7 @@ sub build_tarball {
 sub download_tarball {
     my ($pkg) = @_;
 
-    my $tarball_spec = $pkg->{source}[0]
+    my $tarball_spec = $pkg->{source}
     || croak 'No source defined for ' . $pkg->{name};
 
     unless($tarball_spec->{tarball}) {
@@ -253,6 +253,56 @@ sub download_tarball {
 
     croak "Could not download $tarball_full!" unless -f $tarball_full;
     return $tarball_full;
+}
+
+use version;
+
+# versions available, min desired version, max desired version
+sub select_version {
+    my ($pkg_name, $pkg_versions, $min_version, $max_version) = @_;
+
+    if($min_version) {
+        $min_version = version->parse($min_version);
+    }
+
+    if($max_version) {
+        $max_version = version->parse($max_version);
+    }
+
+    my $min_found;
+    my $max_found;
+
+    for my $pkg_version (@{$pkg_versions}) {
+        if(!$min_version) {
+            return $pkg_version;
+        }
+
+        my $version = version->parse($pkg_version->{version});
+
+        $min_found = $version unless $min_found;
+        $max_found = $version unless $max_found;
+
+        $min_found = $min_found lt $version ? $version : $min_found;
+        $max_found = $max_found gt $version ? $version : $max_found;
+
+        next if $min_version gt $version;
+
+        if(!$max_version) {
+            return $pkg_version;
+        }
+
+        next if $max_version lt $version;
+        return $pkg_version;
+    }
+
+    $max_version = $min_version unless $max_version;
+    croak "I did not find a suitable version for '$pkg_name'.\n Found: ["
+    . version::normal($min_found)
+    . ',' . version::normal($max_found)
+    . ']. Wanted ['
+    . $min_version->normal
+    . ',' . $max_version->normal
+    . "]\n";
 }
 
 sub append_environment {
@@ -601,48 +651,45 @@ $CLASS = 'version';
 
 # !!!!Delete this next block completely when adding to Perl core!!!!
 {
-    local $SIG{'__DIE__'};
-    eval "use version::vxs $VERSION";
-    if ( $@ ) { # don't have the XS version installed
-	eval "use version::vpp $VERSION"; # don't tempt fate
-	die "$@" if ( $@ );
-	push @ISA, "version::vpp";
-	local $^W;
-	*version::qv = \&version::vpp::qv;
-	*version::declare = \&version::vpp::declare;
-	*version::_VERSION = \&version::vpp::_VERSION;
-	*version::vcmp = \&version::vpp::vcmp;
-	*version::new = \&version::vpp::new;
-	*version::numify = \&version::vpp::numify;
-	*version::normal = \&version::vpp::normal;
-	if ($] >= 5.009000) {
-	    no strict 'refs';
-	    *version::stringify = \&version::vpp::stringify;
-	    *{'version::(""'} = \&version::vpp::stringify;
-	    *{'version::(<=>'} = \&version::vpp::vcmp;
-	    *{'version::(cmp'} = \&version::vpp::vcmp;
-	    *version::parse = \&version::vpp::parse;
-	}
+    eval "use version::vpp $VERSION"; # don't tempt fate
+    die "$@" if ( $@ );
+    push @ISA, "version::vpp";
+    local $^W;
+    *version::qv = \&version::vpp::qv;
+    *version::declare = \&version::vpp::declare;
+    *version::_VERSION = \&version::vpp::_VERSION;
+    *version::vcmp = \&version::vpp::vcmp;
+    *version::new = \&version::vpp::new;
+    *version::numify = \&version::vpp::numify;
+    *version::normal = \&version::vpp::normal;
+    if ($] >= 5.009000) {
+        no strict 'refs';
+        *version::stringify = \&version::vpp::stringify;
+        *{'version::(""'} = \&version::vpp::stringify;
+        *{'version::(<=>'} = \&version::vpp::vcmp;
+        *{'version::(cmp'} = \&version::vpp::vcmp;
+        *version::parse = \&version::vpp::parse;
     }
-    else { # use XS module
-	push @ISA, "version::vxs";
-	local $^W;
-	*version::declare = \&version::vxs::declare;
-	*version::qv = \&version::vxs::qv;
-	*version::_VERSION = \&version::vxs::_VERSION;
-	*version::vcmp = \&version::vxs::VCMP;
-	*version::new = \&version::vxs::new;
-	*version::numify = \&version::vxs::numify;
-	*version::normal = \&version::vxs::normal;
-	if ($] >= 5.009000) {
-	    no strict 'refs';
-	    *version::stringify = \&version::vxs::stringify;
-	    *{'version::(""'} = \&version::vxs::stringify;
-	    *{'version::(<=>'} = \&version::vxs::VCMP;
-	    *{'version::(cmp'} = \&version::vxs::VCMP;
-	    *version::parse = \&version::vxs::parse;
-	}
+}
+else { # use XS module
+    push @ISA, "version::vxs";
+    local $^W;
+    *version::declare = \&version::vxs::declare;
+    *version::qv = \&version::vxs::qv;
+    *version::_VERSION = \&version::vxs::_VERSION;
+    *version::vcmp = \&version::vxs::VCMP;
+    *version::new = \&version::vxs::new;
+    *version::numify = \&version::vxs::numify;
+    *version::normal = \&version::vxs::normal;
+    if ($] >= 5.009000) {
+        no strict 'refs';
+        *version::stringify = \&version::vxs::stringify;
+        *{'version::(""'} = \&version::vxs::stringify;
+        *{'version::(<=>'} = \&version::vxs::VCMP;
+        *{'version::(cmp'} = \&version::vxs::VCMP;
+        *version::parse = \&version::vxs::parse;
     }
+}
 }
 
 # avoid using Exporter

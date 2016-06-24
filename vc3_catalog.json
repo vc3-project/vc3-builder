@@ -21,7 +21,7 @@
             "versionreg":"^parrot_run version ([0-9.]*)",
             "source":{
                 "tarball":"cctools-5.4.13-source.tar.gz",
-                "recipe":"./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} && make && make install"
+                "recipe":"./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --without-system-umbrella && make && make install"
             },
             "dependencies":{
                 "swig":[
@@ -279,7 +279,7 @@
                 ]
             },
             "env_append":{
-                "PATH":"bin",
+                "PATH":"clients/icommands/bin",
                 "LD_LIBRARY_PATH":"lib/core/obj",
                 "C_INCLUDE_DIR":"lib/api/include"
             }

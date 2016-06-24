@@ -29,11 +29,13 @@ sub main {
     my $print_help   = 0;
     my $goal_version = 0;
     my $make_jobs    = 2;
+    my $sh_on_error  = 0;
 
     GetOptions(
         "catalog=s"      => \$catalog,
         "goal-version=s" => \$goal_version,
         "make-jobs=n"    => \$make_jobs,
+        "sh-on-error"    => \$sh_on_error,
         "help"           => \$print_help,
     );
 
@@ -64,7 +66,7 @@ sub main {
     my $specs = decode_specs($catalog);
 
     # recipes, goal, min-version, max-version
-    build_tarball($specs, $goal_pkg, $goal_version, $goal_version);
+    build_tarball($specs, $goal_pkg, $sh_on_error, $goal_version, $goal_version);
 
     delete $ENV{VC3_PREFIX}; 
 
@@ -76,11 +78,12 @@ sub usage {
     return <<EOF;
 $0 [options] [--catalog software-recipes] software-goal [-- command-and-args]
 
-    software-recipes defaults to ./vc3_catalog.json
+    sofware-recipes  defaults to ./vc3_catalog.json
     command-and-args defaults to /bin/sh
 
     options are:
     --make-jobs=n    default to 2
+    --sh-on-error    on building error, run /bin/sh with the build environment
 
 Examples:
     $0 parrot -- parrot_run python examples/read-file-from-cvmfs.py
@@ -175,7 +178,7 @@ sub check_version {
 
 
 sub build_tarball {
-    my ($specs, $pkg_name, $min_version, $max_version) = @_;
+    my ($specs, $pkg_name, $sh_on_error, $min_version, $max_version) = @_;
 
     my $pkg_versions = $specs->{$pkg_name} 
     || croak "I do not know anything about '$pkg_name'.";
@@ -185,7 +188,7 @@ sub build_tarball {
     if($pkg->{dependencies}) {
         for my $dependency (keys %{$pkg->{dependencies}}) {
             my ($min_dep_ver, $max_dep_ver) = @{$pkg->{dependencies}{$dependency}};
-            build_tarball($specs, $dependency, $min_dep_ver, $max_dep_ver);
+            build_tarball($specs, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
         }
     }
 
@@ -226,6 +229,11 @@ sub build_tarball {
         if ($?) {
             print "$name failed to build for ", target, "\n";
             print "details in $building_info\n";
+
+            if($sh_on_error) {
+                exec("/bin/sh -c 'cd ${build} && exec /bin/sh'");
+            }
+
             exit $?;
         }
 

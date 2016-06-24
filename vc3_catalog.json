@@ -15,13 +15,13 @@
 
     "cctools":[
         {
-            "version":"v5.4.13",
+            "version":"v5.4.13a",
             "name":"cctools",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "source":{
-                "tarball":"cctools-5.4.13-source.tar.gz",
-                "recipe":"./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --without-system-umbrella && make && make install"
+                "tarball":"cctools-5.4.13a-source.tar.gz",
+                "recipe":"./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-xrootd-path ${VC3_XROOTD_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --without-system-umbrella && make && make install"
             },
             "dependencies":{
                 "swig":[
@@ -38,6 +38,9 @@
                 ],
                 "irods":[
                     "v3.0"
+                ],
+                "xrootd":[
+                    "v3.0", "v4.3"
                 ],
                 "cvmfs":[
                     "v2.2"
@@ -223,15 +226,21 @@
 
     "xrootd": [
         {
-            "version":"v3.0.2",
+            "version":"v4.3.0",
             "name":"xrootd",
             "source":{
-                    "tarball":"xrootd-3.0.2.tar.gz",
-                    "recipe":"/bin/env LDFLAGS=-L${VC3_E2FSPROGS_ROOT}/lib /bin/sh -c './configure.classic --enable-posix --enable-pwd --enable-ssl --disable-shared --no-arch-subdirs  --prefix=${VC3_PREFIX} && make && make install'"
-                },
+                "tarball":"xrootd-4.3.0.tar.gz",
+                "recipe":"mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} .. && make && make install && find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
+            },
             "dependencies":{
-                "e2fsprogs":[
-                    "v1.43"
+                "cmake":[
+                    "v3.0"
+                ],
+                "perl":[
+                    "v5.10"
+                ],
+                "fuse":[
+                    "v2.9"
                 ]
             },
             "env_append":{

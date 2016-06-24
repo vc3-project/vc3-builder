@@ -28,10 +28,12 @@ sub main {
     my $catalog      = 'vc3_catalog.json';
     my $print_help   = 0;
     my $goal_version = 0;
+    my $make_jobs    = 2;
 
     GetOptions(
         "catalog=s"      => \$catalog,
         "goal-version=s" => \$goal_version,
+        "make-jobs=n"    => \$make_jobs,
         "help"           => \$print_help,
     );
 
@@ -52,7 +54,7 @@ sub main {
         @command_and_args = ('/bin/sh',);
     }
 
-    %ENV = (PATH => '/bin:/usr/bin');
+    %ENV = (PATH => '/bin:/usr/bin', MAKEFLAGS => "-j${make_jobs}");
     $vc3_environment->{PATH}{'/bin'} = 1;
     $vc3_environment->{PATH}{'/usr/bin'} = 1;
 
@@ -72,10 +74,13 @@ sub main {
 
 sub usage {
     return <<EOF;
-$0 [--catalog software-recipes] software-goal [-- command-and-args]
+$0 [options] [--catalog software-recipes] software-goal [-- command-and-args]
 
-    sofware-recipes defaults to ./vc3_catalog.json
-    comman-and-args defaults to /bin/sh
+    software-recipes defaults to ./vc3_catalog.json
+    command-and-args defaults to /bin/sh
+
+    options are:
+    --make-jobs=n    default to 2
 
 Examples:
     $0 parrot -- parrot_run python examples/read-file-from-cvmfs.py

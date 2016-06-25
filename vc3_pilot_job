@@ -132,17 +132,26 @@ sub target {
     $target
 }
 
-sub prefix {
-    my $pkg = shift;
+sub pkg_prefix {
+    my ($pkg) = @_;
 
-    croak "pkg not specified!\n" unless $pkg->{name};
-    
-    File::Spec->rel2abs($vc3_root) . '/' . target . '/' . $pkg->{name} . '-' . $pkg->{version};
+    if($pkg && $pkg->{name}) {
+        return File::Spec->rel2abs($vc3_root) . '/' . target() . '/' . $pkg->{name} . '-' . $pkg->{version};
+    } else {
+        croak "name not specified!\n"
+    }
 }
 
-sub completion_ribbon {
-    my $pkg = shift;
-    my $ribbon = prefix($pkg) . '/.VC3_DEPENDENCY_BUILD_COMPLETE';
+sub pkg_build_log {
+    my ($pkg) = @_;
+    my $log_name = pkg_prefix($pkg) . '/' . $pkg->{name} . '-build-log';
+
+    return $log_name;
+}
+
+sub pkg_completion_ribbon {
+    my ($pkg) = @_;
+    my $ribbon = pkg_prefix($pkg) . '/.VC3_DEPENDENCY_BUILD_COMPLETE';
 
     return $ribbon;
 }
@@ -193,8 +202,8 @@ sub build_tarball {
     }
 
     my $tarball_spec = $pkg->{source};
-    unless(-f completion_ribbon($pkg) || !$tarball_spec) {
-        my $name   = File::Basename::basename(prefix($pkg));
+    unless(-f pkg_completion_ribbon($pkg) || !$tarball_spec) {
+        my $name   = File::Basename::basename(pkg_prefix($pkg));
         my $build  = "${vc3_root}/builds/${name}";
 
         my $recipe = $tarball_spec->{recipe}
@@ -208,27 +217,28 @@ sub build_tarball {
 
         print "Expanding $tarball\n";
         my $sh_out;
-        File::Path::make_path(prefix($pkg));
+        File::Path::make_path(pkg_prefix($pkg));
         $sh_out = qx(mkdir -p ${build} && /bin/tar -C ${build} --strip-components=1 -xpf ${tarball});
         if($?) {
             croak "Could not expand tarball $tarball:\n$sh_out\n";
         }
 
-        $ENV{'VC3_PREFIX'} = prefix($pkg);
+        my ($build_in, $pid) = setup_build_shell($pkg);
 
-        my $building_info = prefix($pkg) . '/' . $name . '-building-log';
+        print "Building $pkg->{name} from $tarball for ", target, "\n";
+        print "for building details:\ntail -f " . pkg_build_log($pkg) . "\n";
 
-        print "Building ${name} from $tarball for ", target, "\n";
-        print "for building details:\ntail -f $building_info\n";
+        $ENV{'VC3_PREFIX'} = pkg_prefix($pkg);
+        for my $step ("cd $build", 'blaexit 0', @{$recipe}, 'exit 0') {
+            print { $build_in } "date\n";
+            print { $build_in } "$step\n";
+        }
+        
+        eval { close $build_in };
+        my $waited = waitpid $pid, 0;
 
-        open my $build_f, '>', $building_info;
-        print { $build_f } $recipe . "\n";
-        close($build_f);
-
-        $sh_out = qx^cd ${build} && ($recipe) >> $building_info 2>&1^;
         if ($?) {
             print "$name failed to build for ", target, "\n";
-            print "details in $building_info\n";
 
             if($sh_on_error) {
                 exec("/bin/sh -c 'cd ${build} && exec /bin/bash'");
@@ -237,11 +247,42 @@ sub build_tarball {
             exit $?;
         }
 
-        open (my $ribbon_fh, '>', completion_ribbon($pkg));
+        open (my $ribbon_fh, '>', pkg_completion_ribbon($pkg));
         close $ribbon_fh;
     }
 
     append_environment($pkg);
+}
+
+sub setup_build_shell {
+    my ($pkg) = @_;
+
+    my ($build_log, $build_in);
+
+    # log the recipe used. Since we are opening sh with -e, the recipe executes
+    # as if all steps were &&-ed together.
+    my $recipe = $pkg->{source}{recipe};
+
+    open $build_log,    '>', pkg_build_log($pkg);
+    print { $build_log } join("\n && ", @{$recipe}) . "\n";
+    close $build_log;
+
+    # open sh with -e. This terminates the shell at the first step that returns
+    # a non-zero status.
+    my $pid = open($build_in, '|-', '/bin/sh -e');
+
+    croak 'Could not open /bin/sh for building.'
+    unless $build_in;
+
+    # redirect all output to our log file.
+    print { $build_in } 'exec 1>> ' . pkg_build_log($pkg) . "\n";
+    print { $build_in } "exec 2>&1\n";
+
+    # print some debug shell information (e.g., the step about to be executed).
+    print { $build_in } "set -x\n";
+
+    # return the stdin of the shell, and the pid so we can wait for it.
+    return ($build_in, $pid);
 }
 
 sub download_tarball {
@@ -330,7 +371,7 @@ sub append_environment {
 
     my $root_name = 'VC3_' . uc($pkg->{name}) . '_ROOT';
 
-    $vc3_environment->{$root_name} = prefix($pkg);
+    $vc3_environment->{$root_name} = pkg_prefix($pkg);
     $ENV{$root_name} = $vc3_environment->{$root_name};
 
     my $appends = $pkg->{env_append}
@@ -339,7 +380,7 @@ sub append_environment {
     for my $varname (keys %{$appends}) {
         $vc3_environment->{$varname} = {} unless $vc3_environment;
 
-        my $value = prefix($pkg) . '/' . $appends->{$varname};
+        my $value = pkg_prefix($pkg) . '/' . $appends->{$varname};
 
         # we keep a hash as a set of added paths of environment variables
         $vc3_environment->{$varname}{$value} = 1;

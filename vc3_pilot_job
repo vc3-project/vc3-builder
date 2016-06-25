@@ -14,11 +14,15 @@ use File::Fetch;
 use File::Path;
 use File::Spec;
 
+use POSIX ":sys_wait_h";
+
 use Getopt::Long qw/GetOptions/;
 
 my $vc3_root       = $ENV{VC3_ROOT}       || "vc3_root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$vc3_root/distfiles";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
+
+my @external_dependencies = qw/sh tail tar/;
 
 my $vc3_environment = {};
 
@@ -132,7 +136,7 @@ sub target {
     $target
 }
 
-sub pkg_prefix {
+sub pkg_destination_dir {
     my ($pkg) = @_;
 
     if($pkg && $pkg->{name}) {
@@ -142,16 +146,24 @@ sub pkg_prefix {
     }
 }
 
+sub pkg_build_dir {
+    my ($pkg) = @_;
+    my $build_dir = "${vc3_root}/builds/$pkg->{name}";
+
+    return $build_dir;
+}
+
+
 sub pkg_build_log {
     my ($pkg) = @_;
-    my $log_name = pkg_prefix($pkg) . '/' . $pkg->{name} . '-build-log';
+    my $log_name = pkg_destination_dir($pkg) . '/' . $pkg->{name} . '-build-log';
 
     return $log_name;
 }
 
 sub pkg_completion_ribbon {
     my ($pkg) = @_;
-    my $ribbon = pkg_prefix($pkg) . '/.VC3_DEPENDENCY_BUILD_COMPLETE';
+    my $ribbon = pkg_destination_dir($pkg) . '/.VC3_DEPENDENCY_BUILD_COMPLETE';
 
     return $ribbon;
 }
@@ -203,55 +215,94 @@ sub build_tarball {
 
     my $tarball_spec = $pkg->{source};
     unless(-f pkg_completion_ribbon($pkg) || !$tarball_spec) {
-        my $name   = File::Basename::basename(pkg_prefix($pkg));
-        my $build  = "${vc3_root}/builds/${name}";
+        my $name   = File::Basename::basename(pkg_destination_dir($pkg));
 
         my $recipe = $tarball_spec->{recipe}
         || croak "No recipe to build $name.";
 
         my $tarball = download_tarball($pkg);
 
+        my $build = pkg_build_dir($pkg);
         if( -d $build ) {
             File::Path::rmtree($build);
         }
 
         print "Expanding $tarball\n";
         my $sh_out;
-        File::Path::make_path(pkg_prefix($pkg));
+        File::Path::make_path(pkg_destination_dir($pkg));
         $sh_out = qx(mkdir -p ${build} && /bin/tar -C ${build} --strip-components=1 -xpf ${tarball});
         if($?) {
             croak "Could not expand tarball $tarball:\n$sh_out\n";
         }
 
-        my ($build_in, $pid) = setup_build_shell($pkg);
-
         print "Building $pkg->{name} from $tarball for ", target, "\n";
         print "for building details:\ntail -f " . pkg_build_log($pkg) . "\n";
 
-        $ENV{'VC3_PREFIX'} = pkg_prefix($pkg);
-        for my $step ("cd $build", 'blaexit 0', @{$recipe}, 'exit 0') {
-            print { $build_in } "date\n";
-            print { $build_in } "$step\n";
-        }
-        
-        eval { close $build_in };
-        my $waited = waitpid $pid, 0;
+        my $status = pkg_execute_recipe($pkg);
 
-        if ($?) {
-            print "$name failed to build for ", target, "\n";
+        if($status) {
+            error_debug_info($pkg, $status, $sh_on_error);
 
             if($sh_on_error) {
                 exec("/bin/sh -c 'cd ${build} && exec /bin/bash'");
-            }
-
-            exit $?;
+            } else {
+                exit $status;
+            } 
+        } else {
+            pkg_register_completion($pkg);
         }
-
-        open (my $ribbon_fh, '>', pkg_completion_ribbon($pkg));
-        close $ribbon_fh;
     }
 
     append_environment($pkg);
+}
+
+sub pkg_execute_recipe {
+    my ($pkg) = @_;
+
+    # set the destination directory as an environment variable before
+    # setting up the shell, so that the child created inherets it.
+    $ENV{'VC3_PREFIX'} = pkg_destination_dir($pkg);
+
+    my ($build_in, $pid) = setup_build_shell($pkg);
+
+    my @steps = @{$pkg->{source}{recipe}};
+
+    # add shifting to build directory as the first step.
+    unshift @steps, 'cd ' . pkg_build_dir($pkg);
+
+    # add exiting cleanly from shell as a last step.
+    push @steps, 'exit 0';
+
+    for my $step (@steps) {
+        my $date = gmtime();
+        print { $build_in } ": $date\n";
+        print { $build_in } "$step\n";
+    }
+
+    my $status = -1;
+    eval { close $build_in; $status = $? };
+
+    if(WIFEXITED($?)) {
+        return WEXITSTATUS($?);
+    } else {
+        return -1;
+    }
+}
+
+sub error_debug_info {
+    my ($pkg, $status) = @_;
+
+    print "$pkg->{name} failed to build for ", target(), "\n";
+    print "Last lines of log file:\n";
+    system('tail', pkg_build_log($pkg));
+}
+
+
+sub pkg_register_completion {
+    my ($pkg) = @_;
+
+    open (my $ribbon_fh, '>', pkg_completion_ribbon($pkg));
+    close $ribbon_fh;
 }
 
 sub setup_build_shell {
@@ -304,7 +355,7 @@ sub download_tarball {
 
         File::Path::make_path($vc3_distfiles);
 
-        # disable noisy stderr from file fetch
+        # disable noisy stderr from File::Fetch
         use vars qw(*OLDER);
         open OLDERR, ">&STDERR";
         open STDERR, ">/dev/null";
@@ -371,7 +422,7 @@ sub append_environment {
 
     my $root_name = 'VC3_' . uc($pkg->{name}) . '_ROOT';
 
-    $vc3_environment->{$root_name} = pkg_prefix($pkg);
+    $vc3_environment->{$root_name} = pkg_destination_dir($pkg);
     $ENV{$root_name} = $vc3_environment->{$root_name};
 
     my $appends = $pkg->{env_append}
@@ -380,7 +431,7 @@ sub append_environment {
     for my $varname (keys %{$appends}) {
         $vc3_environment->{$varname} = {} unless $vc3_environment;
 
-        my $value = pkg_prefix($pkg) . '/' . $appends->{$varname};
+        my $value = pkg_destination_dir($pkg) . '/' . $appends->{$varname};
 
         # we keep a hash as a set of added paths of environment variables
         $vc3_environment->{$varname}{$value} = 1;

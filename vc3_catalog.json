@@ -15,7 +15,7 @@
 
     "cctools":[
         {
-            "version":"v5.4.13a",
+            "version":"v5.4.13",
             "name":"cctools",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",

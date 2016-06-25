@@ -231,7 +231,7 @@ sub build_tarball {
             print "details in $building_info\n";
 
             if($sh_on_error) {
-                exec("/bin/sh -c 'cd ${build} && exec /bin/sh'");
+                exec("/bin/sh -c 'cd ${build} && exec /bin/bash'");
             }
 
             exit $?;

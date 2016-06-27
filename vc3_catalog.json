@@ -3,7 +3,6 @@
         {
             "version":"v5.4.13",
             "name":"parrot",
-            "type":"subsumed",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "dependencies":{
@@ -18,21 +17,28 @@
         {
             "version":"v5.4.13",
             "name":"cctools",
-            "type":"tarball",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
-            "source":{
-                "tarball":"cctools-5.4.13a-source.tar.gz",
-                "recipe":[
-                    "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --without-system-umbrella",
-                    "make",
-                    "make install"
-                ]
-            },
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"cctools-5.4.13a-sources.tar.gz",
+                    "recipe":[
+                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --without-system-umbrella",
+                        "make",
+                        "make install"
+                    ],
+                    "dependencies":{
+                        "swig":[
+                            "v3.0"
+                        ],
+                        "cvmfs":[
+                            "v2.2"
+                        ]
+                    }
+                }
+            ],
             "dependencies":{
-                "swig":[
-                    "v3.0"
-                ],
                 "python":[
                     "v2.6"
                 ],
@@ -41,15 +47,14 @@
                 ],
                 "zlib":[
                     "v1.2"
-                ],
-                "cvmfs":[
-                    "v2.2"
                 ]
             },
-            "env_append":{
+            "env_to_append":{
                 "PATH":"bin",
                 "PYTHONPATH":"lib/python2.7/site-packages",
-                "PERL5LIB":"lib/perl5/site_perl/5.22.1",
+                "PERL5LIB":"lib/perl5/site_perl/5.22.1"
+            },
+            "env_to_set":{
                 "HTTP_PROXY":"http://cache01.hep.wisc.edu:3128"
             }
         }
@@ -59,30 +64,32 @@
         {
             "version":"v3.0.2",
             "name":"swig",
-            "type":"tarball",
             "versioncmd":"swig -version",
             "versionreg":"SWIG Version ([0-9.]*)",
-            "source":{
-                "tarball":"swig-3.0.2.tar.gz",
-                "recipe":[
-                    "./configure --prefix=${VC3_PREFIX}",
-                    "make",
-                    "make install"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"swig-3.0.2.tar.gz",
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX}",
+                        "make",
+                        "make install"
+                    ],
+                    "dependencies":{
+                        "python":[
+                            "v2.6"
+                        ],
+                        "perl":[
+                            "v5.8"
+                        ],
+                        "pcre":[
+                            "v8.34"
+                        ]
+                    }
+                }
+            ],
+            "env_to_append":{
                 "PATH":"bin"
-            },
-            "dependencies":{
-                "python":[
-                    "v2.6"
-                ],
-                "perl":[
-                    "v5.8"
-                ],
-                "pcre":[
-                    "v8.34"
-                ]
             }
         }
     ],
@@ -91,18 +98,20 @@
         {
             "version":"v3.0.2",
             "name":"cmake",
-            "type":"tarball",
             "versioncmd":"cmake --version",
             "versionreg":"cmake version ([0-9.]*)",
-            "source":{
-                "tarball":"cmake-3.0.2.tar.gz",
-                "recipe":[
-                    "./bootstrap --prefix=${VC3_PREFIX}",
-                    "make",
-                    "make install"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"cmake-3.0.2.tar.gz",
+                    "recipe":[
+                        "./bootstrap --prefix=${VC3_PREFIX}",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "env_to_append":{
                 "PATH":"bin"
             }
         }
@@ -112,31 +121,33 @@
         {
             "version":"v2.2",
             "name":"cvmfs",
-            "type":"tarball",
-            "source":{
-                "tarball":"cvmfs.tar.gz",
-                "recipe":[
-                    "mkdir -p build",
-                    "cd build",
-                    "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
-                    "make libpacparser",
-                    "cd cvmfs",
-                    "make",
-                    "make install"
-                ]
-            },
-            "dependencies":{
-                "uuid":[
-                    "v1.0"
-                ],
-                "fuse":[
-                    "v2.9"
-                ],
-                "cmake":[
-                    "v3.0"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"cvmfs.tar.gz",
+                    "recipe":[
+                        "mkdir -p build",
+                        "cd build",
+                        "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
+                        "make libpacparser",
+                        "cd cvmfs",
+                        "make",
+                        "make install"
+                    ],
+                    "dependencies":{
+                        "uuid":[
+                            "v1.0"
+                        ],
+                        "fuse":[
+                            "v2.9"
+                        ],
+                        "cmake":[
+                            "v3.0"
+                        ]
+                    }
+                }
+            ],
+            "env_to_append":{
                 "LD_LIBRARY_PATH":"lib64"
             }
         }
@@ -146,16 +157,18 @@
         {
             "version":"v1.0.3",
             "name":"uuid",
-            "type":"tarball",
-            "source":{
-                "tarball":"libuuid-1.0.3.tar.gz",
-                "recipe":[
-                    "./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared",
-                    "make",
-                    "make install"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"libuuid-1.0.3.tar.gz",
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "env_to_append":{
                 "LD_LIBRARY_PATH":"lib",
                 "C_INCLUDE_DIR":"include",
                 "CPLUS_INCLUDE_PATH":"include"
@@ -167,16 +180,18 @@
         {
             "version":"v8.39",
             "name":"pcre",
-            "type":"tarball",
-            "source":{
-                "tarball":"pcre-8.39.tar.gz",
-                "recipe":[
-                    "./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared",
-                    "make",
-                    "make install"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"pcre-8.39.tar.gz",
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --enable-static --disable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "env_to_append":{
                 "PATH":"bin",
                 "LD_LIBRARY_PATH":"lib",
                 "C_INCLUDE_DIR":"include",
@@ -185,21 +200,22 @@
         }
     ],
 
-
     "fuse":[
         {
             "version":"v2.9.3",
             "name":"fuse",
-            "type":"tarball",
-            "source":{
-                "tarball":"fuse-2.9.3.tar.gz",
-                "recipe":[
-                    "./configure --prefix=${VC3_PREFIX}  --enable-lib --disable-util",
-                    "make",
-                    "make install"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"fuse-2.9.3.tar.gz",
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX}  --enable-lib --disable-util",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "env_to_append":{
                 "LD_LIBRARY_PATH":"lib",
                 "FUSE_LIBRARY":"lib",
                 "FUSE_INCLUDE_DIR":"include",
@@ -212,19 +228,73 @@
         {
             "version":"v5.24.0",
             "name":"perl",
-            "type":"tarball",
             "versioncmd":"perl -e 'print qq($^V)'",
             "versionreg":"(v[0-9.]*)",
-            "source":{
-                "tarball":"perl-5.24.0.tar.gz",
-                "recipe":[
-                    "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -des -A ccflags=-fPIC make",
-                    "make install"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"perl-5.24.0.tar.gz",
+                    "recipe":[
+                        "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -des -A ccflags=-fPIC make",
+                        "make install"
+                    ]
+                }
+            ],
+            "env_to_append":{
                 "PATH":"bin",
                 "PERL5LIB":"lib/perl5/site_perl/5.24.0"
+            }
+        }
+    ],
+
+    "cpanm":[
+        {
+            "version":"v1.7",
+            "name":"cpanm",
+            "sources":[
+                {
+                    "type":"generic",
+                    "file":"cpanm.distribution",
+                    "recipe":[
+                        "cat cpan.distributionm | perl - App::cpanminus"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-local-lib":[
+                    "v2.0"
+                ]
+            }
+        }
+    ],
+
+    "perl-local-lib":[
+        {
+            "version":"v2.000019",
+            "name":"perl-local-lib",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"local-lib-2.000019.tar.gz",
+                    "recipe":[
+                        "perl Makefile.PL --bootstrap=${VC3_PERL_LOCAL_MODULES}",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl":[
+                    "v5.10"
+                ]
+            },
+            "env_to_append": {
+                "PERL5LIB":"${VC3_PERL_ROOT}/local_modules",
+                "PATH":"${VC3_PERL_ROOT}/local_modules/bin",
+                "PERL_LOCAL_LIB_ROOT":"${VC3_PERL_ROOT}/local_modules"
+            },
+            "env_to_set": {
+                "PERL_MB_OPT":"--install_base ${VC3_PERL_ROOT}/local_modules",
+                "PERL_MM_OPT":"INSTALL_BASE=${VC3_PERL_ROOT}/local_modules"
             }
         }
     ],
@@ -233,19 +303,21 @@
         {
             "version":"v2.7.8",
             "name":"python",
-            "type":"tarball",
             "versioncmd":"python --version",
             "versionreg":"Python ([0-9.]*).*",
-            "source":{
-                "tarball":"Python-2.7.8.tgz",
-                "recipe":[
-                    "./configure --prefix=${VC3_PREFIX}",
-                    "make",
-                    "make install",
-                    "ln -s ${VC3_PREFIX}/bin/pydoc{,2}"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"Python-2.7.8.tgz",
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX}",
+                        "make",
+                        "make install",
+                        "ln -s ${VC3_PREFIX}/bin/pydoc{,2}"
+                    ]
+                }
+            ],
+            "env_to_append":{
                 "PYTHONPATH":"lib/python2.7/site-packages",
                 "PATH":"bin"
             }
@@ -256,16 +328,18 @@
         {
             "version":"v1.2.8",
             "name":"zlib",
-            "type":"tarball",
-            "source":{
-                "tarball":"zlib-1.2.8.tar.gz",
-                "recipe":[
-                    "./configure --prefix=${VC3_PREFIX} --static",
-                    "make",
-                    "make install"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"zlib-1.2.8.tar.gz",
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --static",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "env_to_append":{
                 "LD_LIBRARY_PATH":"lib",
                 "C_INCLUDE_DIR":"include",
                 "CPLUS_INCLUDE_PATH":"include"
@@ -277,22 +351,26 @@
         {
             "version":"v4.3.0",
             "name":"xrootd",
-            "type":"tarball",
-            "source":{
-                "tarball":"xrootd-4.3.0.tar.gz",
-                "recipe":[
-                    "mkdir -p build",
-                    "cd build",
-                    "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DCMAKE_INSTALL_LIBDIR=lib ..",
-                    "make",
-                    "make install",
-                    "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
-                ]
-            },
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"xrootd-4.3.0.tar.gz",
+                    "recipe":[
+                        "mkdir -p build",
+                        "cd build",
+                        "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DCMAKE_INSTALL_LIBDIR=lib ..",
+                        "make",
+                        "make install",
+                        "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
+                    ],
+                    "dependencies":{
+                        "cmake":[
+                            "v3.0"
+                        ]
+                    }
+                }
+            ],
             "dependencies":{
-                "cmake":[
-                    "v3.0"
-                ],
                 "perl":[
                     "v5.10"
                 ],
@@ -300,34 +378,7 @@
                     "v2.9"
                 ]
             },
-            "env_append":{
-                "PATH":"bin",
-                "LD_LIBRARY_PATH":"lib",
-                "C_INCLUDE_DIR":"include",
-                "CPLUS_INCLUDE_PATH":"include"
-            }
-        }
-    ],
-
-    "e2fsprogs": [
-        {
-            "version":"v1.43.1",
-            "name":"e2fsprogs",
-            "type":"tarball",
-            "source":{
-                "tarball":"e2fsprogs-libs-1.43.1.tar.gz",
-                "recipe":[
-                    "./configure --prefix=${VC3_PREFIX} --enable-symlink-install --enable-relative-symlinks CFLAGS=-fPIC LDFLAGS=-L${VC3_UUID_ROOT}/lib",
-                    "make",
-                    "make install"
-                ]
-            },
-            "dependencies":{
-                "uuid":[
-                    "v1.0"
-                ]
-            },
-            "env_append":{
+            "env_to_append":{
                 "PATH":"bin",
                 "LD_LIBRARY_PATH":"lib",
                 "C_INCLUDE_DIR":"include",
@@ -340,22 +391,24 @@
         {
             "version":"v3.0",
             "name":"irods",
-            "type":"tarball",
-            "source":{
-                "tarball":"irods3.0.tgz",
-                "recipe":[
-                    "mv * ${VC3_PREFIX}",
-                    "cd ${VC3_PREFIX}",
-                    "./scripts/configure",
-                    "make"
-                ]
-            },
-            "dependencies":{
-                "help2man":[
-                    "v1.0.0"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"irods3.0.tgz",
+                    "recipe":[
+                        "mv * ${VC3_PREFIX}",
+                        "cd ${VC3_PREFIX}",
+                        "./scripts/configure",
+                        "make"
+                    ],
+                    "dependencies":{
+                        "help2man":[
+                            "v1.0.0"
+                        ]
+                    }
+                }
+            ],
+            "env_to_append":{
                 "PATH":"clients/icommands/bin",
                 "LD_LIBRARY_PATH":"lib/core/obj",
                 "C_INCLUDE_DIR":"lib/api/include"
@@ -366,17 +419,19 @@
     "help2man":[
         {
             "name":"help2man",
-            "type":"tarball",
             "version":"v1.43.3",
-            "source":{
-                "tarball":"help2man-1.43.3.tar.gz",
-                "recipe":[
-                    "./configure --prefix=${VC3_PREFIX}",
-                    "make",
-                    "make install"
-                ]
-            },
-            "env_append":{
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"help2man-1.43.3.tar.gz",
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX}",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "env_to_append":{
                 "PATH":"bin"
             }
         }

@@ -6,6 +6,8 @@ use warnings;
 
 use autodie;
 
+use English qw/-mo_match_vars/;
+
 use Carp qw/carp croak/;
 use B;
 
@@ -18,11 +20,13 @@ use POSIX ":sys_wait_h";
 
 use Getopt::Long qw/GetOptions/;
 
+use Data::Dumper;
+
 my $vc3_root       = $ENV{VC3_ROOT}       || "vc3_root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$vc3_root/distfiles";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
 
-my @external_dependencies = qw/sh tail tar/;
+my @external_dependencies = qw/sh tail tar uname/;
 
 my $vc3_environment = {};
 
@@ -31,13 +35,13 @@ main();
 sub main {
     my $catalog      = 'vc3_catalog.json';
     my $print_help   = 0;
-    my $goal_version = 0;
     my $make_jobs    = 2;
     my $sh_on_error  = 0;
+    my $goal_env_version = 0;
 
     GetOptions(
         "catalog=s"      => \$catalog,
-        "goal-version=s" => \$goal_version,
+        "goal-version=s" => \$goal_env_version,
         "make-jobs=n"    => \$make_jobs,
         "sh-on-error"    => \$sh_on_error,
         "help"           => \$print_help,
@@ -48,10 +52,10 @@ sub main {
         exit 0;
     }
 
-    my ($goal_pkg, @command_and_args) = @ARGV;
+    my ($goal_env_name, @command_and_args) = @ARGV;
 
-    if(!$goal_pkg) {
-        print "No software goal given.\n\n" . usage();
+    if(!$goal_env_name) {
+        print "No goal environment given.\n\n" . usage();
         exit 1;
     }
 
@@ -65,12 +69,12 @@ sub main {
     $vc3_environment->{PATH}{'/usr/bin'} = 1;
 
     # disable stdout buffering
-    select(STDOUT); $| = 1;
+    select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $specs = decode_specs($catalog);
+    my $bundle = decode_bundle($catalog);
 
-    # recipes, goal, min-version, max-version
-    build_tarball($specs, $goal_pkg, $sh_on_error, $goal_version, $goal_version);
+    # bundle, goal, min-version, max-version
+    set_environment($bundle, $goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
 
     delete $ENV{VC3_PREFIX}; 
 
@@ -80,13 +84,13 @@ sub main {
 
 sub usage {
     return <<EOF;
-$0 [options] [--catalog software-recipes] software-goal [-- command-and-args]
+$0 [options] [--catalog software-bundle] goal-environment [-- command-and-args]
 
-    sofware-recipes  defaults to ./vc3_catalog.json
-    command-and-args defaults to /bin/sh
+    environment-bundle defaults to ./vc3_catalog.json
+    command-and-args    defaults to /bin/sh
 
     options are:
-    --make-jobs=n    default to 2
+    --make-jobs=n    default is 2
     --sh-on-error    on building error, run /bin/sh with the build environment
 
 Examples:
@@ -96,11 +100,11 @@ Examples:
 EOF
 }
 
-sub decode_specs {
+sub decode_bundle {
     my ($filename) = @_;
-    open( my $specs_f, '<:encoding(UTF-8)', $filename); 
-    my $contents = do { local($/); <$specs_f> };
-    close($specs_f);
+    open( my $bundle_f, '<:encoding(UTF-8)', $filename); 
+    my $contents = do { local($/); <$bundle_f> };
+    close($bundle_f);
 
     return JSON::Tiny::decode_json($contents);
 }
@@ -171,7 +175,7 @@ sub pkg_completion_ribbon {
 # range is: [min_version, max_version];
 # max_version is the prefered version. 
 # [version] is considered as [min_version]
-sub check_version {
+sub pkg_check_version {
     my ($pkg, @range) = @_;
 
     return 1 unless $pkg->{versioncmd};
@@ -197,11 +201,10 @@ sub check_version {
     return $observed_version;
 }
 
+sub set_environment {
+    my ($bundle, $pkg_name, $sh_on_error, $min_version, $max_version) = @_;
 
-sub build_tarball {
-    my ($specs, $pkg_name, $sh_on_error, $min_version, $max_version) = @_;
-
-    my $pkg_versions = $specs->{$pkg_name} 
+    my $pkg_versions = $bundle->{$pkg_name} 
     || croak "I do not know anything about '$pkg_name'.";
 
     my $pkg = select_version($pkg_name, $pkg_versions, $min_version, $max_version);
@@ -209,51 +212,67 @@ sub build_tarball {
     if($pkg->{dependencies}) {
         for my $dependency (keys %{$pkg->{dependencies}}) {
             my ($min_dep_ver, $max_dep_ver) = @{$pkg->{dependencies}{$dependency}};
-            build_tarball($specs, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
-        }
-    }
-
-    my $tarball_spec = $pkg->{source};
-    unless(-f pkg_completion_ribbon($pkg) || !$tarball_spec) {
-        my $name   = File::Basename::basename(pkg_destination_dir($pkg));
-
-        my $recipe = $tarball_spec->{recipe}
-        || croak "No recipe to build $name.";
-
-        my $tarball = download_tarball($pkg);
-
-        my $build = pkg_build_dir($pkg);
-        if( -d $build ) {
-            File::Path::rmtree($build);
-        }
-
-        print "Expanding $tarball\n";
-        my $sh_out;
-        File::Path::make_path(pkg_destination_dir($pkg));
-        $sh_out = qx(mkdir -p ${build} && /bin/tar -C ${build} --strip-components=1 -xpf ${tarball});
-        if($?) {
-            croak "Could not expand tarball $tarball:\n$sh_out\n";
-        }
-
-        print "Building $pkg->{name} from $tarball for ", target, "\n";
-        print "for building details:\ntail -f " . pkg_build_log($pkg) . "\n";
-
-        my $status = pkg_execute_recipe($pkg);
-
-        if($status) {
-            error_debug_info($pkg, $status, $sh_on_error);
-
-            if($sh_on_error) {
-                exec("/bin/sh -c 'cd ${build} && exec /bin/bash'");
-            } else {
-                exit $status;
-            } 
-        } else {
-            pkg_register_completion($pkg);
+            set_environment($bundle, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
         }
     }
 
     append_environment($pkg);
+
+    my $status;
+    eval {
+        if($pkg->{type} eq 'tarball') {
+            $status = build_tarball($pkg);
+        }
+        elsif($pkg->{type} eq 'service') {
+            ...;
+        }
+        elsif($pkg->{type} eq 'somethingelse') {
+            ...;
+        }
+    };
+
+    return pkg_process_error($pkg, $sh_on_error, $EVAL_ERROR, $status);
+}
+
+sub build_tarball {
+    my ($pkg) = @_;
+
+    my $tarball_spec = $pkg->{source}
+    || croak "No source defined for $pkg->{name}.";
+
+    # nothing to do, so we return no error:
+    return 0 if -f pkg_completion_ribbon($pkg);
+
+    my $name   = File::Basename::basename(pkg_destination_dir($pkg));
+
+    my $recipe = $tarball_spec->{recipe}
+    || croak "No recipe to build $name.";
+
+    my $tarball = download_tarball($pkg);
+
+    my $build = pkg_build_dir($pkg);
+    if( -d $build ) {
+        File::Path::rmtree($build);
+    }
+
+    print "Expanding $tarball\n";
+    my $sh_out;
+    File::Path::make_path(pkg_destination_dir($pkg));
+    $sh_out = qx(mkdir -p ${build} && /bin/tar -C ${build} --strip-components=1 -xpf ${tarball});
+    if($?) {
+        croak "Could not expand tarball $tarball:\n$sh_out\n";
+    }
+
+    print "Building $pkg->{name} from $tarball for ", target, "\n";
+    print "for building details:\ntail -f " . pkg_build_log($pkg) . "\n";
+
+    my $status = pkg_execute_recipe($pkg);
+
+    if($status == 0) {
+        pkg_create_ribbon($pkg);
+    }
+
+    return $status;
 }
 
 sub pkg_execute_recipe {
@@ -290,7 +309,7 @@ sub pkg_execute_recipe {
 }
 
 sub error_debug_info {
-    my ($pkg, $status) = @_;
+    my ($pkg) = @_;
 
     print "$pkg->{name} failed to build for ", target(), "\n";
     print "Last lines of log file:\n";
@@ -298,7 +317,25 @@ sub error_debug_info {
 }
 
 
-sub pkg_register_completion {
+sub pkg_process_error {
+    my ($pkg, $sh_on_error, $eval_error, $status) = @_;
+
+    if($eval_error || $status) {
+        error_debug_info($pkg);
+
+        if($sh_on_error) {
+            carp $@ if $@;
+            exec("/bin/sh -c 'cd " . pkg_build_dir($pkg) . " && exec \${SHELL:-/bin/sh}'");
+        } else {
+            croak $@ if $@;
+            exit $status;
+        }
+    } else {
+        return 0;
+    }
+}
+
+sub pkg_create_ribbon {
     my ($pkg) = @_;
 
     open (my $ribbon_fh, '>', pkg_completion_ribbon($pkg));

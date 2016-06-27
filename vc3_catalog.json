@@ -3,6 +3,7 @@
         {
             "version":"v5.4.13",
             "name":"parrot",
+            "type":"subsumed",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "dependencies":{
@@ -17,12 +18,13 @@
         {
             "version":"v5.4.13",
             "name":"cctools",
+            "type":"tarball",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "source":{
                 "tarball":"cctools-5.4.13a-source.tar.gz",
                 "recipe":[
-                    "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-irods-path ${VC3_IRODS_ROOT} --with-xrootd-path ${VC3_XROOTD_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --without-system-umbrella",
+                    "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --without-system-umbrella",
                     "make",
                     "make install"
                 ]
@@ -39,12 +41,6 @@
                 ],
                 "zlib":[
                     "v1.2"
-                ],
-                "irods":[
-                    "v3.0"
-                ],
-                "xrootd":[
-                    "v3.0", "v4.3"
                 ],
                 "cvmfs":[
                     "v2.2"
@@ -63,6 +59,7 @@
         {
             "version":"v3.0.2",
             "name":"swig",
+            "type":"tarball",
             "versioncmd":"swig -version",
             "versionreg":"SWIG Version ([0-9.]*)",
             "source":{
@@ -94,6 +91,7 @@
         {
             "version":"v3.0.2",
             "name":"cmake",
+            "type":"tarball",
             "versioncmd":"cmake --version",
             "versionreg":"cmake version ([0-9.]*)",
             "source":{
@@ -114,6 +112,7 @@
         {
             "version":"v2.2",
             "name":"cvmfs",
+            "type":"tarball",
             "source":{
                 "tarball":"cvmfs.tar.gz",
                 "recipe":[
@@ -147,6 +146,7 @@
         {
             "version":"v1.0.3",
             "name":"uuid",
+            "type":"tarball",
             "source":{
                 "tarball":"libuuid-1.0.3.tar.gz",
                 "recipe":[
@@ -167,6 +167,7 @@
         {
             "version":"v8.39",
             "name":"pcre",
+            "type":"tarball",
             "source":{
                 "tarball":"pcre-8.39.tar.gz",
                 "recipe":[
@@ -189,6 +190,7 @@
         {
             "version":"v2.9.3",
             "name":"fuse",
+            "type":"tarball",
             "source":{
                 "tarball":"fuse-2.9.3.tar.gz",
                 "recipe":[
@@ -210,6 +212,7 @@
         {
             "version":"v5.24.0",
             "name":"perl",
+            "type":"tarball",
             "versioncmd":"perl -e 'print qq($^V)'",
             "versionreg":"(v[0-9.]*)",
             "source":{
@@ -230,6 +233,7 @@
         {
             "version":"v2.7.8",
             "name":"python",
+            "type":"tarball",
             "versioncmd":"python --version",
             "versionreg":"Python ([0-9.]*).*",
             "source":{
@@ -252,6 +256,7 @@
         {
             "version":"v1.2.8",
             "name":"zlib",
+            "type":"tarball",
             "source":{
                 "tarball":"zlib-1.2.8.tar.gz",
                 "recipe":[
@@ -272,6 +277,7 @@
         {
             "version":"v4.3.0",
             "name":"xrootd",
+            "type":"tarball",
             "source":{
                 "tarball":"xrootd-4.3.0.tar.gz",
                 "recipe":[
@@ -307,6 +313,7 @@
         {
             "version":"v1.43.1",
             "name":"e2fsprogs",
+            "type":"tarball",
             "source":{
                 "tarball":"e2fsprogs-libs-1.43.1.tar.gz",
                 "recipe":[
@@ -333,6 +340,7 @@
         {
             "version":"v3.0",
             "name":"irods",
+            "type":"tarball",
             "source":{
                 "tarball":"irods3.0.tgz",
                 "recipe":[
@@ -358,6 +366,7 @@
     "help2man":[
         {
             "name":"help2man",
+            "type":"tarball",
             "version":"v1.43.3",
             "source":{
                 "tarball":"help2man-1.43.3.tar.gz",

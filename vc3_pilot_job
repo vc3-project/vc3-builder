@@ -6,19 +6,22 @@ use warnings;
 
 use autodie;
 
+package VC3::Bag; 
+
+use B;
+use Carp qw/carp croak/;
+
 use English qw/-mo_match_vars/;
 
-use Carp qw/carp croak/;
-use B;
-
 use File::Basename;
+use File::Copy;
 use File::Fetch;
 use File::Path;
 use File::Spec;
 
-use POSIX ":sys_wait_h";
-
 use Getopt::Long qw/GetOptions/;
+
+use version;
 
 use Data::Dumper;
 
@@ -31,6 +34,24 @@ my @external_dependencies = qw/sh tail tar uname/;
 my $vc3_environment = {};
 
 main();
+
+sub usage {
+    return <<EOF;
+$0 [options] [--catalog software-bag] goal-environment [-- command-and-args]
+
+    environment-bag defaults to ./vc3_catalog.json
+    command-and-args    defaults to /bin/sh
+
+    options are:
+    --make-jobs=n    default is 2
+    --sh-on-error    on building error, run /bin/sh with the build environment
+
+Examples:
+    $0 parrot -- parrot_run python examples/read-file-from-cvmfs.py
+    $0 python -- /bin/sh
+
+EOF
+}
 
 sub main {
     my $catalog      = 'vc3_catalog.json';
@@ -71,10 +92,10 @@ sub main {
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bundle = decode_bundle($catalog);
+    my $bag = decode_bag($catalog);
 
-    # bundle, goal, min-version, max-version
-    set_environment($bundle, $goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
+    # bag, goal, min-version, max-version
+    set_environment($bag, $goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
 
     delete $ENV{VC3_PREFIX}; 
 
@@ -82,329 +103,55 @@ sub main {
     exec qq(@command_and_args);
 }
 
-sub usage {
-    return <<EOF;
-$0 [options] [--catalog software-bundle] goal-environment [-- command-and-args]
-
-    environment-bundle defaults to ./vc3_catalog.json
-    command-and-args    defaults to /bin/sh
-
-    options are:
-    --make-jobs=n    default is 2
-    --sh-on-error    on building error, run /bin/sh with the build environment
-
-Examples:
-    $0 parrot -- parrot_run python examples/read-file-from-cvmfs.py
-    $0 python -- /bin/sh
-
-EOF
-}
-
-sub decode_bundle {
+sub decode_bag {
     my ($filename) = @_;
-    open( my $bundle_f, '<:encoding(UTF-8)', $filename); 
-    my $contents = do { local($/); <$bundle_f> };
-    close($bundle_f);
+    open( my $bag_f, '<:encoding(UTF-8)', $filename); 
+    my $contents = do { local($/); <$bag_f> };
+    close($bag_f);
 
-    return JSON::Tiny::decode_json($contents);
-}
+    my $bag_raw = JSON::Tiny::decode_json($contents);
 
-sub architecture {
-    chomp (my $architecture = qx(/bin/uname -m));
-    $architecture
-}
-
-# reads /etc/readhat-release and transforms something like:
-# 'Red Hat Enterprise Linux Server release 6.5 (Santiago)'
-# into 'redhat6'.
-sub distribution {
-    my $distribution='non-redhat';
+    my $bag = {};
     
-    if (-f '/etc/redhat-release') {
-	open (my $file_fh, '<', '/etc/redhat-release');
-	my $redhat_version_line = <$file_fh>;
-	
-	$redhat_version_line =~ /\brelease\b\s+([0-9]+)\b/;
-	my $redhat_version = $1;
-
-	die 'Could not find redhat version!' unless $redhat_version;
-	
-	$distribution="redhat${redhat_version}"
-    }
-    
-    $distribution;
-}
-
-sub target {
-    my $target = architecture . '/' . distribution;
-    $target
-}
-
-sub pkg_destination_dir {
-    my ($pkg) = @_;
-
-    if($pkg && $pkg->{name}) {
-        return File::Spec->rel2abs($vc3_root) . '/' . target() . '/' . $pkg->{name} . '-' . $pkg->{version};
-    } else {
-        croak "name not specified!\n"
-    }
-}
-
-sub pkg_build_dir {
-    my ($pkg) = @_;
-    my $build_dir = "${vc3_root}/builds/$pkg->{name}";
-
-    return $build_dir;
-}
-
-
-sub pkg_build_log {
-    my ($pkg) = @_;
-    my $log_name = pkg_destination_dir($pkg) . '/' . $pkg->{name} . '-build-log';
-
-    return $log_name;
-}
-
-sub pkg_completion_ribbon {
-    my ($pkg) = @_;
-    my $ribbon = pkg_destination_dir($pkg) . '/.VC3_DEPENDENCY_BUILD_COMPLETE';
-
-    return $ribbon;
-}
-
-# range is: [min_version, max_version];
-# max_version is the prefered version. 
-# [version] is considered as [min_version]
-sub pkg_check_version {
-    my ($pkg, @range) = @_;
-
-    return 1 unless $pkg->{versioncmd};
-    return 1 unless $pkg->{version} || @range > 0;
-
-    if(@range == 0) {
-        @range = (version->parse($pkg->{version}));
+    for my $gizmo_name (keys %{$bag_raw}) {
+        my @versions = map { VC3::Gizmo->new($_) } @{$bag_raw->{$gizmo_name}};
+        $bag->{$gizmo_name} = \@versions;
     }
 
-    my $reg = $pkg->{versionreg} ? $pkg->{versionreg} : qr/(.*)/;
-
-    my $version_output = qx/$pkg->{versioncmd}/;
-
-    return 0 unless $version_output =~ $reg;
-
-    my ($observed_version) = version->parse("$1");
-
-    print $observed_version . "\n";
-
-    return 0 if $observed_version < $range[0];
-    return 0 if $observed_version > $range[$#range];
-
-    return $observed_version;
+    return $bag;
 }
 
 sub set_environment {
-    my ($bundle, $pkg_name, $sh_on_error, $min_version, $max_version) = @_;
+    my ($bag, $gizmo_name, $sh_on_error, $min_version, $max_version) = @_;
 
-    my $pkg_versions = $bundle->{$pkg_name} 
-    || croak "I do not know anything about '$pkg_name'.";
+    my $gizmo_versions = $bag->{$gizmo_name}
+    || croak "I do not know anything about '$gizmo_name'.";
 
-    my $pkg = select_version($pkg_name, $pkg_versions, $min_version, $max_version);
+    my $gizmo = select_version($gizmo_name, $gizmo_versions, $min_version, $max_version);
 
-    if($pkg->{dependencies}) {
-        for my $dependency (keys %{$pkg->{dependencies}}) {
-            my ($min_dep_ver, $max_dep_ver) = @{$pkg->{dependencies}{$dependency}};
-            set_environment($bundle, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
+    if($gizmo->dependencies) {
+        for my $dependency (keys %{$gizmo->{dependencies}}) {
+            my ($min_dep_ver, $max_dep_ver) = @{$gizmo->{dependencies}{$dependency}};
+            set_environment($bag, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
         }
     }
 
-    append_environment($pkg);
+    $gizmo->append_env_variables;
+    $gizmo->set_env_variables;
 
     my $status;
-    eval {
-        if($pkg->{type} eq 'tarball') {
-            $status = build_tarball($pkg);
-        }
-        elsif($pkg->{type} eq 'service') {
-            ...;
-        }
-        elsif($pkg->{type} eq 'somethingelse') {
-            ...;
-        }
-    };
+    for my $source (@{$gizmo->sources}) {
+        eval {$status = $source->execute_recipe(); };
+        
+        $status = -1 if $EVAL_ERROR;
 
-    return pkg_process_error($pkg, $sh_on_error, $EVAL_ERROR, $status);
-}
-
-sub build_tarball {
-    my ($pkg) = @_;
-
-    my $tarball_spec = $pkg->{source}
-    || croak "No source defined for $pkg->{name}.";
-
-    # nothing to do, so we return no error:
-    return 0 if -f pkg_completion_ribbon($pkg);
-
-    my $name   = File::Basename::basename(pkg_destination_dir($pkg));
-
-    my $recipe = $tarball_spec->{recipe}
-    || croak "No recipe to build $name.";
-
-    my $tarball = download_tarball($pkg);
-
-    my $build = pkg_build_dir($pkg);
-    if( -d $build ) {
-        File::Path::rmtree($build);
+        $gizmo->process_error($sh_on_error, $EVAL_ERROR, $status);
     }
 
-    print "Expanding $tarball\n";
-    my $sh_out;
-    File::Path::make_path(pkg_destination_dir($pkg));
-    $sh_out = qx(mkdir -p ${build} && /bin/tar -C ${build} --strip-components=1 -xpf ${tarball});
-    if($?) {
-        croak "Could not expand tarball $tarball:\n$sh_out\n";
-    }
-
-    print "Building $pkg->{name} from $tarball for ", target, "\n";
-    print "for building details:\ntail -f " . pkg_build_log($pkg) . "\n";
-
-    my $status = pkg_execute_recipe($pkg);
-
-    if($status == 0) {
-        pkg_create_ribbon($pkg);
-    }
-
-    return $status;
-}
-
-sub pkg_execute_recipe {
-    my ($pkg) = @_;
-
-    # set the destination directory as an environment variable before
-    # setting up the shell, so that the child created inherets it.
-    $ENV{'VC3_PREFIX'} = pkg_destination_dir($pkg);
-
-    my ($build_in, $pid) = setup_build_shell($pkg);
-
-    my @steps = @{$pkg->{source}{recipe}};
-
-    # add shifting to build directory as the first step.
-    unshift @steps, 'cd ' . pkg_build_dir($pkg);
-
-    # add exiting cleanly from shell as a last step.
-    push @steps, 'exit 0';
-
-    for my $step (@steps) {
-        my $date = gmtime();
-        print { $build_in } ": $date\n";
-        print { $build_in } "$step\n";
-    }
-
-    my $status = -1;
-    eval { close $build_in; $status = $? };
-
-    if(WIFEXITED($?)) {
-        return WEXITSTATUS($?);
-    } else {
-        return -1;
+    if($status) {
+        croak "Could not build '" . $gizmo->name . "' succesfully'.";
     }
 }
-
-sub error_debug_info {
-    my ($pkg) = @_;
-
-    print "$pkg->{name} failed to build for ", target(), "\n";
-    print "Last lines of log file:\n";
-    system('tail', pkg_build_log($pkg));
-}
-
-
-sub pkg_process_error {
-    my ($pkg, $sh_on_error, $eval_error, $status) = @_;
-
-    if($eval_error || $status) {
-        error_debug_info($pkg);
-
-        if($sh_on_error) {
-            carp $@ if $@;
-            exec("/bin/sh -c 'cd " . pkg_build_dir($pkg) . " && exec \${SHELL:-/bin/sh}'");
-        } else {
-            croak $@ if $@;
-            exit $status;
-        }
-    } else {
-        return 0;
-    }
-}
-
-sub pkg_create_ribbon {
-    my ($pkg) = @_;
-
-    open (my $ribbon_fh, '>', pkg_completion_ribbon($pkg));
-    close $ribbon_fh;
-}
-
-sub setup_build_shell {
-    my ($pkg) = @_;
-
-    my ($build_log, $build_in);
-
-    # log the recipe used. Since we are opening sh with -e, the recipe executes
-    # as if all steps were &&-ed together.
-    my $recipe = $pkg->{source}{recipe};
-
-    open $build_log,    '>', pkg_build_log($pkg);
-    print { $build_log } join("\n && ", @{$recipe}) . "\n";
-    close $build_log;
-
-    # open sh with -e. This terminates the shell at the first step that returns
-    # a non-zero status.
-    my $pid = open($build_in, '|-', '/bin/sh -e');
-
-    croak 'Could not open /bin/sh for building.'
-    unless $build_in;
-
-    # redirect all output to our log file.
-    print { $build_in } 'exec 1>> ' . pkg_build_log($pkg) . "\n";
-    print { $build_in } "exec 2>&1\n";
-
-    # print some debug shell information (e.g., the step about to be executed).
-    print { $build_in } "set -x\n";
-
-    # return the stdin of the shell, and the pid so we can wait for it.
-    return ($build_in, $pid);
-}
-
-sub download_tarball {
-    my ($pkg) = @_;
-
-    my $tarball_spec = $pkg->{source}
-    || croak 'No source defined for ' . $pkg->{name};
-
-    unless($tarball_spec->{tarball}) {
-        croak 'No tarball is defined for ' . $pkg->{name};
-    }
-
-    my $tarball_name = $tarball_spec->{tarball};
-    my $tarball_full = File::Spec->rel2abs( $vc3_distfiles . '/' . $tarball_name);
-
-    unless(-f $tarball_full) {
-        print "Downloading $pkg->{name} from $vc3_repository\n";
-        my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $tarball_name);
-
-        File::Path::make_path($vc3_distfiles);
-
-        # disable noisy stderr from File::Fetch
-        use vars qw(*OLDER);
-        open OLDERR, ">&STDERR";
-        open STDERR, ">/dev/null";
-        $ff->fetch( to => $vc3_distfiles );
-        open STDERR, ">&OLDERR";
-    }
-
-    croak "Could not download $tarball_full!" unless -f $tarball_full;
-    return $tarball_full;
-}
-
-use version;
 
 # versions available, min desired version, max desired version
 sub select_version {
@@ -454,21 +201,153 @@ sub select_version {
     . "]\n";
 }
 
-sub append_environment {
-    my ($pkg) = @_; 
 
-    my $root_name = 'VC3_' . uc($pkg->{name}) . '_ROOT';
 
-    $vc3_environment->{$root_name} = pkg_destination_dir($pkg);
-    $ENV{$root_name} = $vc3_environment->{$root_name};
+sub architecture {
+    chomp (my $architecture = qx(/bin/uname -m));
+    $architecture
+}
 
-    my $appends = $pkg->{env_append}
+# reads /etc/readhat-release and transforms something like:
+# 'Red Hat Enterprise Linux Server release 6.5 (Santiago)'
+# into 'redhat6'.
+sub distribution {
+    my $distribution='non-redhat';
+    
+    if (-f '/etc/redhat-release') {
+	open (my $file_fh, '<', '/etc/redhat-release');
+	my $redhat_version_line = <$file_fh>;
+	
+	$redhat_version_line =~ /\brelease\b\s+([0-9]+)\b/;
+	my $redhat_version = $1;
+
+	die 'Could not find redhat version!' unless $redhat_version;
+	
+	$distribution="redhat${redhat_version}"
+    }
+    
+    return $distribution;
+}
+
+sub target {
+    my $target = architecture . '/' . distribution;
+    return $target;
+}
+
+package VC3::Gizmo;
+use Carp;
+use Data::Dumper;
+
+# Attributes:
+# name, version, sources, dependencies, env_to_append, env_to_set
+sub new {
+    my ($class, $json_description) = @_;
+
+    my $self = bless {}, $class;
+
+    $self->name($json_description->{name});
+    $self->version($json_description->{version});
+    $self->sources($json_description->{sources});
+    $self->dependencies($json_description->{dependencies});
+    $self->env_to_append($json_description->{env_to_append});
+    $self->env_to_set($json_description->{env_to_set});
+
+    return $self;
+}
+
+sub name {
+    my ($self, $new_name) = @_;
+
+    $self->{name} = $new_name if($new_name);
+
+    croak 'No name given'
+    unless($self->{name}); 
+
+    return $self->{name};
+}
+
+sub version {
+    my ($self, $new_version) = @_;
+
+    $self->{version} = $new_version if($new_version);
+
+    croak 'No version given'
+    unless($self->{version}); 
+
+    return $self->{version};
+}
+
+sub dependencies {
+    my ($self, $new_dependencies) = @_;
+
+    $self->{dependencies} = $new_dependencies if($new_dependencies);
+
+    return $self->{dependencies};
+}
+
+sub sources {
+    my ($self, $new_sources) = @_;
+
+    if($new_sources) {
+        my @sources = map { VC3::Source->new($self, $_) } @{$new_sources};
+        $self->{sources} = \@sources;
+    }
+
+    return $self->{sources};
+}
+
+sub env_to_append {
+    my ($self, $new_appends) = @_;
+
+    $self->{env_to_append} = $new_appends if($new_appends);
+
+    return $self->{env_to_append};
+}
+
+sub env_to_set {
+    my ($self, $new_sets) = @_;
+
+    $self->{env_to_set} = $new_sets if($new_sets);
+
+    return $self->{env_to_set};
+}
+
+sub destination_dir {
+    my ($self) = @_;
+    return File::Spec->rel2abs($vc3_root) . '/' . VC3::Bag->target . '/' . $self->name . '-' . $self->version;
+}
+
+sub build_dir {
+    my ($self) = @_;
+    my $build_dir = "${vc3_root}/builds/" . $self->name;
+
+    return $build_dir;
+}
+
+sub build_log {
+    my ($self) = @_;
+    my $log_name = $self->destination_dir . '/' . $self->name . '-build-log';
+
+    return $log_name;
+}
+
+sub completion_ribbon {
+    my ($self) = @_;
+    my $ribbon = $self->destination_dir . '/.VC3_DEPENDENCY_BUILD_COMPLETE';
+
+    return $ribbon;
+}
+
+sub append_env_variables {
+    my ($self) = @_; 
+
+    my $appends = $self->env_to_append
     || return;
 
     for my $varname (keys %{$appends}) {
         $vc3_environment->{$varname} = {} unless $vc3_environment;
 
-        my $value = pkg_destination_dir($pkg) . '/' . $appends->{$varname};
+        my $value = $self->destination_dir . '/' . $appends->{$varname};
 
         # we keep a hash as a set of added paths of environment variables
         $vc3_environment->{$varname}{$value} = 1;
@@ -476,6 +355,339 @@ sub append_environment {
         my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment->{$varname}});
         $ENV{$varname} = $dotted;
     }
+}
+
+sub set_env_variables {
+    my ($self) = @_; 
+
+    my $root_name = 'VC3_' . uc($self->name) . '_ROOT';
+
+    $vc3_environment->{$root_name} = $self->destination_dir;
+    $ENV{$root_name} = $vc3_environment->{$root_name};
+
+    my $appends = $self->env_to_append
+    || return;
+
+    for my $varname (keys %{$appends}) {
+        $vc3_environment->{$varname} = {} unless $vc3_environment;
+
+        my $value = $self->destination_dir . '/' . $appends->{$varname};
+
+        # we keep a hash as a set of added paths of environment variables
+        $vc3_environment->{$varname}{$value} = 1;
+
+        my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment->{$varname}});
+        $ENV{$varname} = $dotted;
+    }
+}
+
+
+# range is: [min_version, max_version];
+# max_version is the prefered version. 
+# [version] is considered as [min_version]
+# sub check_version {
+#     my ($self, @range) = @_;
+# 
+#     return 1 unless $self->versioncmd;
+#     return 1 unless $self->version || @range > 0;
+# 
+#     if(@range == 0) {
+#         @range = (version->parse($self->{version}));
+#     }
+# 
+#     my $reg = $self->{versionreg} ? $self->{versionreg} : qr/(.*)/;
+# 
+#     my $version_output = qx/$self->{versioncmd}/;
+# 
+#     return 0 unless $version_output =~ $reg;
+# 
+#     my ($observed_version) = version->parse("$1");
+# 
+#     print $observed_version . "\n";
+# 
+#     return 0 if $observed_version < $range[0];
+#     return 0 if $observed_version > $range[$#range];
+# 
+#     return $observed_version;
+# }
+
+sub error_debug_info {
+    my ($self) = @_;
+
+    print "'" . $self->name . "' failed to build for ", VC3::Bag::target, "\n";
+    print "Last lines of log file:\n";
+    system('tail', $self->build_log);
+}
+
+
+sub process_error {
+    my ($self, $sh_on_error, $eval_error, $status) = @_;
+
+    if($eval_error || $status) {
+        $self->error_debug_info;
+
+        if($sh_on_error) {
+            carp $@ if $@;
+            my $pid = fork();
+            if($pid == 0) {
+                exec("/bin/sh -c 'cd " . $self->build_dir . " && exec \${SHELL:-/bin/sh}'");
+                exit -1;
+            } elsif($pid > 0) {
+                waitpid $pid, 0;
+            } else {
+                croak 'Could not fork for debugging shell.';
+            }
+        }
+    }
+}
+
+sub create_ribbon {
+    my ($self) = @_;
+
+    open (my $ribbon_fh, '>', $self->completion_ribbon);
+    close $ribbon_fh;
+}
+
+package VC3::Source;
+use Carp;
+
+sub new {
+    my ($class, $gizmo, $source_raw) = @_;
+
+    my $source;
+
+    if($source_raw->{type} eq 'tarball') {
+        $source = VC3::Source::Tarball->new($gizmo, $source_raw);
+    }
+    elsif($source_raw->{type} eq 'service') {
+        ...
+    }
+    elsif($source_raw->{type} eq 'generic') {
+        $source = VC3::Source::Generic->new($gizmo, $source_raw);
+    }
+    else {
+        croak "Do not about source type '" . $source_raw->{type} . "' for '" . $gizmo->name . "'";
+    }
+
+    return $source;
+}
+
+package VC3::Source::Generic;
+use Carp;
+use POSIX ":sys_wait_h";
+use Data::Dumper;
+
+sub new {
+    my ($class, $gizmo, $json_description) = @_;
+
+    my $self = bless {}, $class;
+
+    $self->gizmo($gizmo);
+    $self->recipe($json_description->{recipe});
+    $self->file($json_description->{file});
+    $self->dependencies($json_description->{dependencies});
+
+    return $self;
+}
+
+sub gizmo {
+    my ($self, $new_gizmo) = @_;
+
+    $self->{gizmo} = $new_gizmo if($new_gizmo);
+
+    croak 'No environment argument given'
+    unless($self->{gizmo}); 
+
+    return $self->{gizmo};
+}
+
+sub recipe {
+    my ($self, $new_recipe) = @_;
+
+    $self->{recipe} = $new_recipe if($new_recipe);
+
+    croak 'No recipe given'
+    unless($self->{recipe}); 
+
+    return $self->{recipe};
+}
+
+sub file {
+    my ($self, $new_file) = @_;
+
+    $self->{file} = $new_file if($new_file);
+
+    return $self->{file};
+}
+
+sub file_absolute {
+    my ($self) = @_;
+
+    return File::Spec->rel2abs( $vc3_distfiles . '/' . $self->file);
+}
+
+sub dependencies {
+    my ($self, $new_dependencies) = @_;
+
+    $self->{dependencies} = $new_dependencies if($new_dependencies);
+
+    return $self->{dependencies};
+}
+
+sub prepare_recipe_sandbox {
+    my ($self) = @_;
+
+    # if nothing to do, so we return no error:
+    return 0 if -f $self->gizmo->completion_ribbon();
+
+    # clear build directory, to avoid bugs from uncleaned sources.
+    my $build = $self->gizmo->build_dir;
+    if( -d $build ) {
+        File::Path::rmtree($build);
+    }
+
+    # clear destination directory, to make sure we are running what we believe
+    # we are running.
+    my $destination = $self->gizmo->destination_dir;
+    if( -d $destination ) {
+        File::Path::rmtree($destination);
+    }
+
+    # create the dirs we cleared above.
+    File::Path::make_path($self->gizmo->build_dir);
+    File::Path::make_path($self->gizmo->destination_dir);
+
+    # download to $vc3_distfiles the ingredient (i.e., input file) missing.
+    $self->get_recipe_ingredient;
+
+    # copy (or expand if tarball, etc.) input file to build directory
+    $self->prepare_recipe_ingredient;
+}
+
+sub get_recipe_ingredient {
+    my ($self) = @_;
+
+    if($self->file) {
+        unless(-f $self->file_absolute) {
+            print "Downloading '" . $self->gizmo->name . "' from $vc3_repository\n";
+            my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $self->file);
+
+            # make sure the destination directory exists
+            File::Path::make_path($vc3_distfiles);
+
+            # disable noisy stderr from File::Fetch
+            use vars qw(*OLDER);
+            open my $olderr, '>&STDERR';
+            open STDERR, '>', '/dev/null';
+            $ff->fetch( to => $vc3_distfiles );
+            open STDERR, '>&', $olderr;
+
+            croak "Could not download '" . $self->file . "'" unless(-f $self->file_absolute);
+        }
+    }
+}
+
+sub prepare_recipe_ingredient  {
+    my ($self) = @_;
+    File::Copy::copy($self->file_absolute, $self->gizmo->build_dir)
+    || croak "Could not copy '" . $self->file . "' to build directory.";
+}
+
+sub execute_recipe {
+    my ($self) = @_;
+
+    $self->prepare_recipe_sandbox();
+
+    # set the destination directory as an environment variable before
+    # setting up the shell, so that the child created inherets it.
+    $ENV{'VC3_PREFIX'} = $self->gizmo->destination_dir;
+
+    my ($build_in, $pid) = $self->setup_build_shell;
+
+    my @steps = @{$self->recipe};
+
+    # add shifting to build directory as the first step.
+    unshift @steps, 'cd ' . $self->gizmo->build_dir;
+
+    # add exiting cleanly from shell as a last step.
+    push @steps, 'exit 0';
+
+    print "Building for '" . $self->gizmo->name . "' from '" . $self->file . "' for ", VC3::Bag->target, "\n";
+    print "for building details:\ntail -f " . $self->gizmo->build_log . "\n";
+
+    for my $step (@steps) {
+        my $date = gmtime();
+        print { $build_in } ": $date\n";
+        print { $build_in } "$step\n";
+    }
+
+    my $status = -1;
+    eval { close $build_in; $status = $? };
+
+    if(WIFEXITED($?)) {
+        return WEXITSTATUS($?);
+    } else {
+        return -1;
+    }
+}
+
+sub setup_build_shell {
+    my ($self) = @_;
+
+    my ($build_log, $build_in);
+
+    print Dumper($self->gizmo->build_log);
+    # log the recipe used. Since we are opening sh with -e, the recipe executes
+    # as if all steps were &&-ed together.
+    open $build_log,    '>', $self->gizmo->build_log;
+    print { $build_log } join("\n && ", @{$self->recipe}) . "\n";
+    close $build_log;
+
+    # open sh with -e. This terminates the shell at the first step that returns
+    # a non-zero status.
+    my $pid = open($build_in, '|-', '/bin/sh -e');
+
+    croak 'Could not open /bin/sh for building.'
+    unless $build_in;
+
+    # redirect all output to our log file.
+    print { $build_in } 'exec 1>> ' . $self->gizmo->build_log . "\n";
+    print { $build_in } "exec 2>&1\n";
+
+    # print some debug shell information (e.g., the step about to be executed).
+    print { $build_in } "set -x\n";
+
+    # return the stdin of the shell, and the pid so we can wait for it.
+    return ($build_in, $pid);
+}
+
+package VC3::Source::Tarball;
+use base 'VC3::Source::Generic';
+use Carp;
+
+sub new {
+    my ($class, $gizmo, $json_description) = @_;
+
+    my $self = VC3::Source::Generic->new($gizmo, $json_description);
+
+    croak 'No tarball defined.'
+    unless $self->file;
+
+    $self = bless $self, $class;
+
+    return $self;
+}
+
+sub prepare_recipe_ingredient  {
+    my ($self) = @_;
+
+    my $build   = $self->gizmo->build_dir;
+    my $tarball = $self->file_absolute;
+
+    print "Expanding $tarball\n";
+    system(qq/tar -C ${build} --strip-components=1 -xpf ${tarball}/);
+
+    croak "Could not expand tarball $tarball." if $?;
 }
 
 package Perl::Version;

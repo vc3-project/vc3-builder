@@ -26,7 +26,7 @@ my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.or
 
 my @external_dependencies = qw/sh tail tar uname/;
 
-my $vc3_environment = {};
+my %vc3_environment;
 
 main();
 
@@ -81,8 +81,8 @@ sub main {
     }
 
     %ENV = (PATH => '/bin:/usr/bin', HOME => $ENV{PWD}, MAKEFLAGS => "-j${make_jobs}");
-    $vc3_environment->{PATH}{'/bin'} = 1;
-    $vc3_environment->{PATH}{'/usr/bin'} = 1;
+    $vc3_environment{PATH}->{'/bin'}     = 1;
+    $vc3_environment{PATH}->{'/usr/bin'} = 1;
 
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
@@ -109,7 +109,7 @@ sub decode_bag {
     my $bag = {};
     
     for my $widget_name (keys %{$bag_raw}) {
-        my @versions = map { VC3::Gizmo->new($_) } @{$bag_raw->{$widget_name}};
+        my @versions = map { VC3::Widget->new($_) } @{$bag_raw->{$widget_name}};
         $bag->{$widget_name} = \@versions;
     }
 
@@ -122,29 +122,53 @@ sub set_environment {
     my $widget_versions = $bag->{$widget_name}
     || croak "I do not know anything about '$widget_name'.";
 
+
     my $widget = select_version($widget_name, $widget_versions, $min_version, $max_version);
 
-    if($widget->dependencies) {
-        for my $dependency (keys %{$widget->{dependencies}}) {
-            my ($min_dep_ver, $max_dep_ver) = @{$widget->{dependencies}{$dependency}};
-            set_environment($bag, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
-        }
-    }
+    set_dependencies($bag, $sh_on_error, $widget->dependencies);
 
     $widget->append_env_variables;
     $widget->set_env_variables;
 
     my $status;
     for my $source (@{$widget->sources}) {
-        eval {$status = $widget->execute_recipe($source); };
-        
+
+        # save current environment so that we can rollback in case of error.
+        my %old_ENV = %ENV;
+        my %old_vc3_environment = %vc3_environment;
+
+        # set dependencies particular to this source
+        set_dependencies($bag, $sh_on_error, $source->dependencies);
+
+        eval {$status = $widget->execute_recipe($source);};
         $status = -1 if $EVAL_ERROR;
 
-        $widget->process_error($sh_on_error, $EVAL_ERROR, $status);
+        if($status) {
+            # on error, reestablish old environment, and show last lines of log
+            # file.
+            %ENV = %old_ENV;
+            my %vc3_environment = %old_vc3_environment;
+
+            $widget->process_error($sh_on_error, $EVAL_ERROR, $status);
+        } else {
+            last;
+        }
     }
 
+    # last of the tries also failed, so we report failure for this widget.
     if($status) {
         croak "Could not set environment for '" . $widget->name . "' succesfully'.";
+    }
+}
+
+sub set_dependencies {
+    my ($bag, $sh_on_error, $dependencies) = @_;
+
+    if($dependencies) {
+        for my $dependency (keys %{$dependencies}) {
+            my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
+            set_environment($bag, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
+        }
     }
 }
 
@@ -229,8 +253,10 @@ sub target {
     return $target;
 }
 
-package VC3::Gizmo;
+package VC3::Widget;
 use Carp;
+use POSIX ":sys_wait_h";
+
 use Data::Dumper;
 
 # Attributes:
@@ -340,14 +366,14 @@ sub append_env_variables {
     || return;
 
     for my $varname (keys %{$appends}) {
-        $vc3_environment->{$varname} = {} unless $vc3_environment;
+        $vc3_environment{$varname} = {} unless $vc3_environment{$varname};
 
         my $value = $self->destination_dir . '/' . $appends->{$varname};
 
         # we keep a hash as a set of added paths of environment variables
-        $vc3_environment->{$varname}{$value} = 1;
+        $vc3_environment{$varname}->{$value} = 1;
 
-        my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment->{$varname}});
+        my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment{$varname}});
         $ENV{$varname} = $dotted;
     }
 }
@@ -357,22 +383,21 @@ sub set_env_variables {
 
     my $root_name = 'VC3_' . uc($self->name) . '_ROOT';
 
-    $vc3_environment->{$root_name} = $self->destination_dir;
-    $ENV{$root_name} = $vc3_environment->{$root_name};
+    $vc3_environment{$root_name} = $self->destination_dir;
+    $ENV{$root_name} = $vc3_environment{$root_name};
 
-    my $appends = $self->env_to_append
+    my $sets = $self->env_to_set
     || return;
 
-    for my $varname (keys %{$appends}) {
-        $vc3_environment->{$varname} = {} unless $vc3_environment;
+    for my $varname (keys %{$sets}) {
 
-        my $value = $self->destination_dir . '/' . $appends->{$varname};
+        carp "Environment variable '$varname' already set. Clobbering with new value."
+        if $vc3_environment{$varname};
 
-        # we keep a hash as a set of added paths of environment variables
-        $vc3_environment->{$varname}{$value} = 1;
+        my $value = $self->destination_dir . '/' . $sets->{$varname};
 
-        my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment->{$varname}});
-        $ENV{$varname} = $dotted;
+        $vc3_environment{$varname}->{$value} = 1;
+        $ENV{$varname} = $value;
     }
 }
 
@@ -517,7 +542,6 @@ sub setup_build_shell {
 
     my ($build_log, $build_in);
 
-    print Dumper($self->build_log);
     # log the recipe used. Since we are opening sh with -e, the recipe executes
     # as if all steps were &&-ed together.
     open $build_log,    '>', $self->build_log;
@@ -568,7 +592,6 @@ sub new {
 
 package VC3::Source::Generic;
 use Carp;
-use POSIX ":sys_wait_h";
 use File::Copy;
 use File::Fetch;
 use File::Path;

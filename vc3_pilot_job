@@ -127,8 +127,7 @@ sub set_environment {
 
     set_dependencies($bag, $sh_on_error, $widget->dependencies);
 
-    $widget->append_env_variables;
-    $widget->set_env_variables;
+    $widget->set_environment_variables();
 
     my $status;
     for my $source (@{$widget->sources}) {
@@ -151,6 +150,7 @@ sub set_environment {
 
             $widget->process_error($sh_on_error, $EVAL_ERROR, $status);
         } else {
+            # on success, we keep break out and do no try more recipes.
             last;
         }
     }
@@ -260,7 +260,7 @@ use POSIX ":sys_wait_h";
 use Data::Dumper;
 
 # Attributes:
-# name, version, sources, dependencies, env_to_append, env_to_set
+# name, version, sources, dependencies, environment_variables
 sub new {
     my ($class, $json_description) = @_;
 
@@ -270,11 +270,31 @@ sub new {
     $self->version($json_description->{version});
     $self->sources($json_description->{sources});
     $self->dependencies($json_description->{dependencies});
-    $self->env_to_append($json_description->{env_to_append});
-    $self->env_to_set($json_description->{env_to_set});
+    $self->environment_variables($json_description->{environment_variables});
+
+    add_root_variable($self);
 
     return $self;
 }
+
+sub add_root_variable {
+    my ($self) = @_;
+
+    my $vars      = $self->environment_variables || [];
+    my $root_name = 'VC3_' . uc($self->name) . '_ROOT';
+
+    my $root_var = {
+        name     => $root_name,
+        value    => $self->destination_dir,
+        clobber  => 1,
+        absolute => 1
+    };
+
+    unshift @{$vars}, $root_var;
+
+    $self->environment_variables($vars);
+}
+
 
 sub name {
     my ($self, $new_name) = @_;
@@ -317,20 +337,12 @@ sub sources {
     return $self->{sources};
 }
 
-sub env_to_append {
-    my ($self, $new_appends) = @_;
+sub environment_variables {
+    my ($self, $new_vars) = @_;
 
-    $self->{env_to_append} = $new_appends if($new_appends);
+    $self->{environment_variables} = $new_vars if($new_vars);
 
-    return $self->{env_to_append};
-}
-
-sub env_to_set {
-    my ($self, $new_sets) = @_;
-
-    $self->{env_to_set} = $new_sets if($new_sets);
-
-    return $self->{env_to_set};
+    return $self->{environment_variables};
 }
 
 sub destination_dir {
@@ -359,48 +371,50 @@ sub completion_ribbon {
     return $ribbon;
 }
 
-sub append_env_variables {
+sub set_environment_variables {
     my ($self) = @_; 
 
-    my $appends = $self->env_to_append
+    my $vars = $self->environment_variables
     || return;
 
-    for my $varname (keys %{$appends}) {
-        $vc3_environment{$varname} = {} unless $vc3_environment{$varname};
+    for my $var (@{$vars}) {
 
-        my $value = $self->destination_dir . '/' . $appends->{$varname};
+        my $name = $var->{name}
+        || carp "Environment variable does not have a name.";
 
-        # we keep a hash as a set of added paths of environment variables
-        $vc3_environment{$varname}->{$value} = 1;
+        my $value    = $var->{value}
+        || carp "Environment variable '$name' did not define a value.";
 
-        my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment{$varname}});
-        $ENV{$varname} = $dotted;
+        my $clobber  = $var->{clobber};
+        my $absolute = $var->{absolute};
+
+        if(!$absolute) {
+            $value = $self->destination_dir . '/' . $value;
+        }
+
+        $value = expand_env_variable($value);
+
+        if($clobber) {
+            if($vc3_environment{$name}) {
+                carp "Environment variable '$name' already set. Clobbering with new value."
+            }
+            $vc3_environment{$name} = {};
+        }
+
+        $vc3_environment{$name}->{$value} = 1;
+
+        my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment{$name}});
+        $ENV{$name} = $dotted;
     }
 }
 
-sub set_env_variables {
-    my ($self) = @_; 
+sub expand_env_variable {
+    my ($varvalue) = @_;
 
-    my $root_name = 'VC3_' . uc($self->name) . '_ROOT';
+    $varvalue =~ s/\$\{(\w+)\}/$ENV{$1}/g;
 
-    $vc3_environment{$root_name} = $self->destination_dir;
-    $ENV{$root_name} = $vc3_environment{$root_name};
-
-    my $sets = $self->env_to_set
-    || return;
-
-    for my $varname (keys %{$sets}) {
-
-        carp "Environment variable '$varname' already set. Clobbering with new value."
-        if $vc3_environment{$varname};
-
-        my $value = $self->destination_dir . '/' . $sets->{$varname};
-
-        $vc3_environment{$varname}->{$value} = 1;
-        $ENV{$varname} = $value;
-    }
+    return $varvalue;
 }
-
 
 # range is: [min_version, max_version];
 # max_version is the prefered version. 
@@ -674,13 +688,19 @@ sub get_file {
             $ff->fetch( to => $vc3_distfiles );
             open STDERR, '>&', $olderr;
 
-            croak "Could not download '" . $self->file . "'" unless(-f $self->file_absolute);
+            if($ff->error) {
+                unlink($self->file_absolute) if -f $self->file_absolute;
+                croak "Could not download '" . $self->file . "'";
+            }
         }
     }
 }
 
 sub prepare_file  {
     my ($self, $build_dir) = @_;
+
+    print "Copying '" . $self->file . "' to build directory.\n";
+
     File::Copy::copy($self->file_absolute, $build_dir)
     || croak "Could not copy '" . $self->file . "' to build directory.";
 }
@@ -742,7 +762,8 @@ our @EXPORT_OK = qw(decode_json encode_json false from_json j to_json true);
 
 # Literal names
 # Users may override Booleans with literal 0 or 1 if desired.
-our($FALSE, $TRUE) = map { bless \(my $dummy = $_), 'JSON::Tiny::_Bool' } 0, 1;
+# our($FALSE, $TRUE) = map { bless \(my $dummy = $_), 'JSON::Tiny::_Bool' } 0, 1;
+our($FALSE, $TRUE) = (0, 1);
 
 # Escaped special character map with u2028 and u2029
 my %ESCAPE = (

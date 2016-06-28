@@ -49,14 +49,26 @@
                     "v1.2"
                 ]
             },
-            "env_to_append":{
-                "PATH":"bin",
-                "PYTHONPATH":"lib/python2.7/site-packages",
-                "PERL5LIB":"lib/perl5/site_perl/5.22.1"
-            },
-            "env_to_set":{
-                "HTTP_PROXY":"http://cache01.hep.wisc.edu:3128"
-            }
+            "environment_variables":[
+                {
+                    "name":"HTTP_PROXY",
+                    "value":"http://cache01.hep.wisc.edu:3128",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"lib/python2.7/site-packages"
+                },
+                {
+                    "name":"PERL5LIB",
+                    "value":"lib/perl5/site_perl"
+                }
+            ]
         }
     ],
 
@@ -88,9 +100,12 @@
                     }
                 }
             ],
-            "env_to_append":{
-                "PATH":"bin"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
         }
     ],
 
@@ -111,9 +126,12 @@
                     ]
                 }
             ],
-            "env_to_append":{
-                "PATH":"bin"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
         }
     ],
 
@@ -147,9 +165,12 @@
                     }
                 }
             ],
-            "env_to_append":{
-                "LD_LIBRARY_PATH":"lib64"
-            }
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib64"
+                }
+            ]
         }
     ],
 
@@ -168,11 +189,20 @@
                     ]
                 }
             ],
-            "env_to_append":{
-                "LD_LIBRARY_PATH":"lib",
-                "C_INCLUDE_DIR":"include",
-                "CPLUS_INCLUDE_PATH":"include"
-            }
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
         }
     ],
 
@@ -191,12 +221,24 @@
                     ]
                 }
             ],
-            "env_to_append":{
-                "PATH":"bin",
-                "LD_LIBRARY_PATH":"lib",
-                "C_INCLUDE_DIR":"include",
-                "CPLUS_INCLUDE_PATH":"include"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
         }
     ],
 
@@ -215,12 +257,24 @@
                     ]
                 }
             ],
-            "env_to_append":{
-                "LD_LIBRARY_PATH":"lib",
-                "FUSE_LIBRARY":"lib",
-                "FUSE_INCLUDE_DIR":"include",
-                "C_INCLUDE_DIR":"include"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
         }
     ],
 
@@ -240,23 +294,29 @@
                     ]
                 }
             ],
-            "env_to_append":{
-                "PATH":"bin",
-                "PERL5LIB":"lib/perl5/site_perl/5.24.0"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"PERL5LIB",
+                    "value":"lib/perl5/site_perl/5.24.0"
+                }
+            ]
         }
     ],
 
-    "cpanm":[
+    "cpanminus":[
         {
             "version":"v1.7",
-            "name":"cpanm",
+            "name":"cpanminus",
             "sources":[
                 {
                     "type":"generic",
-                    "file":"cpanm.distribution",
+                    "file":"cpanminus.distribution",
                     "recipe":[
-                        "cat cpan.distributionm | perl - App::cpanminus"
+                        "cat cpanminus.distribution | perl - App::cpanminus"
                     ]
                 }
             ],
@@ -271,13 +331,13 @@
     "perl-local-lib":[
         {
             "version":"v2.000019",
-            "name":"perl-local-lib",
+            "name":"perl_local_lib",
             "sources":[
                 {
                     "type":"tarball",
                     "file":"local-lib-2.000019.tar.gz",
                     "recipe":[
-                        "perl Makefile.PL --bootstrap=${VC3_PERL_LOCAL_MODULES}",
+                        "perl Makefile.PL --bootstrap=${VC3_ROOT_PERL}",
                         "make install"
                     ]
                 }
@@ -287,15 +347,36 @@
                     "v5.10"
                 ]
             },
-            "env_to_append": {
-                "PERL5LIB":"${VC3_PERL_ROOT}/local_modules",
-                "PATH":"${VC3_PERL_ROOT}/local_modules/bin",
-                "PERL_LOCAL_LIB_ROOT":"${VC3_PERL_ROOT}/local_modules"
-            },
-            "env_to_set": {
-                "PERL_MB_OPT":"--install_base ${VC3_PERL_ROOT}/local_modules",
-                "PERL_MM_OPT":"INSTALL_BASE=${VC3_PERL_ROOT}/local_modules"
-            }
+            "environment_variables": [
+                {
+                    "name":"VC3_PERL_MODULES", 
+                    "value":  "${VC3_PERL_LOCAL_LIB_ROOT}/local_modules",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PERL_MB_OPT", 
+                    "value":"--install_base ${VC3_PERL_MODULES}",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PERL_MM_OPT", 
+                    "value":"INSTALL_BASE=${VC3_PERL_MODULES}",
+                    "clobber":1,
+                    "absolute":1 
+                },
+                {
+                    "name":"PERL5LIB",
+                    "value":"${VC3_PERL_MODULES}/lib/perl5",
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_PERL_MODULES}/bin",
+                    "absolute":1
+                }
+            ]
         }
     ],
 
@@ -317,10 +398,16 @@
                     ]
                 }
             ],
-            "env_to_append":{
-                "PYTHONPATH":"lib/python2.7/site-packages",
-                "PATH":"bin"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"lib/python2.7/site-packages"
+                }
+            ]
         }
     ],
 
@@ -339,11 +426,24 @@
                     ]
                 }
             ],
-            "env_to_append":{
-                "LD_LIBRARY_PATH":"lib",
-                "C_INCLUDE_DIR":"include",
-                "CPLUS_INCLUDE_PATH":"include"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
         }
     ],
 
@@ -378,12 +478,24 @@
                     "v2.9"
                 ]
             },
-            "env_to_append":{
-                "PATH":"bin",
-                "LD_LIBRARY_PATH":"lib",
-                "C_INCLUDE_DIR":"include",
-                "CPLUS_INCLUDE_PATH":"include"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
         }
     ],
 
@@ -408,11 +520,24 @@
                     }
                 }
             ],
-            "env_to_append":{
-                "PATH":"clients/icommands/bin",
-                "LD_LIBRARY_PATH":"lib/core/obj",
-                "C_INCLUDE_DIR":"lib/api/include"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"clients/icommands/bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib/core/obj"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"lib/api/include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"lib/api/include"
+                }
+            ]
         }
     ],
 
@@ -431,9 +556,12 @@
                     ]
                 }
             ],
-            "env_to_append":{
-                "PATH":"bin"
-            }
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
         }
     ]
 }

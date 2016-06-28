@@ -8,15 +8,10 @@ use autodie;
 
 package VC3::Bag; 
 
-use B;
 use Carp qw/carp croak/;
 
 use English qw/-mo_match_vars/;
 
-use File::Basename;
-use File::Copy;
-use File::Fetch;
-use File::Path;
 use File::Spec;
 
 use Getopt::Long qw/GetOptions/;
@@ -113,43 +108,43 @@ sub decode_bag {
 
     my $bag = {};
     
-    for my $gizmo_name (keys %{$bag_raw}) {
-        my @versions = map { VC3::Gizmo->new($_) } @{$bag_raw->{$gizmo_name}};
-        $bag->{$gizmo_name} = \@versions;
+    for my $widget_name (keys %{$bag_raw}) {
+        my @versions = map { VC3::Gizmo->new($_) } @{$bag_raw->{$widget_name}};
+        $bag->{$widget_name} = \@versions;
     }
 
     return $bag;
 }
 
 sub set_environment {
-    my ($bag, $gizmo_name, $sh_on_error, $min_version, $max_version) = @_;
+    my ($bag, $widget_name, $sh_on_error, $min_version, $max_version) = @_;
 
-    my $gizmo_versions = $bag->{$gizmo_name}
-    || croak "I do not know anything about '$gizmo_name'.";
+    my $widget_versions = $bag->{$widget_name}
+    || croak "I do not know anything about '$widget_name'.";
 
-    my $gizmo = select_version($gizmo_name, $gizmo_versions, $min_version, $max_version);
+    my $widget = select_version($widget_name, $widget_versions, $min_version, $max_version);
 
-    if($gizmo->dependencies) {
-        for my $dependency (keys %{$gizmo->{dependencies}}) {
-            my ($min_dep_ver, $max_dep_ver) = @{$gizmo->{dependencies}{$dependency}};
+    if($widget->dependencies) {
+        for my $dependency (keys %{$widget->{dependencies}}) {
+            my ($min_dep_ver, $max_dep_ver) = @{$widget->{dependencies}{$dependency}};
             set_environment($bag, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
         }
     }
 
-    $gizmo->append_env_variables;
-    $gizmo->set_env_variables;
+    $widget->append_env_variables;
+    $widget->set_env_variables;
 
     my $status;
-    for my $source (@{$gizmo->sources}) {
-        eval {$status = $source->execute_recipe(); };
+    for my $source (@{$widget->sources}) {
+        eval {$status = $widget->execute_recipe($source); };
         
         $status = -1 if $EVAL_ERROR;
 
-        $gizmo->process_error($sh_on_error, $EVAL_ERROR, $status);
+        $widget->process_error($sh_on_error, $EVAL_ERROR, $status);
     }
 
     if($status) {
-        croak "Could not build '" . $gizmo->name . "' succesfully'.";
+        croak "Could not set environment for '" . $widget->name . "' succesfully'.";
     }
 }
 
@@ -448,25 +443,124 @@ sub create_ribbon {
     close $ribbon_fh;
 }
 
+sub prepare_recipe_sandbox {
+    my ($self, $source) = @_;
+
+    # clear build directory, to avoid bugs from uncleaned sources.
+    my $build = $self->build_dir;
+    if( -d $build ) {
+        File::Path::rmtree($build);
+    }
+
+    # clear destination directory, to make sure we are running what we believe
+    # we are running.
+    my $destination = $self->destination_dir;
+    if( -d $destination ) {
+        File::Path::rmtree($destination);
+    }
+
+    # create the dirs we cleared above.
+    File::Path::make_path($self->build_dir);
+    File::Path::make_path($self->destination_dir);
+
+    # download to $vc3_distfiles the ingredient (i.e., input file) if missing.
+    $source->get_file();
+
+    # copy (or expand if tarball, etc.) input file to build directory
+    $source->prepare_file($build);
+}
+
+sub execute_recipe {
+    my ($self, $source) = @_;
+
+    # if nothing to do, so we return no error:
+    return 0 if -f $self->completion_ribbon();
+
+    $self->prepare_recipe_sandbox($source);
+
+    # set the destination directory as an environment variable before
+    # setting up the shell, so that the child created inherets it.
+    $ENV{'VC3_PREFIX'} = $self->destination_dir;
+
+    my ($build_in, $pid) = $self->setup_build_shell($source);
+
+    my @steps = @{$source->recipe};
+
+    # add shifting to build directory as the first step.
+    unshift @steps, 'cd ' . $self->build_dir;
+
+    # add exiting cleanly from shell as a last step.
+    push @steps, 'exit 0';
+
+    print "Building for '" . $self->name . "' from '" . $source->file . "' for ", VC3::Bag->target, "\n";
+    print "for building details:\ntail -f " . $self->build_log . "\n";
+
+    for my $step (@steps) {
+        my $date = gmtime();
+        print { $build_in } ": $date\n";
+        print { $build_in } "$step\n";
+    }
+
+    my $status = -1;
+    eval { close $build_in; $status = $? };
+
+    if(WIFEXITED($?)) {
+        $self->create_ribbon();
+        return WEXITSTATUS($?);
+    } else {
+        return -1;
+    }
+}
+
+sub setup_build_shell {
+    my ($self, $source) = @_;
+
+    my ($build_log, $build_in);
+
+    print Dumper($self->build_log);
+    # log the recipe used. Since we are opening sh with -e, the recipe executes
+    # as if all steps were &&-ed together.
+    open $build_log,    '>', $self->build_log;
+    print { $build_log } join("\n && ", @{$source->recipe}) . "\n";
+    close $build_log;
+
+    # open sh with -e. This terminates the shell at the first step that returns
+    # a non-zero status.
+    my $pid = open($build_in, '|-', '/bin/sh -e');
+
+    croak 'Could not open /bin/sh for building.'
+    unless $build_in;
+
+    # redirect all output to our log file.
+    print { $build_in } 'exec 1>> ' . $self->build_log . "\n";
+    print { $build_in } "exec 2>&1\n";
+
+    # print some debug shell information (e.g., the step about to be executed).
+    print { $build_in } "set -x\n";
+
+    # return the stdin of the shell, and the pid so we can wait for it.
+    return ($build_in, $pid);
+}
+
 package VC3::Source;
 use Carp;
 
 sub new {
-    my ($class, $gizmo, $source_raw) = @_;
+    my ($class, $widget, $source_raw) = @_;
 
     my $source;
 
     if($source_raw->{type} eq 'tarball') {
-        $source = VC3::Source::Tarball->new($gizmo, $source_raw);
+        $source = VC3::Source::Tarball->new($widget, $source_raw);
     }
     elsif($source_raw->{type} eq 'service') {
         ...
     }
     elsif($source_raw->{type} eq 'generic') {
-        $source = VC3::Source::Generic->new($gizmo, $source_raw);
+        $source = VC3::Source::Generic->new($widget, $source_raw);
     }
     else {
-        croak "Do not about source type '" . $source_raw->{type} . "' for '" . $gizmo->name . "'";
+        croak "Do not about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
     }
 
     return $source;
@@ -475,14 +569,19 @@ sub new {
 package VC3::Source::Generic;
 use Carp;
 use POSIX ":sys_wait_h";
+use File::Copy;
+use File::Fetch;
+use File::Path;
+use File::Spec;
+
 use Data::Dumper;
 
 sub new {
-    my ($class, $gizmo, $json_description) = @_;
+    my ($class, $widget, $json_description) = @_;
 
     my $self = bless {}, $class;
 
-    $self->gizmo($gizmo);
+    $self->widget($widget);
     $self->recipe($json_description->{recipe});
     $self->file($json_description->{file});
     $self->dependencies($json_description->{dependencies});
@@ -490,15 +589,15 @@ sub new {
     return $self;
 }
 
-sub gizmo {
-    my ($self, $new_gizmo) = @_;
+sub widget {
+    my ($self, $new_widget) = @_;
 
-    $self->{gizmo} = $new_gizmo if($new_gizmo);
+    $self->{widget} = $new_widget if($new_widget);
 
     croak 'No environment argument given'
-    unless($self->{gizmo}); 
+    unless($self->{widget}); 
 
-    return $self->{gizmo};
+    return $self->{widget};
 }
 
 sub recipe {
@@ -534,42 +633,12 @@ sub dependencies {
     return $self->{dependencies};
 }
 
-sub prepare_recipe_sandbox {
-    my ($self) = @_;
-
-    # if nothing to do, so we return no error:
-    return 0 if -f $self->gizmo->completion_ribbon();
-
-    # clear build directory, to avoid bugs from uncleaned sources.
-    my $build = $self->gizmo->build_dir;
-    if( -d $build ) {
-        File::Path::rmtree($build);
-    }
-
-    # clear destination directory, to make sure we are running what we believe
-    # we are running.
-    my $destination = $self->gizmo->destination_dir;
-    if( -d $destination ) {
-        File::Path::rmtree($destination);
-    }
-
-    # create the dirs we cleared above.
-    File::Path::make_path($self->gizmo->build_dir);
-    File::Path::make_path($self->gizmo->destination_dir);
-
-    # download to $vc3_distfiles the ingredient (i.e., input file) missing.
-    $self->get_recipe_ingredient;
-
-    # copy (or expand if tarball, etc.) input file to build directory
-    $self->prepare_recipe_ingredient;
-}
-
-sub get_recipe_ingredient {
+sub get_file {
     my ($self) = @_;
 
     if($self->file) {
         unless(-f $self->file_absolute) {
-            print "Downloading '" . $self->gizmo->name . "' from $vc3_repository\n";
+            print "Downloading '" . $self->file . "' from $vc3_distfiles\n";
             my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $self->file);
 
             # make sure the destination directory exists
@@ -587,78 +656,10 @@ sub get_recipe_ingredient {
     }
 }
 
-sub prepare_recipe_ingredient  {
-    my ($self) = @_;
-    File::Copy::copy($self->file_absolute, $self->gizmo->build_dir)
+sub prepare_file  {
+    my ($self, $build_dir) = @_;
+    File::Copy::copy($self->file_absolute, $build_dir)
     || croak "Could not copy '" . $self->file . "' to build directory.";
-}
-
-sub execute_recipe {
-    my ($self) = @_;
-
-    $self->prepare_recipe_sandbox();
-
-    # set the destination directory as an environment variable before
-    # setting up the shell, so that the child created inherets it.
-    $ENV{'VC3_PREFIX'} = $self->gizmo->destination_dir;
-
-    my ($build_in, $pid) = $self->setup_build_shell;
-
-    my @steps = @{$self->recipe};
-
-    # add shifting to build directory as the first step.
-    unshift @steps, 'cd ' . $self->gizmo->build_dir;
-
-    # add exiting cleanly from shell as a last step.
-    push @steps, 'exit 0';
-
-    print "Building for '" . $self->gizmo->name . "' from '" . $self->file . "' for ", VC3::Bag->target, "\n";
-    print "for building details:\ntail -f " . $self->gizmo->build_log . "\n";
-
-    for my $step (@steps) {
-        my $date = gmtime();
-        print { $build_in } ": $date\n";
-        print { $build_in } "$step\n";
-    }
-
-    my $status = -1;
-    eval { close $build_in; $status = $? };
-
-    if(WIFEXITED($?)) {
-        return WEXITSTATUS($?);
-    } else {
-        return -1;
-    }
-}
-
-sub setup_build_shell {
-    my ($self) = @_;
-
-    my ($build_log, $build_in);
-
-    print Dumper($self->gizmo->build_log);
-    # log the recipe used. Since we are opening sh with -e, the recipe executes
-    # as if all steps were &&-ed together.
-    open $build_log,    '>', $self->gizmo->build_log;
-    print { $build_log } join("\n && ", @{$self->recipe}) . "\n";
-    close $build_log;
-
-    # open sh with -e. This terminates the shell at the first step that returns
-    # a non-zero status.
-    my $pid = open($build_in, '|-', '/bin/sh -e');
-
-    croak 'Could not open /bin/sh for building.'
-    unless $build_in;
-
-    # redirect all output to our log file.
-    print { $build_in } 'exec 1>> ' . $self->gizmo->build_log . "\n";
-    print { $build_in } "exec 2>&1\n";
-
-    # print some debug shell information (e.g., the step about to be executed).
-    print { $build_in } "set -x\n";
-
-    # return the stdin of the shell, and the pid so we can wait for it.
-    return ($build_in, $pid);
 }
 
 package VC3::Source::Tarball;
@@ -666,9 +667,9 @@ use base 'VC3::Source::Generic';
 use Carp;
 
 sub new {
-    my ($class, $gizmo, $json_description) = @_;
+    my ($class, $widget, $json_description) = @_;
 
-    my $self = VC3::Source::Generic->new($gizmo, $json_description);
+    my $self = VC3::Source::Generic->new($widget, $json_description);
 
     croak 'No tarball defined.'
     unless $self->file;
@@ -678,14 +679,13 @@ sub new {
     return $self;
 }
 
-sub prepare_recipe_ingredient  {
-    my ($self) = @_;
+sub prepare_file  {
+    my ($self, $build_dir) = @_;
 
-    my $build   = $self->gizmo->build_dir;
     my $tarball = $self->file_absolute;
 
     print "Expanding $tarball\n";
-    system(qq/tar -C ${build} --strip-components=1 -xpf ${tarball}/);
+    system(qq/tar -C ${build_dir} --strip-components=1 -xpf ${tarball}/);
 
     croak "Could not expand tarball $tarball." if $?;
 }

@@ -314,9 +314,9 @@
             "sources":[
                 {
                     "type":"generic",
-                    "file":"cpanminus.distribution",
+                    "file":"cpanminus-1.7.distribution",
                     "recipe":[
-                        "cat cpanminus.distribution | perl - App::cpanminus"
+                        "cat ${VC3_SOURCE_FILE} | perl - App::cpanminus"
                     ]
                 }
             ],

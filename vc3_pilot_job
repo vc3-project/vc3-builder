@@ -93,6 +93,7 @@ sub main {
     set_environment($bag, $goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
 
     delete $ENV{VC3_PREFIX}; 
+    delete $ENV{VC3_SOURCE_FILE};
 
     print "building phase done!\n";
     exec qq(@command_and_args);
@@ -521,6 +522,10 @@ sub execute_recipe {
     # setting up the shell, so that the child created inherets it.
     $ENV{'VC3_PREFIX'} = $self->destination_dir;
 
+    if($source->file) {
+        $ENV{'VC3_SOURCE_FILE'} = $source->file;
+    }
+
     my ($build_in, $pid) = $self->setup_build_shell($source);
 
     my @steps = @{$source->recipe};
@@ -676,6 +681,7 @@ sub get_file {
     if($self->file) {
         unless(-f $self->file_absolute) {
             print "Downloading '" . $self->file . "' from $vc3_distfiles\n";
+
             my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $self->file);
 
             # make sure the destination directory exists
@@ -688,9 +694,8 @@ sub get_file {
             $ff->fetch( to => $vc3_distfiles );
             open STDERR, '>&', $olderr;
 
-            if($ff->error) {
-                unlink($self->file_absolute) if -f $self->file_absolute;
-                croak "Could not download '" . $self->file . "'";
+            unless($self->file_absolute) {
+                croak "Could not download '" . $self->file . "':\n" . $ff->error;
             }
         }
     }

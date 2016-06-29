@@ -307,10 +307,10 @@
         }
     ],
 
-    "cpanminus":[
+    "perl-cpanminus":[
         {
             "version":"v1.7",
-            "name":"cpanminus",
+            "name":"perl_cpanminus",
             "sources":[
                 {
                     "type":"generic",
@@ -562,6 +562,330 @@
                     "value":"bin"
                 }
             ]
+        }
+    ],
+
+    "perl-bioperl":[
+        {
+            "name":"perl_bioperl",
+            "version":"v1.6",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm BioPerl"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-dbi":[
+        {
+            "name":"perl_dbi",
+            "version":"v1.6",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm DBI"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-file-which":[
+        {
+            "name":"perl_file_which",
+            "version":"v1.2",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm File::Which"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-unsafe-signals":[
+        {
+            "name":"perl_unsafe_signals",
+            "version":"v0.03",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm Perl::Unsafe::Signals"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-bit-vector":[
+        {
+            "name":"perl_bit_vector",
+            "version":"v7.4",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm Bit::Vector"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-inline":[
+        {
+            "name":"perl_inline",
+            "version":"v0.8",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm Inline"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-inline-c":[
+        {
+            "name":"perl_inline_c",
+            "version":"v0.76",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm Inline::C"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-forks":[
+        {
+            "name":"perl_forks",
+            "version":"v0.36",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm forks"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-forks-shared":[
+        {
+            "name":"perl_forks_shared",
+            "version":"v0.36",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm forks"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-io-all":[
+        {
+            "name":"perl_io_all",
+            "version":"v0.86",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm IO::All"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-io-prompt":[
+        {
+            "name":"perl_io_prompt",
+            "version":"v0.997",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm IO::All"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "hmmer":[
+        {
+            "name":"hmmer",
+            "version":"v3.1",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "file":"hmmer-3.1b2.tar.gz",
+                    "recipe":[
+                        ": missing mpi support!",
+                        "./configure --prefix ${VC3_PREFIX}",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+           "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+           ]
+        }
+    ],
+
+    "trf":[
+        {
+            "name":"trf",
+            "version":"v4.09",
+            "sources":[
+                {
+                    "type":"generic",
+                    "file":"trf409.legacylinux64",
+                    "recipe":[
+                        ": depends on GLIBC 2.12!",
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "cp ${VC3_SOURCE_FIL} ${VC3_PREFIX}/bin",
+                        "chmod 755 ${VC3_PREFIX}/bin/${VC3_SOURCE_FILE}"
+                    ]
+                }
+            ],
+           "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+           ]
+        }
+    ],
+
+    "maker":[
+        {
+            "name":"maker",
+            "version":"v1.0",
+            "dependencies":{
+                "perl-bioperl":[
+                    "v1.6"
+                ],
+                "perl-dbi":[
+                    "v1.6"
+                ],
+                "perl-file-which":[
+                    "v1.2"
+                ],
+                "perl-unsafe-signals":[
+                    "v0.03"
+                ],
+                "perl-bit-vector":[
+                    "v7.4"
+                ],
+                "perl-inline":[
+                    "v0.8"
+                ],
+                "perl-inline-c":[
+                    "v0.76"
+                ],
+                "perl-forks":[
+                    "v0.36"
+                ],
+                "perl-forks-shared":[
+                    "v0.36"
+                ],
+                "perl-io-all":[
+                    "v0.86"
+                ],
+                "perl-io-prompt":[
+                    "v0.997"
+                ]
+            }
         }
     ]
 }

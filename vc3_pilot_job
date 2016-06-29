@@ -536,7 +536,7 @@ sub execute_recipe {
     # add exiting cleanly from shell as a last step.
     push @steps, 'exit 0';
 
-    print "Building for '" . $self->name . "' from '" . $source->file . "' for ", VC3::Bag->target, "\n";
+    print "Building for '" . $self->name . "' for ", VC3::Bag->target, "\n";
     print "for building details:\ntail -f " . $self->build_log . "\n";
 
     for my $step (@steps) {
@@ -688,13 +688,10 @@ sub get_file {
             File::Path::make_path($vc3_distfiles);
 
             # disable noisy stderr from File::Fetch
-            use vars qw(*OLDER);
-            open my $olderr, '>&STDERR';
-            open STDERR, '>', '/dev/null';
+            $File::Fetch::BLACKLIST = ['lwp'];
             $ff->fetch( to => $vc3_distfiles );
-            open STDERR, '>&', $olderr;
 
-            unless($self->file_absolute) {
+            if($ff->error || !(-f $self->file_absolute)) {
                 croak "Could not download '" . $self->file . "':\n" . $ff->error;
             }
         }
@@ -703,6 +700,8 @@ sub get_file {
 
 sub prepare_file  {
     my ($self, $build_dir) = @_;
+
+    return unless $self->file;
 
     print "Copying '" . $self->file . "' to build directory.\n";
 

@@ -131,28 +131,30 @@ sub set_environment {
     $widget->set_environment_variables();
 
     my $status;
-    for my $source (@{$widget->sources}) {
+    if($widget->sources) { 
+        for my $source (@{$widget->sources}) {
 
-        # save current environment so that we can rollback in case of error.
-        my %old_ENV = %ENV;
-        my %old_vc3_environment = %vc3_environment;
+            # save current environment so that we can rollback in case of error.
+            my %old_ENV = %ENV;
+            my %old_vc3_environment = %vc3_environment;
 
-        # set dependencies particular to this source
-        set_dependencies($bag, $sh_on_error, $source->dependencies);
+            # set dependencies particular to this source
+            set_dependencies($bag, $sh_on_error, $source->dependencies);
 
-        eval {$status = $widget->execute_recipe($source);};
-        $status = -1 if $EVAL_ERROR;
+            eval {$status = $widget->execute_recipe($source);};
+            $status = -1 if $EVAL_ERROR;
 
-        if($status) {
-            # on error, reestablish old environment, and show last lines of log
-            # file.
-            %ENV = %old_ENV;
-            my %vc3_environment = %old_vc3_environment;
+            if($status) {
+                # on error, reestablish old environment, and show last lines of log
+                # file.
+                %ENV = %old_ENV;
+                my %vc3_environment = %old_vc3_environment;
 
-            $widget->process_error($sh_on_error, $EVAL_ERROR, $status);
-        } else {
-            # on success, we keep break out and do no try more recipes.
-            last;
+                $widget->process_error($sh_on_error, $EVAL_ERROR, $status);
+            } else {
+                # on success, we keep break out and do no try more recipes.
+                last;
+            }
         }
     }
 
@@ -396,9 +398,6 @@ sub set_environment_variables {
         $value = expand_env_variable($value);
 
         if($clobber) {
-            if($vc3_environment{$name}) {
-                carp "Environment variable '$name' already set. Clobbering with new value."
-            }
             $vc3_environment{$name} = {};
         }
 
@@ -548,9 +547,9 @@ sub execute_recipe {
     my $status = -1;
     eval { close $build_in; $status = $? };
 
-    if(WIFEXITED($?)) {
+    if(WIFEXITED($status)) {
         $self->create_ribbon();
-        return WEXITSTATUS($?);
+        return WEXITSTATUS($status);
     } else {
         return -1;
     }
@@ -579,7 +578,7 @@ sub setup_build_shell {
     print { $build_in } "exec 2>&1\n";
 
     # print some debug shell information (e.g., the step about to be executed).
-    print { $build_in } "set -x\n";
+    print { $build_in } "set -ex\n";
 
     # return the stdin of the shell, and the pid so we can wait for it.
     return ($build_in, $pid);

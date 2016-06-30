@@ -601,6 +601,9 @@ sub new {
     elsif($source_raw->{type} eq 'service') {
         ...
     }
+    elsif($source_raw->{type} eq 'binary') {
+        $source = VC3::Source::Binary->new($widget, $source_raw);
+    }
     elsif($source_raw->{type} eq 'generic') {
         $source = VC3::Source::Generic->new($widget, $source_raw);
     }
@@ -749,6 +752,33 @@ sub prepare_files  {
 
         File::Copy::copy($self->file_absolute($file), $build_dir)
         || croak "Could not copy '" . $file . "' to build directory.";
+    }
+}
+
+package VC3::Source::Binary;
+use base 'VC3::Source::Generic';
+use Carp;
+
+sub new {
+    my ($class, $widget, $json_description) = @_;
+
+    my $self = VC3::Source::Generic->new($widget, $json_description);
+
+    unless($self->files) {
+        croak "For type 'binary', at least one file should be defined in the files list.";
+    }
+
+    $self = bless $self, $class;
+
+    return $self;
+}
+
+sub prepare_files  {
+    my ($self, $build_dir) = @_;
+
+    for my $file (@{$self->files}) {
+        symlink($self->file_absolute($file), $build_dir . '/' . $file)
+        || croak "Could not link '" . $file . "' to build directory.";
     }
 }
 

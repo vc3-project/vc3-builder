@@ -495,7 +495,7 @@
                         "local-lib-2.000019.tar.gz"
                     ],
                     "recipe":[
-                        "perl Makefile.PL --bootstrap=${VC3_ROOT_PERL}",
+                        "perl Makefile.PL --bootstrap=${VC3_PERL_ROOT}",
                         "make install"
                     ]
                 }
@@ -730,6 +730,26 @@
                     "value":"bin"
                 }
             ]
+        }
+    ],
+
+    "perl-text-soundex":[
+        {
+            "name":"perl_text_soundex",
+            "version":"v3.0",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm Text::Soundex"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
         }
     ],
 
@@ -1223,6 +1243,106 @@
         }
     ],
 
+    "repeatmasker":[
+        {
+            "version":"v4.0.6",
+            "name":"RepeatMasker",
+            "sources":[
+                {
+                    "type":"binary",
+                    "files":[
+                        "RepeatMasker-open-4-0-6.tar.gz",
+                        "VC3_RepeatMasker-open-4-0-6.configure",
+                        "repeatmaskerlibraries-20150807.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "tar -C ${VC3_PREFIX} -xpf repeatmaskerlibraries-20150807.tar.gz",
+                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_PREFIX}",
+                        "cd ${VC3_PREFIX}",
+                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_PERL_ROOT}/bin/perl -repeatmasker_dir=${VC3_PREFIX} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -default_engine=hmmer"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl":[
+                    "v5.8"
+                ],
+                "hmmer":[
+                    "v3.1"
+                ],
+                "trf":[
+                    "v4.0.9"
+                ],
+                "perl-text-soundex":[
+                    "v3.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${VC3_REPEATMASKER_ROOT}",
+                    "absolute":1
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "augustus":[
+        {
+            "version":"v2.4",
+            "name":"augustus",
+            "sources":[
+                {
+                    "type":"binary",
+                    "files":[
+                        "augustus.2.4.src.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf augustus.2.4.src.tar.gz",
+                        "cd ${VC3_PREFIX}",
+                        "make"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"AUGUSTUS_CONFIG_PATH",
+                    "value":"config",
+                    "clobber":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
     "trf":[
         {
             "name":"trf",
@@ -1236,7 +1356,7 @@
                     "recipe":[
                         ": depends on GLIBC 2.12!",
                         "mkdir -p ${VC3_PREFIX}/bin",
-                        "cp ${VC3_SOURCE_FIL} ${VC3_PREFIX}/bin/trf",
+                        "cp trf409.legacylinux64 ${VC3_PREFIX}/bin/trf",
                         "chmod 755 ${VC3_PREFIX}/bin/trf"
                     ]
                 }
@@ -1254,6 +1374,17 @@
         {
             "name":"maker",
             "version":"v1.0",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "maker-2.31.8.tgz"
+                    ],
+                    "recipe":[
+                        "exit 1"
+                    ]
+                }
+            ],
             "dependencies":{
                 "ncbi-blast":[
                     "v2.18"
@@ -1261,8 +1392,14 @@
                 "snap":[
                     "v2013.11.29"
                 ],
+                "repeatmasker":[
+                    "v4.0.6"
+                ],
                 "exonerate":[
                     "v2.2"
+                ],
+                "augustus":[
+                    "v2.4"
                 ],
                 "perl-bioperl":[
                     "v1.6"

@@ -5,28 +5,16 @@ use strict;
 use warnings;
 
 use autodie;
-
-package VC3::Bag; 
-
-use Carp qw/carp croak/;
-
 use English qw/-mo_match_vars/;
-
-use File::Spec;
-
 use Getopt::Long qw/GetOptions/;
-
-use version;
-
-use Data::Dumper;
 
 my $vc3_root       = $ENV{VC3_ROOT}       || "vc3_root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$vc3_root/distfiles";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
-
-my @external_dependencies = qw/sh tail tar uname/;
-
 my %vc3_environment;
+
+my @external_dependencies = qw/sh tail tar uname patch gcc g++ ld pkconfig/;
+
 
 main();
 
@@ -87,17 +75,32 @@ sub main {
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = decode_bag($catalog);
+    my $bag = VC3::Bag::decode_bag($catalog);
 
     # bag, goal, min-version, max-version
-    set_environment($bag, $goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
+    VC3::Bag::set_environment($bag, $goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
 
     delete $ENV{VC3_PREFIX}; 
-    delete $ENV{VC3_SOURCE_FILE};
+    delete $ENV{VC3_BUILD}; 
 
     print "building phase done!\n";
     exec qq(@command_and_args);
 }
+
+
+package VC3::Bag; 
+
+use Carp qw/carp croak/;
+
+use English qw/-mo_match_vars/;
+
+use File::Spec;
+
+use Getopt::Long qw/GetOptions/;
+
+use version;
+
+use Data::Dumper;
 
 sub decode_bag {
     my ($filename) = @_;
@@ -130,10 +133,9 @@ sub set_environment {
 
     $widget->set_environment_variables();
 
-    my $status;
+    my $exit_status = 0;
     if($widget->sources) { 
         for my $source (@{$widget->sources}) {
-
             # save current environment so that we can rollback in case of error.
             my %old_ENV = %ENV;
             my %old_vc3_environment = %vc3_environment;
@@ -141,16 +143,15 @@ sub set_environment {
             # set dependencies particular to this source
             set_dependencies($bag, $sh_on_error, $source->dependencies);
 
-            eval {$status = $widget->execute_recipe($source);};
-            $status = -1 if $EVAL_ERROR;
+            eval {$exit_status = -1; $exit_status = $widget->execute_recipe($source);};
 
-            if($status) {
+            if($exit_status) {
                 # on error, reestablish old environment, and show last lines of log
                 # file.
                 %ENV = %old_ENV;
                 my %vc3_environment = %old_vc3_environment;
 
-                $widget->process_error($sh_on_error, $EVAL_ERROR, $status);
+                $widget->process_error($sh_on_error, $EVAL_ERROR, $exit_status);
             } else {
                 # on success, we keep break out and do no try more recipes.
                 last;
@@ -159,7 +160,7 @@ sub set_environment {
     }
 
     # last of the tries also failed, so we report failure for this widget.
-    if($status) {
+    if($exit_status) {
         croak "Could not set environment for '" . $widget->name . "' succesfully'.";
     }
 }
@@ -355,9 +356,7 @@ sub destination_dir {
 
 sub build_dir {
     my ($self) = @_;
-    my $build_dir = "${vc3_root}/builds/" . $self->name;
-
-    return $build_dir;
+    return File::Spec->rel2abs($vc3_root) . '/builds/' . $self->name;
 }
 
 sub build_log {
@@ -385,23 +384,28 @@ sub set_environment_variables {
         my $name = $var->{name}
         || carp "Environment variable does not have a name.";
 
-        my $value    = $var->{value}
+        my $value = $var->{value}
         || carp "Environment variable '$name' did not define a value.";
 
         my $clobber  = $var->{clobber};
         my $absolute = $var->{absolute};
 
-        if(!$absolute) {
-            $value = $self->destination_dir . '/' . $value;
-        }
-
-        $value = expand_env_variable($value);
-
+        # split paths on : if necessary
+        my @paths;
         if($clobber) {
             $vc3_environment{$name} = {};
+            @paths = ($value);
+        } else {
+            @paths = split /:/, $value;
         }
 
-        $vc3_environment{$name}->{$value} = 1;
+        for my $path (@paths) {
+            if(!$absolute) {
+                $path = $self->destination_dir . '/' . $path;
+            }
+            $path = expand_env_variable($path);
+            $vc3_environment{$name}->{$path} = 1;
+        }
 
         my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment{$name}});
         $ENV{$name} = $dotted;
@@ -502,11 +506,13 @@ sub prepare_recipe_sandbox {
     File::Path::make_path($self->build_dir);
     File::Path::make_path($self->destination_dir);
 
-    # download to $vc3_distfiles the ingredient (i.e., input file) if missing.
-    $source->get_file();
+    # download to $vc3_distfiles the ingredient (i.e., input files) if missing.
+    $source->get_files();
 
-    # copy (or expand if tarball, etc.) input file to build directory
-    $source->prepare_file($build);
+    # if generic, copy all files to build directory.
+    # if tarball, expand first file to build directory, and copy the rest of
+    # the files to build directory.
+    $source->prepare_files($build);
 }
 
 sub execute_recipe {
@@ -520,10 +526,7 @@ sub execute_recipe {
     # set the destination directory as an environment variable before
     # setting up the shell, so that the child created inherets it.
     $ENV{'VC3_PREFIX'} = $self->destination_dir;
-
-    if($source->file) {
-        $ENV{'VC3_SOURCE_FILE'} = $source->file;
-    }
+    $ENV{'VC3_BUILD'}  = $self->build_dir;
 
     my ($build_in, $pid) = $self->setup_build_shell($source);
 
@@ -547,9 +550,9 @@ sub execute_recipe {
     my $status = -1;
     eval { close $build_in; $status = $? };
 
-    if(WIFEXITED($status)) {
+    if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
         $self->create_ribbon();
-        return WEXITSTATUS($status);
+        return 0;
     } else {
         return -1;
     }
@@ -624,7 +627,7 @@ sub new {
 
     $self->widget($widget);
     $self->recipe($json_description->{recipe});
-    $self->file($json_description->{file});
+    $self->files($json_description->{files});
     $self->dependencies($json_description->{dependencies});
 
     return $self;
@@ -652,18 +655,21 @@ sub recipe {
     return $self->{recipe};
 }
 
-sub file {
-    my ($self, $new_file) = @_;
+sub files {
+    my ($self, $new_files) = @_;
 
-    $self->{file} = $new_file if($new_file);
+    $self->{files} = $new_files if($new_files);
 
-    return $self->{file};
+    if($self->{files}) {
+        return $self->{files};
+    } else {
+        return [];
+    }
 }
 
 sub file_absolute {
-    my ($self) = @_;
-
-    return File::Spec->rel2abs( $vc3_distfiles . '/' . $self->file);
+    my ($self, $file) = @_;
+    return File::Spec->rel2abs($vc3_distfiles . '/' . $file);
 }
 
 sub dependencies {
@@ -674,14 +680,16 @@ sub dependencies {
     return $self->{dependencies};
 }
 
-sub get_file {
+sub get_files {
     my ($self) = @_;
 
-    if($self->file) {
-        unless(-f $self->file_absolute) {
-            print "Downloading '" . $self->file . "' from $vc3_distfiles\n";
+    my $files = $self->files;
 
-            my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $self->file);
+    for my $file (@{$files}) {
+        unless(-f $self->file_absolute($file)) {
+            print "Downloading '" . $file . "' from $vc3_distfiles\n";
+
+            my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $file);
 
             # make sure the destination directory exists
             File::Path::make_path($vc3_distfiles);
@@ -690,22 +698,22 @@ sub get_file {
             $File::Fetch::BLACKLIST = ['lwp'];
             $ff->fetch( to => $vc3_distfiles );
 
-            if($ff->error || !(-f $self->file_absolute)) {
+            if($ff->error || !(-f $self->file_absolute($file))) {
                 croak "Could not download '" . $self->file . "':\n" . $ff->error;
             }
         }
     }
 }
 
-sub prepare_file  {
+sub prepare_files  {
     my ($self, $build_dir) = @_;
 
-    return unless $self->file;
+    for my $file (@{$self->files}) {
+        print "Copying '" . $file . "' to build directory.\n";
 
-    print "Copying '" . $self->file . "' to build directory.\n";
-
-    File::Copy::copy($self->file_absolute, $build_dir)
-    || croak "Could not copy '" . $self->file . "' to build directory.";
+        File::Copy::copy($self->file_absolute($file), $build_dir)
+        || croak "Could not copy '" . $file . "' to build directory.";
+    }
 }
 
 package VC3::Source::Tarball;
@@ -717,23 +725,31 @@ sub new {
 
     my $self = VC3::Source::Generic->new($widget, $json_description);
 
-    croak 'No tarball defined.'
-    unless $self->file;
+    unless($self->files) {
+        croak "For type 'tarball', at least one file should be defined in the files list, and the first file in the list should be a tarball.";
+    }
 
     $self = bless $self, $class;
 
     return $self;
 }
 
-sub prepare_file  {
+sub prepare_files  {
     my ($self, $build_dir) = @_;
 
-    my $tarball = $self->file_absolute;
+    # first file in $self->files is the tarball, by convention.
+    my $tarball = $self->file_absolute($self->files->[0]);
 
     print "Expanding $tarball\n";
     system(qq/tar -C ${build_dir} --strip-components=1 -xpf ${tarball}/);
-
     croak "Could not expand tarball $tarball." if $?;
+
+    for my $file (shift @{$self->files}) {
+        print "Copying '" . $file . "' to build directory.\n";
+
+        File::Copy::copy($self->file_absolute($file), $build_dir)
+        || croak "Could not copy '" . $file . "' to build directory.";
+    }
 }
 
 package Perl::Version;

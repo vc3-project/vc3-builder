@@ -42,6 +42,7 @@ sub main {
     my $make_jobs    = 2;
     my $sh_on_error  = 0;
     my $goal_env_version = 0;
+    my $original_command = join(' ', $0, @ARGV);
 
     GetOptions(
         "catalog=s"      => \$catalog,
@@ -68,69 +69,165 @@ sub main {
         @command_and_args = ('/bin/sh',);
     }
 
-    %ENV = (PATH => '/bin:/usr/bin', HOME => $ENV{PWD}, MAKEFLAGS => "-j${make_jobs}");
+    %ENV = (
+        PATH      => "/bin:/usr/bin",
+        MAKEFLAGS => "-j${make_jobs}",
+        TERM      => 'linux',
+
+        # set environment variables with full paths
+        HOME             => $ENV{PWD},
+        TMPDIR           => File::Spec->rel2abs("${vc3_root}/tmp"),
+        VC3_ROOT         => File::Spec->rel2abs("${vc3_root}"),
+        VC3_DISTFILES    => File::Spec->rel2abs("${vc3_distfiles}"),
+        VC3_COMMAND_LINE => File::Spec->rel2abs(join(" ", $original_command))
+    );
+
+    # fix this! set default path more cleanly (see also PATH above)
     $vc3_environment{PATH}->{'/bin'}     = 1;
     $vc3_environment{PATH}->{'/usr/bin'} = 1;
 
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag::decode_bag($catalog);
+    my $bag = VC3::Bag->new($catalog);
 
     # bag, goal, min-version, max-version
-    VC3::Bag::set_environment($bag, $goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
-
-    delete $ENV{VC3_PREFIX}; 
-    delete $ENV{VC3_BUILD}; 
+    $bag->set_environment($goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
 
     print "building phase done!\n";
     exec qq(@command_and_args);
 }
 
-
 package VC3::Bag; 
 
 use Carp qw/carp croak/;
-
 use English qw/-mo_match_vars/;
-
-use File::Spec;
-
-use Getopt::Long qw/GetOptions/;
-
-use version;
+use File::Spec ();
+use version ();
+use POSIX ();
 
 use Data::Dumper;
 
+sub new {
+    my ($class, $catalog) = @_;
+
+    my $self = bless {}, $class;
+    $self->set_machine_vars();
+
+    $self->{sources} = $self->decode_bag($catalog);
+
+    return $self;
+}
+
+sub set_machine_vars {
+    my ($self) = @_;
+
+    ($self->{osname}, undef, undef, undef, $self->{architecture}) = POSIX::uname();
+
+    $self->{target} = $self->architecture . '/' . $self->distribution;
+
+    my $ldd_version_raw = qx(ldd --version);
+    $ldd_version_raw =~ /
+    # we are looking for a line starting with 'ldd'
+    ^ldd
+    # followed by anything
+    .*
+    # followed by at least one space
+    \s+
+    # followed by the version number (that we capture)
+    ([0-9.]+)
+    # followed by any number of spaces at the end of the line
+    \s*$
+    # options: x allows regexp verbose. m treats each line indepedently
+    /xm ;
+
+    $self->{glibc_version} = $1
+    || 'unknown';
+
+    $ENV{VC3_MACHINE_OS}   = $self->osname;
+    $ENV{VC3_MACHINE_ARCH} = $self->architecture;
+    $ENV{VC3_MACHINE_GLIBC_VERSION} = $self->glibc_version;
+}
+
+sub target {
+    my ($self) = @_;
+    return $self->{target};
+}
+
+sub osname {
+    my ($self) = @_;
+    return $self->{osname};
+}
+
+sub architecture {
+    my ($self) = @_;
+    return $self->{architecture};
+}
+
+sub glibc_version {
+    my ($self) = @_;
+    return $self->{glibc_version};
+}
+
+# reads /etc/readhat-release and transforms something like:
+# 'Red Hat Enterprise Linux Server release 6.5 (Santiago)'
+# into 'redhat6'.
+sub distribution {
+    my ($self) = @_;
+
+    my $distribution='generic';
+    
+    if (-f '/etc/redhat-release') {
+        open (my $file_fh, '<', '/etc/redhat-release');
+        my $redhat_version_line = <$file_fh>;
+
+        $redhat_version_line =~ /\brelease\b\s+([0-9]+)\b/;
+        my $redhat_version = $1;
+
+        die 'Could not find redhat version!' unless $redhat_version;
+
+        $distribution="redhat${redhat_version}"
+    }
+    
+    return $distribution;
+}
+
+sub widget {
+    my ($self, $widget_name) = @_;
+
+    return $self->{sources}{$widget_name};
+}
+
 sub decode_bag {
-    my ($filename) = @_;
-    open( my $bag_f, '<:encoding(UTF-8)', $filename); 
-    my $contents = do { local($/); <$bag_f> };
-    close($bag_f);
+    my ($self, $filename) = @_;
+    open( my $catbag_f, '<:encoding(UTF-8)', $filename); 
+    my $contents = do { local($/); <$catbag_f> };
+    close($catbag_f);
 
     my $bag_raw = JSON::Tiny::decode_json($contents);
 
-    my $bag = {};
+    my $sources = {};
     
     for my $widget_name (keys %{$bag_raw}) {
-        my @versions = map { VC3::Widget->new($_) } @{$bag_raw->{$widget_name}};
-        $bag->{$widget_name} = \@versions;
+        my @versions = map { VC3::Widget->new($self, $_) } @{$bag_raw->{$widget_name}};
+        $sources->{$widget_name} = \@versions;
     }
 
-    return $bag;
+    return $sources;
 }
 
 sub set_environment {
-    my ($bag, $widget_name, $sh_on_error, $min_version, $max_version) = @_;
+    my ($self, $widget_name, $sh_on_error, $min_version, $max_version) = @_;
 
-    my $widget_versions = $bag->{$widget_name}
-    || croak "I do not know anything about '$widget_name'.";
-
+    my $widget_versions = $self->widget($widget_name)
+    || die "I do not know anything about '$widget_name' . \n";
 
     my $widget = select_version($widget_name, $widget_versions, $min_version, $max_version);
 
-    set_dependencies($bag, $sh_on_error, $widget->dependencies);
-
+    # set root of this widget, in case dependencies need to refer to its parent.
+    $ENV{$widget->var_root_name} = $widget->destination_dir;
+    
+    $self->set_dependencies($sh_on_error, $widget->dependencies);
     $widget->set_environment_variables();
 
     my $exit_status = 0;
@@ -141,7 +238,7 @@ sub set_environment {
             my %old_vc3_environment = %vc3_environment;
 
             # set dependencies particular to this source
-            set_dependencies($bag, $sh_on_error, $source->dependencies);
+            $self->set_dependencies($sh_on_error, $source->dependencies);
 
             eval {$exit_status = -1; $exit_status = $widget->execute_recipe($source);};
 
@@ -161,17 +258,17 @@ sub set_environment {
 
     # last of the tries also failed, so we report failure for this widget.
     if($exit_status) {
-        croak "Could not set environment for '" . $widget->name . "' succesfully'.";
+        die "Could not set environment for '" . $widget->name . "' succesfully' . \n";
     }
 }
 
 sub set_dependencies {
-    my ($bag, $sh_on_error, $dependencies) = @_;
+    my ($self, $sh_on_error, $dependencies) = @_;
 
     if($dependencies) {
         for my $dependency (keys %{$dependencies}) {
             my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
-            set_environment($bag, $dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
+            $self->set_environment($dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
         }
     }
 }
@@ -215,7 +312,7 @@ sub select_version {
     }
 
     $max_version = $min_version unless $max_version;
-    croak "I did not find a suitable version for '$pkg_name'.\n Found: ["
+    die "I did not find a suitable version for '$pkg_name'.\n Found: ["
     . version::normal($min_found)
     . ',' . version::normal($max_found)
     . ']. Wanted ['
@@ -224,38 +321,14 @@ sub select_version {
     . "]\n";
 }
 
+sub expand_env_variable {
+    my ($varvalue) = @_;
 
+    $varvalue =~ s/\$\{(\w+)\}/$ENV{$1}/g;
 
-sub architecture {
-    chomp (my $architecture = qx(/bin/uname -m));
-    $architecture
+    return $varvalue;
 }
 
-# reads /etc/readhat-release and transforms something like:
-# 'Red Hat Enterprise Linux Server release 6.5 (Santiago)'
-# into 'redhat6'.
-sub distribution {
-    my $distribution='non-redhat';
-    
-    if (-f '/etc/redhat-release') {
-	open (my $file_fh, '<', '/etc/redhat-release');
-	my $redhat_version_line = <$file_fh>;
-	
-	$redhat_version_line =~ /\brelease\b\s+([0-9]+)\b/;
-	my $redhat_version = $1;
-
-	die 'Could not find redhat version!' unless $redhat_version;
-	
-	$distribution="redhat${redhat_version}"
-    }
-    
-    return $distribution;
-}
-
-sub target {
-    my $target = architecture . '/' . distribution;
-    return $target;
-}
 
 package VC3::Widget;
 use Carp;
@@ -266,10 +339,11 @@ use Data::Dumper;
 # Attributes:
 # name, version, sources, dependencies, environment_variables
 sub new {
-    my ($class, $json_description) = @_;
+    my ($class, $bag, $json_description) = @_;
 
     my $self = bless {}, $class;
 
+    $self->bag($bag);
     $self->name($json_description->{name});
     $self->version($json_description->{version});
     $self->sources($json_description->{sources});
@@ -296,9 +370,28 @@ sub add_root_variable {
 
     unshift @{$vars}, $root_var;
 
+    $self->var_root_name($root_name);
     $self->environment_variables($vars);
 }
 
+sub var_root_name {
+    my ($self, $new_var_root_name) = @_;
+
+    $self->{var_root_name} = $new_var_root_name if($new_var_root_name);
+
+    return $self->{var_root_name};
+}
+
+sub bag {
+    my ($self, $new_bag) = @_;
+
+    $self->{bag} = $new_bag if($new_bag);
+
+    croak 'No bag given'
+    unless($self->{bag}); 
+
+    return $self->{bag};
+}
 
 sub name {
     my ($self, $new_name) = @_;
@@ -351,7 +444,7 @@ sub environment_variables {
 
 sub destination_dir {
     my ($self) = @_;
-    return File::Spec->rel2abs($vc3_root) . '/' . VC3::Bag->target . '/' . $self->name . '-' . $self->version;
+    return File::Spec->rel2abs($vc3_root) . '/' . $self->bag->target . '/' . $self->name . '-' . $self->version;
 }
 
 sub build_dir {
@@ -403,21 +496,13 @@ sub set_environment_variables {
             if(!$absolute) {
                 $path = $self->destination_dir . '/' . $path;
             }
-            $path = expand_env_variable($path);
+            $path = VC3::Bag::expand_env_variable($path);
             $vc3_environment{$name}->{$path} = 1;
         }
 
         my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment{$name}});
         $ENV{$name} = $dotted;
     }
-}
-
-sub expand_env_variable {
-    my ($varvalue) = @_;
-
-    $varvalue =~ s/\$\{(\w+)\}/$ENV{$1}/g;
-
-    return $varvalue;
 }
 
 # range is: [min_version, max_version];
@@ -452,7 +537,8 @@ sub expand_env_variable {
 sub error_debug_info {
     my ($self) = @_;
 
-    print "'" . $self->name . "' failed to build for ", VC3::Bag::target, "\n";
+    print "'", $self->name, "' failed to build for ", $self->bag->target, "\n";
+
     print "Last lines of log file:\n";
     system('tail', $self->build_log);
 }
@@ -465,7 +551,7 @@ sub process_error {
         $self->error_debug_info;
 
         if($sh_on_error) {
-            carp $@ if $@;
+            warn $@ if $@;
             my $pid = fork();
             if($pid == 0) {
                 exec("/bin/sh -c 'cd " . $self->build_dir . " && exec \${SHELL:-/bin/sh}'");
@@ -506,6 +592,9 @@ sub prepare_recipe_sandbox {
     File::Path::make_path($self->build_dir);
     File::Path::make_path($self->destination_dir);
 
+    # make sure tmp dir exists
+    File::Path::make_path($ENV{'TMPDIR'});
+
     # download to $vc3_distfiles the ingredient (i.e., input files) if missing.
     $source->get_files();
 
@@ -538,7 +627,7 @@ sub execute_recipe {
     # add exiting cleanly from shell as a last step.
     push @steps, 'exit 0';
 
-    print "Building for '" . $self->name . "' for ", VC3::Bag->target, "\n";
+    print "Building for '" . $self->name . "' for ", $self->bag->target, "\n";
     print "for building details:\ntail -f " . $self->build_log . "\n";
 
     for my $step (@steps) {
@@ -549,6 +638,9 @@ sub execute_recipe {
 
     my $status = -1;
     eval { close $build_in; $status = $? };
+
+    delete $ENV{VC3_PREFIX}; 
+    delete $ENV{VC3_BUILD}; 
 
     if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
         $self->create_ribbon();
@@ -589,26 +681,27 @@ sub setup_build_shell {
 
 package VC3::Source;
 use Carp;
+use Data::Dumper;
 
 sub new {
     my ($class, $widget, $source_raw) = @_;
 
     my $source;
 
-    if($source_raw->{type} eq 'tarball') {
+    if($source_raw->{type} eq 'generic') {
+        $source = VC3::Source::Generic->new($widget, $source_raw);
+    }
+    elsif($source_raw->{type} eq 'tarball') {
         $source = VC3::Source::Tarball->new($widget, $source_raw);
+    }
+    elsif($source_raw->{type} eq 'license-restricted') {
+        $source = VC3::Source::Restricted->new($widget, $source_raw);
     }
     elsif($source_raw->{type} eq 'service') {
         ...
     }
-    elsif($source_raw->{type} eq 'binary') {
-        $source = VC3::Source::Binary->new($widget, $source_raw);
-    }
-    elsif($source_raw->{type} eq 'generic') {
-        $source = VC3::Source::Generic->new($widget, $source_raw);
-    }
     else {
-        croak "Do not about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
+        croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
     }
 
     return $source;
@@ -631,6 +724,7 @@ sub new {
     $self->widget($widget);
     $self->recipe($json_description->{recipe});
     $self->files($json_description->{files});
+    $self->message($json_description->{message});
     $self->dependencies($json_description->{dependencies});
 
     return $self;
@@ -670,6 +764,19 @@ sub files {
     }
 }
 
+sub message {
+    my ($self, $new_message) = @_;
+
+    if($new_message) {
+        my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
+        $self->{message} = join("\n", @expansions);
+        $self->{message} = "\n" . ${self}->{message};
+    }
+
+    return $self->{message};
+}
+
+
 sub file_absolute {
     my ($self, $file) = @_;
     return File::Spec->rel2abs($vc3_distfiles . '/' . $file);
@@ -683,39 +790,43 @@ sub dependencies {
     return $self->{dependencies};
 }
 
+sub get_file {
+    my ($self, $file) = @_;
+
+    unless(-f $self->file_absolute($file)) {
+        print "Downloading '" . $file . "' from $vc3_distfiles\n";
+
+        my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $file);
+
+        # make sure the destination directory exists
+        File::Path::make_path($vc3_distfiles);
+
+        # disable noisy stderr from File::Fetch
+        $File::Fetch::BLACKLIST = ['lwp'];
+        $ff->fetch( to => $vc3_distfiles );
+
+        if($ff->error || !(-f $self->file_absolute($file))) {
+            die "Could not download '" . $self->file . "':\n" . $ff->error . "\n";
+        }
+    }
+}
+
 sub get_files {
     my ($self) = @_;
 
     my $files = $self->files;
 
     for my $file (@{$files}) {
-        unless(-f $self->file_absolute($file)) {
-            print "Downloading '" . $file . "' from $vc3_distfiles\n";
-
-            my $ff = File::Fetch->new(uri => $vc3_repository . '/' . $file);
-
-            # make sure the destination directory exists
-            File::Path::make_path($vc3_distfiles);
-
-            # disable noisy stderr from File::Fetch
-            $File::Fetch::BLACKLIST = ['lwp'];
-            $ff->fetch( to => $vc3_distfiles );
-
-            if($ff->error || !(-f $self->file_absolute($file))) {
-                croak "Could not download '" . $self->file . "':\n" . $ff->error;
-            }
-        }
+        $self->get_file($file);
     }
 }
 
-sub prepare_files  {
+sub prepare_files {
     my ($self, $build_dir) = @_;
 
     for my $file (@{$self->files}) {
-        print "Copying '" . $file . "' to build directory.\n";
-
-        File::Copy::copy($self->file_absolute($file), $build_dir)
-        || croak "Could not copy '" . $file . "' to build directory.";
+        symlink($self->file_absolute($file), $build_dir . '/' . $file)
+        || die "Could not link '" . $file . "' to build directory.\n";
     }
 }
 
@@ -741,45 +852,33 @@ sub prepare_files  {
     my ($self, $build_dir) = @_;
 
     # first file in $self->files is the tarball, by convention.
-    my $tarball = $self->file_absolute($self->files->[0]);
+    my $tarball = @{$self->files}[0];
+    $tarball = $self->file_absolute($tarball);
 
     print "Expanding $tarball\n";
     system(qq/tar -C ${build_dir} --strip-components=1 -xpf ${tarball}/);
-    croak "Could not expand tarball $tarball." if $?;
+    die "Could not expand tarball $tarball.\n" if $?;
 
-    for my $file (shift @{$self->files}) {
-        print "Copying '" . $file . "' to build directory.\n";
-
-        File::Copy::copy($self->file_absolute($file), $build_dir)
-        || croak "Could not copy '" . $file . "' to build directory.";
-    }
+    # link in the rest of the input files.
+    $self->SUPER::prepare_files($build_dir);
 }
 
-package VC3::Source::Binary;
+package VC3::Source::Restricted;
 use base 'VC3::Source::Generic';
 use Carp;
 
-sub new {
-    my ($class, $widget, $json_description) = @_;
+sub get_file {
+    my ($self, $file) = @_;
 
-    my $self = VC3::Source::Generic->new($widget, $json_description);
-
-    unless($self->files) {
-        croak "For type 'binary', at least one file should be defined in the files list.";
+    unless(-f $self->file_absolute($file)) {
+        print $self->message . "\n\n";
+        die "Missing restricted-license file.\n";
     }
-
-    $self = bless $self, $class;
-
-    return $self;
 }
 
-sub prepare_files  {
-    my ($self, $build_dir) = @_;
-
-    for my $file (@{$self->files}) {
-        symlink($self->file_absolute($file), $build_dir . '/' . $file)
-        || croak "Could not link '" . $file . "' to build directory.";
-    }
+sub file_absolute {
+    my ($self, $file) = @_;
+    return File::Spec->rel2abs($vc3_distfiles . '/restricted-license/'  . $file);
 }
 
 package Perl::Version;
@@ -1326,9 +1425,4 @@ $LAX =
 # Preloaded methods go here.
 sub is_strict	{ defined $_[0] && $_[0] =~ qr/ \A $STRICT \z /x }
 sub is_lax	{ defined $_[0] && $_[0] =~ qr/ \A $LAX \z /x }
-
-1;
-
-
-1;
 

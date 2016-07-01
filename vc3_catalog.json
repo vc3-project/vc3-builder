@@ -761,7 +761,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm BioPerl"
+                        "cpanm --force BioPerl"
                     ]
                 }
             ],
@@ -973,6 +973,66 @@
         }
     ],
 
+    "perl-dbd-sqlite":[
+        {
+            "name":"perl_dbd_sqlite",
+            "version":"v1.5",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm DBD::SQLite"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-want":[
+        {
+            "name":"perl_want",
+            "version":"v0.29",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm Want"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-lwp-simple":[
+        {
+            "name":"perl_lwp_simple",
+            "version":"v6.15",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm LWP::Simple"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
     "hmmer":[
         {
             "name":"hmmer",
@@ -1027,6 +1087,7 @@
                         "openmpi-1.10.3.tar.gz"
                     ],
                     "recipe":[
+                        "export CFLAGS=-fPIC",
                         "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
                         "make",
                         "make install"
@@ -1247,20 +1308,63 @@
         {
             "version":"v4.0.6",
             "name":"RepeatMasker",
+            "dependencies":{
+                "repeatmasker-bin":[
+                    "v4.0.6"
+                ],
+                "repeatmasker-libs":[
+                    "v2015.08.07"
+                ]
+            }
+        }
+    ],
+
+    "repeatmasker-libs":[
+        {
+            "version":"v2015.08.07",
+            "name":"RepeatMasker_libs",
             "sources":[
                 {
-                    "type":"binary",
+                    "type":"license-restricted",
+                    "message":[
+"RepeatMasker libraries have a restrictive distribution license, and have to",
+"be downloaded manually. Please follow these steps:",
+"    1) On http://www.girinst.org, click on 'Downloads'.",
+"    2) Register for a free account.",
+"    3) Download the most recent libray repeatmaskerlibraries-YEARMONTDAY.tar.gz.",
+"    4) Copy the file into",
+"${VC3_DISTFILES}/restricted-license/repeatmaskerlibraries-LATEST.tar.gz.",
+"    For example:",
+"cp ~/Downloads/repeatmaskerlibraries-20150807.tar.gz ${VC3_DISTFILES}/restricted-license/repeatmaskerlibraries-LATEST.tar.gz",
+"    5) Try again '${VC3_COMMAND_LINE}'."],
                     "files":[
-                        "RepeatMasker-open-4-0-6.tar.gz",
-                        "VC3_RepeatMasker-open-4-0-6.configure",
-                        "repeatmaskerlibraries-20150807.tar.gz"
+                        "repeatmaskerlibraries-LATEST.tar.gz"
                     ],
                     "recipe":[
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
-                        "tar -C ${VC3_PREFIX} -xpf repeatmaskerlibraries-20150807.tar.gz",
-                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_PREFIX}",
-                        "cd ${VC3_PREFIX}",
-                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_PERL_ROOT}/bin/perl -repeatmasker_dir=${VC3_PREFIX} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -default_engine=hmmer"
+                        "tar -C ${VC3_REPEATMASKER_ROOT} -xpf repeatmaskerlibraries-LATEST.tar.gz"
+                    ]
+                }
+            ]
+        }
+    ],
+
+    "repeatmasker-bin":[
+        {
+            "version":"v4.0.6",
+            "name":"RepeatMasker_bin",
+            "sources":[
+
+                {
+                    "type":"generic",
+                    "files":[
+                        "RepeatMasker-open-4-0-6.tar.gz",
+                        "VC3_RepeatMasker-open-4-0-6.configure"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_REPEATMASKER_ROOT} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_REPEATMASKER_ROOT}",
+                        "cd ${VC3_REPEATMASKER_ROOT}",
+                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_PERL_ROOT}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -default_engine=hmmer"
                     ]
                 }
             ],
@@ -1276,6 +1380,9 @@
                 ],
                 "perl-text-soundex":[
                     "v3.0"
+                ],
+                "repeatmasker-libs":[
+                    "v2015.08.07"
                 ]
             },
             "environment_variables":[
@@ -1286,19 +1393,23 @@
                 },
                 {
                     "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
+                    "value":"${VC3_REPEATMASKER_ROOT}/lib",
+                    "absolute":1
                 },
                 {
                     "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
+                    "value":"${VC3_REPEATMASKER_ROOT}/lib/pkgconfig",
+                    "absolute":1
                 },
                 {
                     "name":"C_INCLUDE_DIR",
-                    "value":"include"
+                    "value":"${VC3_REPEATMASKER_ROOT}/include",
+                    "absolute":1
                 },
                 {
                     "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
+                    "value":"${VC3_REPEATMASKER_ROOT}/include",
+                    "absolute":1
                 }
             ]
         }
@@ -1310,7 +1421,7 @@
             "name":"augustus",
             "sources":[
                 {
-                    "type":"binary",
+                    "type":"generic",
                     "files":[
                         "augustus.2.4.src.tar.gz"
                     ],
@@ -1349,14 +1460,25 @@
             "version":"v4.09",
             "sources":[
                 {
-                    "type":"generic",
+                    "message":[
+"Tandem Repeats Finder (trf) has a restrictive distribution license, and has to",
+"be downloaded manually. Please follow these steps:",
+"    1) On https://tandem.bu.edu/trf/trf.html, click on 'Download Your Own Copy of the Program'.",
+"    2) Download the version appropiate for your machine.",
+"      (Your machine is a ${VC3_MACHINE_OS}-${VC3_MACHINE_ARCH}, GLIBC version ${VC3_MACHINE_GLIBC_VERSION})",
+"    3) Copy the file into",
+"${VC3_DISTFILES}/restricted-license/trf409",
+"    For example:",
+"cp ~/Downloads/trf409.legacylinux64 ${VC3_DISTFILES}/restricted-license/trf409",
+"    4) Try again '${VC3_COMMAND_LINE}'."],
+                    "type":"license-restricted",
                     "files":[
-                        "trf409.legacylinux64"
+                        "trf409"
                     ],
                     "recipe":[
-                        ": depends on GLIBC 2.12!",
                         "mkdir -p ${VC3_PREFIX}/bin",
-                        "cp trf409.legacylinux64 ${VC3_PREFIX}/bin/trf",
+                        ": -L to ensure real files are copied, and not only symlinks",
+                        "cp -L trf409 ${VC3_PREFIX}/bin/trf",
                         "chmod 755 ${VC3_PREFIX}/bin/trf"
                     ]
                 }
@@ -1376,12 +1498,27 @@
             "version":"v1.0",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"license-restricted",
+                    "message":[
+"maker has a restrictive distribution license, and has to",
+"be downloaded manually. Please follow these steps:",
+"    1) On http://www.yandell-lab.org/software/maker.html, click on 'Registration Page'.",
+"    2) Fill the form and click on 'Submit and Download MAKER.",
+"    3) Download maker-2.31.8.tgz.",
+"    4) Copy the file into",
+"${VC3_DISTFILES}/restricted-license/maker-2.31.8.tgz",
+"    For example:",
+"cp ~/Downloads/maker-2.31.8.tgz ${VC3_DISTFILES}/restricted-license/",
+"    5) Try again '${VC3_COMMAND_LINE}'."],
                     "files":[
                         "maker-2.31.8.tgz"
                     ],
                     "recipe":[
-                        "exit 1"
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf maker-2.31.8.tgz",
+                        "cd ${VC3_PREFIX}/src",
+                        ": y to activate MPI support",
+                        "/bin/echo 'y' | perl Build.PL",
+                        "./Build install"
                     ]
                 }
             ],
@@ -1406,6 +1543,15 @@
                 ],
                 "perl-dbi":[
                     "v1.6"
+                ],
+                "perl-dbd-sqlite":[
+                    "v1.5"
+                ],
+                "perl-want":[
+                    "v0.29"
+                ],
+                "perl-lwp-simple":[
+                    "v6.15"
                 ],
                 "perl-file-which":[
                     "v1.2"
@@ -1434,7 +1580,14 @@
                 "perl-io-prompt":[
                     "v0.997"
                 ]
-            }
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MAKER_ROOT}/bin",
+                    "absolute":1
+                }
+            ]
         }
     ]
 }

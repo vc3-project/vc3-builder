@@ -1341,6 +1341,7 @@
                         "repeatmaskerlibraries-LATEST.tar.gz"
                     ],
                     "recipe":[
+                        "mkdir ${VC3_REPEATMASKER_ROOT}",
                         "tar -C ${VC3_REPEATMASKER_ROOT} -xpf repeatmaskerlibraries-LATEST.tar.gz"
                     ]
                 }
@@ -1361,6 +1362,7 @@
                         "VC3_RepeatMasker-open-4-0-6.configure"
                     ],
                     "recipe":[
+                        "mkdir ${VC3_REPEATMASKER_ROOT}",
                         "tar -C ${VC3_REPEATMASKER_ROOT} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
                         "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_REPEATMASKER_ROOT}",
                         "cd ${VC3_REPEATMASKER_ROOT}",

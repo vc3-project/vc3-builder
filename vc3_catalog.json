@@ -219,6 +219,41 @@
         }
     ],
 
+    "berkeley-db":[
+        {
+            "version":"v6.2.23",
+            "name":"berkeley-db",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "db-6.2.23.tar.gz"
+                    ],
+                    "recipe":[
+                        "cd build_unix",
+                        "../dist/configure --prefix=${VC3_PREFIX} --enable-static --disable-shared --enable-compat185 --enable-dbm --enable-cxx",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_DIR",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
     "readline":[
         {
             "version":"v6.3",
@@ -741,7 +776,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm Text::Soundex"
+                        "cpanm --notest Text::Soundex"
                     ]
                 }
             ],
@@ -761,14 +796,16 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        ": depends on db.h!",
-                        "cpanm --force BioPerl"
+                        "cpanm --notest BioPerl"
                     ]
                 }
             ],
             "dependencies":{
                 "perl-cpanminus":[
                     "v1.7"
+                ],
+                "berkeley-db":[
+                    "v6.0"
                 ]
             }
         }
@@ -782,7 +819,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm DBI"
+                        "cpanm --notest DBI"
                     ]
                 }
             ],
@@ -802,7 +839,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm File::Which"
+                        "cpanm --notest File::Which"
                     ]
                 }
             ],
@@ -822,7 +859,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm Perl::Unsafe::Signals"
+                        "cpanm --notest Perl::Unsafe::Signals"
                     ]
                 }
             ],
@@ -842,7 +879,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm Bit::Vector"
+                        "cpanm --notest Bit::Vector"
                     ]
                 }
             ],
@@ -862,7 +899,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm Inline"
+                        "cpanm --notest Inline"
                     ]
                 }
             ],
@@ -882,7 +919,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm Inline::C"
+                        "cpanm --notest Inline::C"
                     ]
                 }
             ],
@@ -902,7 +939,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm forks"
+                        "cpanm --notest forks"
                     ]
                 }
             ],
@@ -922,7 +959,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm forks"
+                        "cpanm --notest forks"
                     ]
                 }
             ],
@@ -942,7 +979,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm IO::All"
+                        "cpanm --notest IO::All"
                     ]
                 }
             ],
@@ -962,7 +999,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm IO::All"
+                        "cpanm --notest IO::All"
                     ]
                 }
             ],
@@ -982,7 +1019,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm DBD::SQLite"
+                        "cpanm --notest DBD::SQLite"
                     ]
                 }
             ],
@@ -1002,7 +1039,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm Want"
+                        "cpanm --notest Want"
                     ]
                 }
             ],
@@ -1022,7 +1059,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm LWP::Simple"
+                        "cpanm --notest LWP::Simple"
                     ]
                 }
             ],

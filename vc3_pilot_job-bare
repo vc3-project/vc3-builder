@@ -11,6 +11,10 @@ use Getopt::Long qw/GetOptions/;
 my $vc3_root       = $ENV{VC3_ROOT}       || "vc3_root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$vc3_root/distfiles";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
+
+my $vc3_user_home = $ENV{VC3_USER_HOME}  || "$vc3_root/vc3_user_home";
+my $vc3_tmp_dir   = $ENV{VC3_TMP}        || "$vc3_root/tmp";
+
 my %vc3_environment;
 
 my @external_dependencies = qw/sh tail tar uname patch gcc g++ ld pkconfig/;
@@ -69,22 +73,19 @@ sub main {
         @command_and_args = ('/bin/sh',);
     }
 
+    # clean this!
     %ENV = (
+        VC3_COMMAND_LINE => File::Spec->rel2abs(join(" ", $original_command)),
         PATH      => "/bin:/usr/bin",
         MAKEFLAGS => "-j${make_jobs}",
-        TERM      => 'linux',
-
-        # set environment variables with full paths
-        HOME             => $ENV{PWD},
-        TMPDIR           => File::Spec->rel2abs("${vc3_root}/tmp"),
-        VC3_ROOT         => File::Spec->rel2abs("${vc3_root}"),
-        VC3_DISTFILES    => File::Spec->rel2abs("${vc3_distfiles}"),
-        VC3_COMMAND_LINE => File::Spec->rel2abs(join(" ", $original_command))
+        TERM      => 'linux'
     );
 
-    # fix this! set default path more cleanly (see also PATH above)
+    # clean this! set default path more cleanly (see also PATH above)
     $vc3_environment{PATH}->{'/bin'}     = 1;
     $vc3_environment{PATH}->{'/usr/bin'} = 1;
+
+    set_vc3_directories();
 
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
@@ -95,7 +96,27 @@ sub main {
     $bag->set_environment($goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
 
     print "building phase done!\n";
+
+    chdir $vc3_user_home;
     exec qq(@command_and_args);
+}
+
+sub set_vc3_directories {
+    $vc3_root      = File::Spec->rel2abs("${vc3_root}");
+    $vc3_distfiles = File::Spec->rel2abs("${vc3_distfiles}");
+    $vc3_user_home = File::Spec->rel2abs("${vc3_user_home}");
+    $vc3_tmp_dir   = File::Spec->rel2abs("${vc3_tmp_dir}");
+
+    File::Path::make_path($vc3_root);
+    File::Path::make_path($vc3_distfiles);
+    File::Path::make_path("$vc3_distfiles/restricted-license");
+    File::Path::make_path($vc3_user_home);
+    File::Path::make_path($vc3_tmp_dir);
+
+    $ENV{VC3_ROOT}      = $vc3_root;
+    $ENV{VC3_DISTFILES} = $vc3_distfiles;
+    $ENV{HOME}          = $vc3_user_home;
+    $ENV{TMP}           = $vc3_tmp_dir;
 }
 
 package VC3::Bag; 
@@ -326,9 +347,16 @@ sub select_version {
 sub expand_env_variable {
     my ($varvalue) = @_;
 
-    $varvalue =~ s/\$\{(\w+)\}/$ENV{$1}/g;
+    $varvalue =~ s/\$\{(\w+)\}/env_variable_value($1)/eg;
 
     return $varvalue;
+}
+
+sub env_variable_value {
+    my ($varname) = @_;
+
+    my $value = $ENV{$varname}
+    || die "Variable '$varname' has not been defined.";
 }
 
 

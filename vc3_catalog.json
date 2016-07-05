@@ -519,6 +519,113 @@
         }
     ],
 
+    "python-setuptools":[
+        {
+            "version":"v24.0.2",
+            "name":"python_setuptools",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "setuptools-24.0.2.tar.gz"
+                    ],
+                    "recipe":[
+                        "python setup.py install --prefix=${VC3_PYTHON_MODULES}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"VC3_PYTHON_MODULES",
+                    "value":"${VC3_PYTHON_ROOT}/local_modules",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${VC3_PYTHON_MODULES}/lib/python2.7/site-packages",
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_PYTHON_MODULES}/bin",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "python-pip":[
+        {
+            "version":"v1.8.2",
+            "name":"python_pip",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "pip-8.1.2.distribution"
+                    ],
+                    "recipe":[
+                        "echo -e \"\\n[install]\\ninstall-option=--prefix=${VC3_PYTHON_MODULES}\\n\" > ${PIP_CONFIG_FILE}",
+                        "python pip-8.1.2.distribution"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ],
+                "python-setuptools":[
+                    "v24.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PIP_CONFIG_FILE",
+                    "value":"pip.conf"
+                }
+            ]
+        }
+    ],
+
+    "python-virtualenv":[
+        {
+            "version":"v0",
+            "name":"python_virtualenv",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "pip install --user virtualenv",
+                        "cd ${HOME}",
+                        ".local/bin/virtualenv ${VC3_PYTHON_MODULES}"
+                    ]
+                }
+            ],
+            "start":[
+                "cd ${HOME}",
+                "source ${VC3_PYTHON_MODULES}/bin/activate"
+            ],
+            "dependencies":{
+                "python-pip":[
+                    "v1.8"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"VC3_PYTHON_MODULES",
+                    "value":"${VC3_PYTHON_PIP_ROOT}/local_modules",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
     "perl-local-lib":[
         {
             "version":"v2.000019",
@@ -543,7 +650,7 @@
             "environment_variables": [
                 {
                     "name":"VC3_PERL_MODULES", 
-                    "value":  "${VC3_PERL_LOCAL_LIB_ROOT}/local_modules",
+                    "value":"${VC3_PERL_LOCAL_LIB_ROOT}/local_modules",
                     "clobber":1,
                     "absolute":1
                 },
@@ -575,7 +682,7 @@
 
     "python":[
         {
-            "version":"v2.7.8",
+            "version":"v2.7.12",
             "name":"python",
             "versioncmd":"python --version",
             "versionreg":"Python ([0-9.]*).*",
@@ -583,7 +690,7 @@
                 {
                     "type":"tarball",
                     "files":[
-                        "Python-2.7.8.tgz"
+                        "Python-2.7.12.tgz"
                     ],
                     "recipe":[
                         "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib",

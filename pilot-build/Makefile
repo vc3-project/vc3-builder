@@ -3,9 +3,9 @@ export PERL5LIB
 
 FATPACKER=$(CURDIR)/local/bin/fatpack
 
-all: vc3_pilot_job
+all: vc3-pilot
 
-vc3_pilot_job: ../vc3_pilot_job-bare
+vc3-pilot: ../vc3-pilot-bare
 	$(FATPACKER) file $^ -bare > $@ 
 	@chmod 755 $@
 	@echo generated $@
@@ -13,5 +13,5 @@ vc3_pilot_job: ../vc3_pilot_job-bare
 .PHONY: clean
 
 clean:
-	-rm vc3_pilot_job
+	-rm vc3-pilot
 

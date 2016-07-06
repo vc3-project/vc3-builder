@@ -2752,17 +2752,14 @@ use autodie;
 use English qw/-mo_match_vars/;
 use Getopt::Long qw/GetOptions/;
 
-my $vc3_root       = $ENV{VC3_ROOT}       || "vc3_root";
-my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$vc3_root/distfiles";
+my $vc3_root       = $ENV{VC3_ROOT}       || "$ENV{PWD}/vc3_root";
+my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$ENV{PWD}/vc3_distfiles";
+my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3_home";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
-
-my $vc3_user_home = $ENV{VC3_USER_HOME}  || "$vc3_root/vc3_user_home";
-my $vc3_tmp_dir   = $ENV{VC3_TMP}        || "$vc3_root/tmp";
 
 my %vc3_environment;
 
 my @external_dependencies = qw/sh tail tar uname patch gcc g++ ld pkconfig/;
-
 
 main();
 
@@ -2774,13 +2771,19 @@ $0 [options] [--database catalog] --require package [--require package]* [-- com
     command-and-args  defaults to /bin/sh
 
     options are:
-    --install <root>  Install with base <root>. 
-                      Default is $ENV{PWD}/${vc3_root}
-    --home    <home>  Set \${HOME} to <home>.
-                      Default is $ENV{PWD}/${vc3_user_home}
-    --make-jobs <n>   Concurrent make jobs.
-                      Default is 2.
-    --sh-on-error     On building error, run /bin/sh on the partially-built environment.
+    --install <root>   Install with base <root>. 
+                       Default is ${vc3_root}
+    --home    <home>   Set \${HOME} to <root>/<home>.
+                       Default is ${vc3_user_home}
+
+    --distfiles  <dir> Directory to cache unbuilt packages locally.
+                       Default is ${vc3_distfiles}
+    --repository <url> Site to fetch packages if needed.
+                       Default is ${vc3_repository}
+
+    --make-jobs <n>    Concurrent make jobs.
+                       Default is 2.
+    --sh-on-error      On building error, run /bin/sh on the partially-built environment.
 
 Examples:
     $0 --require parrot --require python -- parrot_run python examples/read-file-from-cvmfs.py
@@ -2800,11 +2803,19 @@ sub main {
     my $original_command = join(' ', $0, @ARGV);
 
     GetOptions(
-        "database=s"  => \$database,
-        "require=s"   => sub { my ($name, $value); push @requires, $value; }, 
-        "make-jobs=n" => \$make_jobs,
-        "sh-on-error" => \$sh_on_error,
         "help"        => \$print_help,
+
+        "database=s"  => \$database,
+        "require=s"   => \@requires, 
+
+        "install=s"   => \$vc3_root, 
+        "home"        => \$vc3_user_home,
+
+        "distfiles=s"  => \$vc3_distfiles, 
+        "repository=s" => \$vc3_repository, 
+
+        "make-jobs=n" => \$make_jobs,
+        "sh-on-error" => \$sh_on_error
     );
 
     if($print_help) {
@@ -2846,26 +2857,27 @@ sub main {
 
     print "building phase done!\n";
 
-    chdir $vc3_user_home;
+    chdir "$vc3_root/$vc3_user_home";
     exec qq(@command_and_args);
 }
 
 sub set_vc3_directories {
     $vc3_root      = File::Spec->rel2abs("${vc3_root}");
     $vc3_distfiles = File::Spec->rel2abs("${vc3_distfiles}");
-    $vc3_user_home = File::Spec->rel2abs("${vc3_user_home}");
-    $vc3_tmp_dir   = File::Spec->rel2abs("${vc3_tmp_dir}");
+
+    my $home    = "$vc3_root/$vc3_user_home";
+    my $tmp_dir = "$vc3_root/tmp";
 
     File::Path::make_path($vc3_root);
     File::Path::make_path($vc3_distfiles);
     File::Path::make_path("$vc3_distfiles/restricted-license");
-    File::Path::make_path($vc3_user_home);
-    File::Path::make_path($vc3_tmp_dir);
+    File::Path::make_path($home);
+    File::Path::make_path($tmp_dir);
 
     $ENV{VC3_ROOT}      = $vc3_root;
     $ENV{VC3_DISTFILES} = $vc3_distfiles;
-    $ENV{HOME}          = $vc3_user_home;
-    $ENV{TMP}           = $vc3_tmp_dir;
+    $ENV{HOME}          = $home;
+    $ENV{TMP}           = $tmp_dir;
 }
 
 package VC3::Bag; 

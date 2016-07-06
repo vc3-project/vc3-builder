@@ -2842,8 +2842,10 @@ sub main {
     $ENV{TERM}             = 'linux';
 
     # clean this! set default path more cleanly (see also PATH above)
-    $vc3_environment{PATH}->{'/bin'}     = 1;
-    $vc3_environment{PATH}->{'/usr/bin'} = 1;
+    # set to '2' so this paths come after the packages path (which are set to
+    # 1)
+    $vc3_environment{PATH}->{'/bin'}     = 2;
+    $vc3_environment{PATH}->{'/usr/bin'} = 2;
 
     set_vc3_directories();
 
@@ -3351,7 +3353,9 @@ sub set_environment_variables {
             $vc3_environment{$name}->{$path} = 1;
         }
 
-        my $dotted = join(':', sort { $a cmp $b } keys %{$vc3_environment{$name}});
+        my $dirs = $vc3_environment{$name};
+
+        my $dotted = join(':', sort { $dirs->{$a} <=> $dirs->{$b} || $a cmp $b } keys %{$dirs});
         $ENV{$name} = $dotted;
     }
 }
@@ -3702,7 +3706,7 @@ sub get_file {
     my ($self, $file) = @_;
 
     unless(-f $self->file_absolute($file)) {
-         $self->widget->bag->say("Downloading '" . $file . "' from $vc3_distfiles");
+         $self->widget->bag->say("Downloading '" . $file . "' from $vc3_repository");
 
         #if make sure the destination directory exists
         File::Path::make_path($vc3_distfiles);

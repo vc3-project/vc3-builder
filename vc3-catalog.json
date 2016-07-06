@@ -190,7 +190,8 @@
                         "libuuid-1.0.3.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
                         "make",
                         "make install"
                     ]
@@ -202,7 +203,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -224,7 +225,9 @@
                     ],
                     "recipe":[
                         "cd build_unix",
-                        "../dist/configure --prefix=${VC3_PREFIX} --enable-static --disable-shared --enable-compat185 --enable-dbm --enable-cxx",
+                        "export CFLAGS=-fPIC",
+                        "export CXXFLAGS=-fPIC",
+                        "../dist/configure --prefix=${VC3_PREFIX} --enable-static --enable-shared --enable-compat185 --enable-dbm --enable-cxx",
                         "make",
                         "make install"
                     ]
@@ -236,7 +239,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -257,6 +260,7 @@
                         "readline-6.3.tar.gz"
                     ],
                     "recipe":[
+                        "export CFLAGS=-fPIC",
                         "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
                         "make",
                         "make install"
@@ -269,7 +273,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -291,7 +295,8 @@
                     ],
                     "recipe":[
                         ": system pcre is not working! using internal",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --with-python=${VC3_PYTHON_ROOT}/bin/python --with-pcre=internal",
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --with-python=${VC3_PYTHON_ROOT}/bin/python --with-pcre=internal",
                         "make",
                         "make install"
                     ]
@@ -300,6 +305,12 @@
             "dependencies":{
                 "libffi":[
                     "v3.2.1"
+                ],
+                "gettext":[
+                    "v0.19"
+                ],
+                "zlib":[
+                    "v1.2"
                 ],
                 "pcre":[
                     "v8.13"
@@ -322,7 +333,7 @@
                     "value":"lib/pkgconfig"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -343,7 +354,8 @@
                         "libffi-3.2.1.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-portable-binary",
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary",
                         "make",
                         "make install"
                     ]
@@ -359,7 +371,7 @@
                     "value":"lib/pkgconfig"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -380,17 +392,12 @@
                         "pcre-8.39.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 --enable-pcregrep-libz --enable-pcretest-libreadline2",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 ",
                         "make",
                         "make install"
                     ]
                 }
             ],
-            "dependencies":{
-                "readline":[
-                    "v6.3"
-                ]
-            },
             "environment_variables":[
                 {
                     "name":"PATH",
@@ -405,7 +412,7 @@
                     "value":"lib/pkgconfig"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -442,7 +449,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -704,6 +711,7 @@
                         "zlib-1.2.8.tar.gz"
                     ],
                     "recipe":[
+                        "export CFLAGS=-fPIC",
                         "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --static",
                         "make",
                         "make install"
@@ -720,7 +728,53 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "gettext": [
+        {
+            "version":"v0.19.8",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "gettext-0.19.8.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -773,7 +827,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -816,7 +870,7 @@
                     "value":"lib/core/obj"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"lib/api/include"
                 },
                 {
@@ -886,11 +940,41 @@
                 "perl-cpanminus":[
                     "v1.7"
                 ],
+                "perl-module-build":[
+                    "v0.42"
+                ],
                 "berkeley-db":[
                     "v6.0"
                 ],
-                "perl-module-build":[
-                    "v0.42"
+                "perl-DB_File":[
+                    "v1.8"
+                ]
+
+            }
+        }
+    ],
+
+    "perl-DB_File":[
+        {
+            "version":"v1.8",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":["DB_File-1.838.tar.gz"],
+                    "recipe":[
+                        "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_BERKELEY_DB_ROOT}'/include%;s%^LIB.*%LIB = '${VC3_BERKELEY_DB_ROOT}'/lib%' config.in",
+                        "perl Makefile.PL",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl":[
+                    "v5.10"
+                ],
+                "berkeley-db":[
+                    "v6.0"
                 ]
             }
         }
@@ -1193,7 +1277,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -1231,7 +1315,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -1291,7 +1375,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -1351,7 +1435,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -1372,6 +1456,7 @@
                         "sqlite-autoconf-3130000.tar.gz"
                     ],
                     "recipe":[
+                        "export CFLAGS=-fPIC",
                         "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-readline",
                         "make",
                         "make install"
@@ -1393,7 +1478,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -1439,7 +1524,7 @@
                     "value":"lib"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {
@@ -1626,7 +1711,7 @@
                     "value":"bin"
                 },
                 {
-                    "name":"C_INCLUDE_DIR",
+                    "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },
                 {

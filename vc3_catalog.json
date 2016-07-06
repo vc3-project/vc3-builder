@@ -1515,6 +1515,30 @@
         {
             "version":"v4.0.6",
             "name":"RepeatMasker",
+            "dependencies":{
+                "repeatmasker-restricted":[
+                    "v4.0.6"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${VC3_REPEATMASKER_ROOT}",
+                    "absolute":1
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"${VC3_REPEATMASKER_ROOT}/lib",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "repeatmasker-restricted":[
+        {
+            "version":"v4.0.6",
+            "name":"RepeatMasker_restricted",
             "sources":[
                 {
                     "type":"license-restricted",
@@ -1530,17 +1554,39 @@
 "cp ~/Downloads/repeatmaskerlibraries-20150807.tar.gz ${VC3_DISTFILES}/restricted-license/repeatmaskerlibraries-LATEST.tar.gz",
 "    5) Try again '${VC3_COMMAND_LINE}'."],
                     "files":[
+                        "repeatmaskerlibraries-LATEST.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_REPEATMASKER_ROOT}",
+                        "tar -C ${VC3_REPEATMASKER_ROOT} -xpf repeatmaskerlibraries-LATEST.tar.gz",
+                        "cd ${VC3_REPEATMASKER_ROOT}",
+                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_PERL_ROOT}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -rmblast_bin_dir=${VC3_RMBLAST_ROOT}/bin -default_engine=rmblast"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "repeatmasker-free":[
+                    "v4.0.6"
+                ]
+            }
+        }
+    ],
+
+    "repeatmasker-free":[
+        {
+            "version":"v4.0.6",
+            "name":"RepeatMasker",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
                         "RepeatMasker-open-4-0-6.tar.gz",
-                        "repeatmaskerlibraries-LATEST.tar.gz",
                         "VC3_RepeatMasker-open-4-0-6.configure"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_REPEATMASKER_ROOT}",
                         "tar -C ${VC3_REPEATMASKER_ROOT} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
-                        "tar -C ${VC3_REPEATMASKER_ROOT} -xpf repeatmaskerlibraries-LATEST.tar.gz",
-                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_REPEATMASKER_ROOT}",
-                        "cd ${VC3_REPEATMASKER_ROOT}",
-                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_PERL_ROOT}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -rmblast_bin_dir=${VC3_RMBLAST_ROOT}/bin -default_engine=rmblast"
+                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_REPEATMASKER_ROOT}"
                     ]
                 }
             ],

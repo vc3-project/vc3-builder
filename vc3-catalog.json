@@ -1516,17 +1516,17 @@
             "version":"v4.0.6",
             "sources":[
                 {
-                    "type":"license-restricted",
-                    "message":[
+                    "type":"manual-distribution",
+                    "msg_manual_requirement":[
 "RepeatMasker libraries have a restrictive distribution license, and have to",
 "be downloaded manually. Please follow these steps:",
 "    1) On http://www.girinst.org, click on 'Downloads'.",
 "    2) Register for a free account.",
 "    3) Download the most recent libray repeatmaskerlibraries-YEARMONTDAY.tar.gz.",
 "    4) Copy the file into",
-"${VC3_DISTFILES}/restricted-license/repeatmaskerlibraries-LATEST.tar.gz.",
+"${VC3_DISTFILES}/manual-distribution/repeatmaskerlibraries-LATEST.tar.gz.",
 "    For example:",
-"cp ~/Downloads/repeatmaskerlibraries-20150807.tar.gz ${VC3_DISTFILES}/restricted-license/repeatmaskerlibraries-LATEST.tar.gz",
+"cp ~/Downloads/repeatmaskerlibraries-20150807.tar.gz ${VC3_DISTFILES}/manual-distribution/repeatmaskerlibraries-LATEST.tar.gz",
 "    5) Try again '${VC3_COMMAND_LINE}'."],
                     "files":[
                         "repeatmaskerlibraries-LATEST.tar.gz"
@@ -1642,18 +1642,18 @@
             "version":"v4.09",
             "sources":[
                 {
-                    "message":[
+                    "msg_manual_requirement":[
 "Tandem Repeats Finder (trf) has a restrictive distribution license, and has to",
 "be downloaded manually. Please follow these steps:",
 "    1) On https://tandem.bu.edu/trf/trf.html, click on 'Download Your Own Copy of the Program'.",
 "    2) Download the version appropiate for your machine.",
 "      (Your machine is a ${VC3_MACHINE_OS}-${VC3_MACHINE_ARCH}, GLIBC version ${VC3_MACHINE_GLIBC_VERSION})",
 "    3) Copy the file into",
-"${VC3_DISTFILES}/restricted-license/trf409",
+"${VC3_DISTFILES}/manual-distribution/trf409",
 "    For example:",
-"cp ~/Downloads/trf409.legacylinux64 ${VC3_DISTFILES}/restricted-license/trf409",
+"cp ~/Downloads/trf409.legacylinux64 ${VC3_DISTFILES}/manual-distribution/trf409",
 "    4) Try again '${VC3_COMMAND_LINE}'."],
-                    "type":"license-restricted",
+                    "type":"manual-distribution",
                     "files":[
                         "trf409"
                     ],
@@ -1679,17 +1679,17 @@
             "version":"v2.31",
             "sources":[
                 {
-                    "type":"license-restricted",
-                    "message":[
+                    "type":"manual-distribution",
+                    "msg_manual_requirement":[
 "maker has a restrictive distribution license, and has to",
 "be downloaded manually. Please follow these steps:",
 "    1) On http://www.yandell-lab.org/software/maker.html, click on 'Registration Page'.",
 "    2) Fill the form and click on 'Submit and Download MAKER.",
 "    3) Download maker-2.31.8.tgz.",
 "    4) Copy the file into",
-"${VC3_DISTFILES}/restricted-license/maker-2.31.8.tgz",
+"${VC3_DISTFILES}/manual-distribution/maker-2.31.8.tgz",
 "    For example:",
-"cp ~/Downloads/maker-2.31.8.tgz ${VC3_DISTFILES}/restricted-license/",
+"cp ~/Downloads/maker-2.31.8.tgz ${VC3_DISTFILES}/manual-distribution/",
 "    5) Try again '${VC3_COMMAND_LINE}'."],
                     "files":[
                         "maker-2.31.8.tgz"

@@ -2850,13 +2850,7 @@ sub main {
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag->new($database);
-
-    # bag, goal
-    for my $req (@requires) {
-        # 0 means root level, 1 first level, etc.
-        $bag->set_environment($req, $sh_on_error);
-    }
+    my $bag = VC3::Bag->new($database, $sh_on_error, @requires);
 
     $bag->say("building phase done!");
 
@@ -2873,7 +2867,7 @@ sub set_vc3_directories {
 
     File::Path::make_path($vc3_root);
     File::Path::make_path($vc3_distfiles);
-    File::Path::make_path("$vc3_distfiles/restricted-license");
+    File::Path::make_path("$vc3_distfiles/manual-distribution");
     File::Path::make_path($home);
     File::Path::make_path($tmp_dir);
 
@@ -2896,14 +2890,39 @@ use JSON::Tiny;
 use Data::Dumper;
 
 sub new {
-    my ($class, $catalog) = @_;
+    my ($class, $catalog, $sh_on_error, @requires) = @_;
 
     my $self = bless {}, $class;
     $self->set_machine_vars();
 
     $self->{sources} = $self->decode_bag($catalog);
-
     $self->{indent_level} = 0;
+
+
+    my $order = {};
+    for my $req (@requires) {
+        my $widget = $self->select_version($req);
+        $widget->runtime_dependencies($order);
+    }
+
+    # list of all packages needed, from inner to outter.
+    my @ordered_names = sort { $order->{$b} <=> $order->{$a} || $a cmp $b } keys %{$order};
+
+    my $restricted_unmet = 0;
+    for my $name (@ordered_names) {
+        my $widget = $self->select_version($name);
+
+        if($widget->check_manual_requirements()) {
+            $restricted_unmet++;
+        }
+    }
+
+    exit 1 if $restricted_unmet > 0;
+
+    # do the actual bulding
+    for my $req (@requires) {
+        $self->set_environment($req, $sh_on_error);
+    }
 
     return $self;
 }
@@ -2927,7 +2946,7 @@ sub set_machine_vars {
     ([0-9.]+)
     # followed by any number of spaces at the end of the line
     \s*$
-    # options: x allows regexp verbose. m treats each line indepedently
+    # options: x allows regexp comments. m treats each line indepedently
     /xm ;
 
     $self->{glibc_version} = $1
@@ -3518,6 +3537,50 @@ sub setup_build_shell {
     return ($build_in, $pid);
 }
 
+sub check_manual_requirements {
+    my ($self) = @_;
+
+    my $sources = $self->sources;
+
+    my $restricted_unmet = 0;
+    for my $source (@{$sources}) {
+        unless($source->check_manual_requirements()) {
+            $restricted_unmet++;
+            print "\n", $source->msg_manual_requirement(), "\n\n";
+        }
+    }
+
+    return $restricted_unmet;
+}
+
+
+sub runtime_dependencies {
+    my ($self, $order) = @_;
+
+    # if no parents, then give level one, a root package
+    $order->{$self->name} |= 1;
+
+    my $level = $order->{$self->name};
+
+    my $dependencies = $self->dependencies;
+
+    if($dependencies) {
+        for my $dependency (keys %{$dependencies}) {
+            my ($min_ver, $max_ver) = @{$dependencies->{$dependency}};
+            my $next = $self->bag->select_version($dependency, $min_ver, $max_ver);
+
+            my $next_level = $order->{$next->name} || 0;
+
+            if($next_level < $level + 1) {
+                $order->{$next->name} = $level + 1;
+                $next->runtime_dependencies($order);
+            }
+        }
+    }
+
+    return $level;
+}
+
 package VC3::Source;
 use Carp;
 use Data::Dumper;
@@ -3533,8 +3596,8 @@ sub new {
     elsif($source_raw->{type} eq 'tarball') {
         $source = VC3::Source::Tarball->new($widget, $source_raw);
     }
-    elsif($source_raw->{type} eq 'license-restricted') {
-        $source = VC3::Source::Restricted->new($widget, $source_raw);
+    elsif($source_raw->{type} eq 'manual-distribution') {
+        $source = VC3::Source::ManualDist->new($widget, $source_raw);
     }
     elsif($source_raw->{type} eq 'service') {
         croak "Not implemented";
@@ -3563,7 +3626,7 @@ sub new {
     $self->widget($widget);
     $self->recipe($json_description->{recipe});
     $self->files($json_description->{files});
-    $self->message($json_description->{message});
+    $self->msg_manual_requirement($json_description->{msg_manual_requirement});
     $self->dependencies($json_description->{dependencies});
 
     return $self;
@@ -3603,18 +3666,24 @@ sub files {
     }
 }
 
-sub message {
+sub msg_manual_requirement {
     my ($self, $new_message) = @_;
 
     if($new_message) {
         my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
-        $self->{message} = join("\n", @expansions);
-        $self->{message} = "\n" . ${self}->{message};
+        $self->{msg_manual_requirement} = join("\n", @expansions);
+        $self->{msg_manual_requirement} = "\n" . ${self}->{msg_manual_requirement};
     }
 
-    return $self->{message};
+    return $self->{msg_manual_requirement};
 }
 
+sub check_manual_requirements {
+    my ($self, $new_message) = @_;
+
+    # by default return true. Usually packages do not have manual requirements.
+    return 1;
+}
 
 sub file_absolute {
     my ($self, $file) = @_;
@@ -3703,7 +3772,7 @@ sub prepare_files  {
     $self->SUPER::prepare_files($build_dir);
 }
 
-package VC3::Source::Restricted;
+package VC3::Source::ManualDist;
 use base 'VC3::Source::Generic';
 use Carp;
 
@@ -3711,13 +3780,26 @@ sub get_file {
     my ($self, $file) = @_;
 
     unless(-f $self->file_absolute($file)) {
-        print $self->message . "\n\n";
-        die "Missing restricted-license file.\n";
+        print $self->msg_manual_requirement . "\n";
+        die "Missing manual or restricted distribution file.\n";
     }
 }
 
 sub file_absolute {
     my ($self, $file) = @_;
-    return File::Spec->rel2abs($vc3_distfiles . '/restricted-license/'  . $file);
+    return File::Spec->rel2abs($vc3_distfiles . '/manual-distribution/'  . $file);
+}
+
+sub check_manual_requirements {
+    my ($self) = @_;
+
+    for my $file (@{$self->files}) {
+        unless(-f $self->file_absolute($file)) {
+            # check failed, return false
+            return 0;
+        }
+    }
+
+    return 1;
 }
 

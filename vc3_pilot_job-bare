@@ -674,6 +674,7 @@ sub execute_recipe {
 
     if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
         $self->create_ribbon();
+        File::Path::rmtree($self->build_dir);
         return 0;
     } else {
         return -1;

@@ -2855,7 +2855,7 @@ sub main {
     # bag, goal
     for my $req (@requires) {
         # 0 means root level, 1 first level, etc.
-        $bag->set_environment($req, 0, $sh_on_error);
+        $bag->set_environment($req, $sh_on_error);
     }
 
     $bag->say("building phase done!");

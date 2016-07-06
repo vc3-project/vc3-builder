@@ -1676,7 +1676,7 @@
 
     "maker":[
         {
-            "version":"v1.0",
+            "version":"v2.31",
             "sources":[
                 {
                     "type":"license-restricted",
@@ -1769,6 +1769,30 @@
                     "absolute":1
                 }
             ]
+        }
+    ],
+
+    "maker-example-ecoli-01":[
+        {
+            "version":"v1",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "maker-example-ecoli-01.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${HOME}/maker-example-ecoli-01",
+                        "tar -C ${HOME}/maker-example-ecoli-01 --strip-components=1 -xpf maker-example-ecoli-01.tar.gz"
+                    ]
+                }
+            ],
+            "dependencies":
+            {
+                "maker":[
+                    "v2.31"
+                ]
+            }
         }
     ]
 }

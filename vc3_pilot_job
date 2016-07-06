@@ -2768,36 +2768,43 @@ main();
 
 sub usage {
     return <<EOF;
-$0 [options] [--catalog software-bag] goal-environment [-- command-and-args]
+$0 [options] [--database catalog] --require package [--require package]* [-- command-and-args]
 
-    environment-bag defaults to ./vc3_catalog.json
-    command-and-args    defaults to /bin/sh
+    catalogs          defaults to ./vc3_catalog.json
+    command-and-args  defaults to /bin/sh
 
     options are:
-    --make-jobs=n    default is 2
-    --sh-on-error    on building error, run /bin/sh with the build environment
+    --install <root>  Install with base <root>. 
+                      Default is $ENV{PWD}/${vc3_root}
+    --home    <home>  Set \${HOME} to <home>.
+                      Default is $ENV{PWD}/${vc3_user_home}
+    --make-jobs <n>   Concurrent make jobs.
+                      Default is 2.
+    --sh-on-error     On building error, run /bin/sh on the partially-built environment.
 
 Examples:
-    $0 parrot -- parrot_run python examples/read-file-from-cvmfs.py
-    $0 python -- /bin/sh
-
+    $0 --require parrot --require python -- parrot_run python examples/read-file-from-cvmfs.py
+    $0 --require maker
 EOF
+
 }
 
 sub main {
-    my $catalog      = 'vc3_catalog.json';
+    my $database     = 'vc3_catalog.json';
+    my @requires     = ();
+
     my $print_help   = 0;
     my $make_jobs    = 2;
     my $sh_on_error  = 0;
-    my $goal_env_version = 0;
+
     my $original_command = join(' ', $0, @ARGV);
 
     GetOptions(
-        "catalog=s"      => \$catalog,
-        "goal-version=s" => \$goal_env_version,
-        "make-jobs=n"    => \$make_jobs,
-        "sh-on-error"    => \$sh_on_error,
-        "help"           => \$print_help,
+        "database=s"  => \$database,
+        "require=s"   => sub { my ($name, $value); push @requires, $value; }, 
+        "make-jobs=n" => \$make_jobs,
+        "sh-on-error" => \$sh_on_error,
+        "help"        => \$print_help,
     );
 
     if($print_help) {
@@ -2805,25 +2812,21 @@ sub main {
         exit 0;
     }
 
-    my ($goal_env_name, @command_and_args) = @ARGV;
-
-    if(!$goal_env_name) {
-        print "No goal environment given.\n\n" . usage();
+    unless(@requires) {
+        print "At least one --require option should be given.\n\n" . usage();
         exit 1;
     }
 
     # set defaults
+    my @command_and_args = @ARGV;
     if(!@command_and_args) {
         @command_and_args = ('/bin/sh',);
     }
 
     # clean this!
-    %ENV = (
-        VC3_COMMAND_LINE => File::Spec->rel2abs(join(" ", $original_command)),
-        PATH      => "/bin:/usr/bin",
-        MAKEFLAGS => "-j${make_jobs}",
-        TERM      => 'linux'
-    );
+    $ENV{VC3_COMMAND_LINE} = File::Spec->rel2abs(join(" ", $original_command));
+    $ENV{MAKEFLAGS}        = "-j${make_jobs}";
+    $ENV{TERM}             = 'linux';
 
     # clean this! set default path more cleanly (see also PATH above)
     $vc3_environment{PATH}->{'/bin'}     = 1;
@@ -2834,10 +2837,12 @@ sub main {
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag->new($catalog);
+    my $bag = VC3::Bag->new($database);
 
-    # bag, goal, min-version, max-version
-    $bag->set_environment($goal_env_name, $sh_on_error, $goal_env_version, $goal_env_version);
+    # bag, goal
+    for my $req (@requires) {
+        $bag->set_environment($req, $sh_on_error);
+    }
 
     print "building phase done!\n";
 

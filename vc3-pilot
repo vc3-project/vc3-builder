@@ -2752,9 +2752,9 @@ use autodie;
 use English qw/-mo_match_vars/;
 use Getopt::Long qw/GetOptions/;
 
-my $vc3_root       = $ENV{VC3_ROOT}       || "$ENV{PWD}/vc3_root";
-my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$ENV{PWD}/vc3_distfiles";
-my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3_home";
+my $vc3_root       = $ENV{VC3_ROOT}       || "$ENV{PWD}/vc3-root";
+my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$ENV{PWD}/vc3-distfiles";
+my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
 
 my %vc3_environment;
@@ -2793,7 +2793,7 @@ EOF
 }
 
 sub main {
-    my $database     = 'vc3_catalog.json';
+    my $database     = 'vc3-catalog.json';
     my @requires     = ();
 
     my $print_help   = 0;
@@ -2993,7 +2993,7 @@ sub decode_bag {
     my $sources = {};
     
     for my $widget_name (keys %{$bag_raw}) {
-        my @versions = map { VC3::Widget->new($self, $_) } @{$bag_raw->{$widget_name}};
+        my @versions = map { VC3::Widget->new($self, $widget_name, $_) } @{$bag_raw->{$widget_name}};
         $sources->{$widget_name} = \@versions;
     }
 
@@ -3130,12 +3130,12 @@ use Data::Dumper;
 # Attributes:
 # name, version, sources, dependencies, environment_variables
 sub new {
-    my ($class, $bag, $json_description) = @_;
+    my ($class, $bag, $name, $json_description) = @_;
 
     my $self = bless {}, $class;
 
     $self->bag($bag);
-    $self->name($json_description->{name});
+    $self->name($name);
     $self->version($json_description->{version});
     $self->sources($json_description->{sources});
     $self->dependencies($json_description->{dependencies});
@@ -3150,7 +3150,11 @@ sub add_root_variable {
     my ($self) = @_;
 
     my $vars      = $self->environment_variables || [];
+
     my $root_name = 'VC3_' . uc($self->name) . '_ROOT';
+
+    # replace - with _, as env vars cannot have - in their names.
+    $root_name =~ s/-/_/g;
 
     my $root_var = {
         name     => $root_name,
@@ -3187,9 +3191,18 @@ sub bag {
 sub name {
     my ($self, $new_name) = @_;
 
-    $self->{name} = $new_name if($new_name);
+    if($new_name) {
+        # names can only contain letters, numbers, - and _.
+        my @badchars = ($new_name =~ /([^A-Za-z0-9-_])/g);
+        if(@badchars) {
+            die "The name '$new_name' containes the following disallowed charactares: " 
+            . join ', ', map { "'$_'" } @badchars;
+        } else {
+            $self->{name} = $new_name if($new_name);
+        }
+    }
 
-    croak 'No name given'
+    die 'No name given'
     unless($self->{name}); 
 
     return $self->{name};

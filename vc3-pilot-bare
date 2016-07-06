@@ -91,7 +91,9 @@ sub main {
     }
 
     # clean this!
+    %ENV = ();
     $ENV{VC3_COMMAND_LINE} = File::Spec->rel2abs(join(" ", $original_command));
+    $ENV{PATH}             = '/bin:/usr/bin';
     $ENV{MAKEFLAGS}        = "-j${make_jobs}";
     $ENV{TERM}             = 'linux';
 
@@ -108,10 +110,11 @@ sub main {
 
     # bag, goal
     for my $req (@requires) {
-        $bag->set_environment($req, $sh_on_error);
+        # 0 means root level, 1 first level, etc.
+        $bag->set_environment($req, 0, $sh_on_error);
     }
 
-    print "building phase done!\n";
+    $bag->say("building phase done!");
 
     chdir "$vc3_root/$vc3_user_home";
     exec qq(@command_and_args);
@@ -155,6 +158,8 @@ sub new {
     $self->set_machine_vars();
 
     $self->{sources} = $self->decode_bag($catalog);
+
+    $self->{indent_level} = 0;
 
     return $self;
 }
@@ -235,12 +240,17 @@ sub distribution {
 sub widget {
     my ($self, $widget_name) = @_;
 
-    return $self->{sources}{$widget_name};
+    my $widget = $self->{sources}{$widget_name}
+    || die "I do not know anything about '$widget_name' . \n";
+
+    return $widget;
 }
 
 sub decode_bag {
     my ($self, $filename) = @_;
-    open( my $catbag_f, '<:encoding(UTF-8)', $filename); 
+    open( my $catbag_f, '<:encoding(UTF-8)', $filename) ||
+    die "Could not open '$filename': $!";
+
     my $contents = do { local($/); <$catbag_f> };
     close($catbag_f);
 
@@ -259,16 +269,19 @@ sub decode_bag {
 sub set_environment {
     my ($self, $widget_name, $sh_on_error, $min_version, $max_version) = @_;
 
-    my $widget_versions = $self->widget($widget_name)
-    || die "I do not know anything about '$widget_name' . \n";
+    my $widget = $self->select_version($widget_name, $min_version, $max_version);
 
-    my $widget = select_version($widget_name, $widget_versions, $min_version, $max_version);
+    $self->say("processing for $widget_name-" . $widget->version);
 
     # set root of this widget, in case dependencies need to refer to its parent.
     $ENV{$widget->var_root_name} = $widget->destination_dir;
     
-    $self->set_dependencies($sh_on_error, $widget->dependencies);
+    $self->set_dependencies($widget, $sh_on_error, $widget->dependencies);
     $widget->set_environment_variables();
+
+    # check here missing, we are not checking anything here, only below at
+    # sources!
+    $self->say("checking for $widget_name-" . $widget->version);
 
     my $exit_status = 0;
     if($widget->sources) { 
@@ -277,9 +290,9 @@ sub set_environment {
             my %old_ENV = %ENV;
             my %old_vc3_environment = %vc3_environment;
 
-            # set dependencies particular to this source
-            $self->set_dependencies($sh_on_error, $source->dependencies);
 
+            # set dependencies particular to this source
+            $self->set_dependencies($widget, $sh_on_error, $source->dependencies);
             eval {$exit_status = -1; $exit_status = $widget->execute_recipe($source);};
 
             if($exit_status) {
@@ -303,19 +316,27 @@ sub set_environment {
 }
 
 sub set_dependencies {
-    my ($self, $sh_on_error, $dependencies) = @_;
+    my ($self, $widget, $sh_on_error, $dependencies) = @_;
+
+    my $namev = $widget->name . '-' . $widget->version; 
+
+    $self->{indent_level}++;
 
     if($dependencies) {
         for my $dependency (keys %{$dependencies}) {
             my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
+
+            $self->say("$namev needs $dependency");
             $self->set_environment($dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
         }
     }
+
+    $self->{indent_level}--;
 }
 
 # versions available, min desired version, max desired version
 sub select_version {
-    my ($pkg_name, $pkg_versions, $min_version, $max_version) = @_;
+    my ($self, $widget_name, $min_version, $max_version) = @_;
 
     if($min_version) {
         $min_version = version->parse($min_version);
@@ -328,12 +349,14 @@ sub select_version {
     my $min_found;
     my $max_found;
 
-    for my $pkg_version (@{$pkg_versions}) {
+    my $versions = $self->widget($widget_name);
+
+    for my $widget (@{$versions}) {
         if(!$min_version) {
-            return $pkg_version;
+            return $widget;
         }
 
-        my $version = version->parse($pkg_version->{version});
+        my $version = version->parse($widget->{version});
 
         $min_found = $version unless $min_found;
         $max_found = $version unless $max_found;
@@ -344,15 +367,15 @@ sub select_version {
         next if $min_version gt $version;
 
         if(!$max_version) {
-            return $pkg_version;
+            return $widget;
         }
 
         next if $max_version lt $version;
-        return $pkg_version;
+        return $widget;
     }
 
     $max_version = $min_version unless $max_version;
-    die "I did not find a suitable version for '$pkg_name'.\n Found: ["
+    die "I did not find a suitable version for '$widget_name'.\n Found: ["
     . version::normal($min_found)
     . ',' . version::normal($max_found)
     . ']. Wanted ['
@@ -374,6 +397,11 @@ sub env_variable_value {
 
     my $value = $ENV{$varname}
     || die "Variable '$varname' has not been defined.";
+}
+
+sub say {
+    my ($self, @rest) = @_;
+    print(('.' x $self->{indent_level}), @rest, "\n");
 }
 
 
@@ -595,9 +623,13 @@ sub set_environment_variables {
 # }
 
 sub error_debug_info {
-    my ($self) = @_;
+    my ($self, $eval_error) = @_;
 
     print "'", $self->name, "' failed to build for ", $self->bag->target, "\n";
+
+    if($eval_error) {
+        print $eval_error, "\n";
+    }
 
     print "Last lines of log file:\n";
     system('tail', $self->build_log);
@@ -608,7 +640,7 @@ sub process_error {
     my ($self, $sh_on_error, $eval_error, $status) = @_;
 
     if($eval_error || $status) {
-        $self->error_debug_info;
+        $self->error_debug_info($eval_error);
 
         if($sh_on_error) {
             warn $@ if $@;
@@ -670,6 +702,8 @@ sub execute_recipe {
     # if nothing to do, so we return no error:
     return 0 if -f $self->completion_ribbon();
 
+    $self->bag->say("preparing '" . $self->name . "' for ", $self->bag->target);
+
     $self->prepare_recipe_sandbox($source);
 
     # set the destination directory as an environment variable before
@@ -687,8 +721,8 @@ sub execute_recipe {
     # add exiting cleanly from shell as a last step.
     push @steps, 'exit 0';
 
-    print "Building for '" . $self->name . "' for ", $self->bag->target, "\n";
-    print "for building details:\ntail -f " . $self->build_log . "\n";
+    $self->bag->say("building '" . $self->name . "' for ", $self->bag->target);
+    $self->bag->say("details: " . $self->build_log);
 
     for my $step (@steps) {
         my $date = gmtime();
@@ -855,7 +889,7 @@ sub get_file {
     my ($self, $file) = @_;
 
     unless(-f $self->file_absolute($file)) {
-        print "Downloading '" . $file . "' from $vc3_distfiles\n";
+         $self->widget->bag->say("Downloading '" . $file . "' from $vc3_distfiles");
 
         #if make sure the destination directory exists
         File::Path::make_path($vc3_distfiles);
@@ -918,7 +952,6 @@ sub prepare_files  {
     my $tarball = @{$self->files}[0];
     $tarball = $self->file_absolute($tarball);
 
-    print "Expanding $tarball\n";
     system(qq/tar -C ${build_dir} --strip-components=1 -xpf ${tarball}/);
     die "Could not expand tarball $tarball.\n" if $?;
 

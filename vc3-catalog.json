@@ -619,7 +619,7 @@
                         "local-lib-2.000019.tar.gz"
                     ],
                     "recipe":[
-                        "perl Makefile.PL --bootstrap=${VC3_PERL_MODULES}",
+                        "perl Makefile.PL --bootstrap=${VC3_PERL_ROOT}",
                         "make install"
                     ]
                 }
@@ -888,6 +888,9 @@
                 ],
                 "berkeley-db":[
                     "v6.0"
+                ],
+                "perl-module-build":[
+                    "v0.42"
                 ]
             }
         }
@@ -958,6 +961,25 @@
                     "type":"generic",
                     "recipe":[
                         "cpanm --notest Bit::Vector"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-module-build":[
+        {
+            "version":"v0.4218",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest Module::Build"
                     ]
                 }
             ],

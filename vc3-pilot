@@ -3063,10 +3063,11 @@ sub set_environment {
             if($exit_status) {
                 # on error, reestablish old environment, and show last lines of log
                 # file.
+                
+                $widget->process_error($sh_on_error, $EVAL_ERROR, $exit_status);
+
                 %ENV = %old_ENV;
                 my %vc3_environment = %old_vc3_environment;
-
-                $widget->process_error($sh_on_error, $EVAL_ERROR, $exit_status);
             } else {
                 # on success, we keep break out and do no try more recipes.
                 last;
@@ -3720,7 +3721,8 @@ sub get_file {
 
         # 304 means 'unchanged'
         unless($response->{success} || $response->{status} eq 304 ) { 
-            die "Could not download '" . $file . "'\n";
+            die "Could not download '" . $file . "':\n"
+            . "$response->{status} $response->{reason}";
         }
     }
 }

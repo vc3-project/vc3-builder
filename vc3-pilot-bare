@@ -42,8 +42,8 @@ $0 [options] [--database catalog] --require package [--require package]* [-- com
     --sh-on-error      On building error, run /bin/sh on the partially-built environment.
 
 Examples:
-    $0 --require parrot --require python -- parrot_run python examples/read-file-from-cvmfs.py
-    $0 --require maker
+    $0 --require parrot 'parrot_run -p \$PARROT_HTTP_PROXY ls /cvmfs/atlas.cern.ch' 
+    $0 --require maker-example-ecoli-01
 EOF
 
 }
@@ -978,7 +978,7 @@ sub get_file {
         # 304 means 'unchanged'
         unless($response->{success} || $response->{status} eq 304 ) { 
             die "Could not download '" . $file . "':\n"
-            . "$response->{status} $response->{reason}";
+            . "$response->{status} $response->{reason}"
         }
     }
 }

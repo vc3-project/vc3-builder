@@ -63,7 +63,7 @@
             },
             "environment_variables":[
                 {
-                    "name":"HTTP_PROXY",
+                    "name":"PARROT_HTTP_PROXY",
                     "value":"http://cache01.hep.wisc.edu:3128",
                     "clobber":1,
                     "absolute":1

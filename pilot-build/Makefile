@@ -15,3 +15,5 @@ vc3-pilot: ../vc3-pilot-bare
 clean:
 	-rm vc3-pilot
 
+# Manually install modules:
+# cpanm --reinstall -Llocal -nq module

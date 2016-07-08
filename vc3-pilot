@@ -8307,6 +8307,8 @@ use v5.009;
 use strict;
 use warnings;
 
+package VC3::Pilot;
+
 use autodie;
 use English qw/-mo_match_vars/;
 use Getopt::Long qw/GetOptions/;
@@ -8320,7 +8322,8 @@ my %vc3_environment;
 
 my @external_dependencies = qw/perl sh tail tar uname patch gcc g++ ld pkconfig make/;
 
-main();
+# call main if running interactively
+VC3::Pilot::main();
 
 sub usage {
     return <<EOF;

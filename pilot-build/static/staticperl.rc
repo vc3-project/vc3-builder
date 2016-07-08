@@ -1,0 +1,28 @@
+EMAIL=btovar@nd.edu
+EXTRA_MODULES="HTTP::Tiny JSON::Tiny common::sense Pod::Strip"
+STATICPERL=${PWD}/build
+DLCACHE=${PWD}/cache
+PERL_VERSION=5.24.0
+PERL_CONFIGURE="-Dcc=${PWD}/musl/bin/musl-gcc -Duse64bitint -Uuselargefiles -Uusethreads"
+
+preconfigure() {
+    for sym in d_stdiobase d_stdstdio d_finitel\
+           d_getgrnam_r d_endgrent d_endgrent_r d_endhent \
+           d_endhostent_r d_endnent d_endnetent_r d_endpent \
+           d_endprotoent_r d_endpwent d_endpwent_r d_endsent \
+           d_endservent_r d_getgrent d_getgrent_r d_getgrgid_r \
+           d_getgrnam_r d_gethbyaddr d_gethent d_getsbyport \
+           d_gethostbyaddr_r d_gethostbyname_r d_gethostent_r \
+           d_getlogin_r d_getnbyaddr d_getnbyname d_getnent \
+           d_getnetbyaddr_r d_getnetbyname_r d_getnetent_r \
+           d_getpent d_getpbyname d_getpbynumber d_getprotobyname_r \
+           d_getprotobynumber_r d_getprotoent_r d_getpwent \
+           d_getpwent_r d_getpwnam_r d_getpwuid_r d_getsent \
+           d_getservbyname_r d_getservbyport_r d_getservent_r \
+           d_getspnam_r d_getsbyname;
+    do
+                PERL_CONFIGURE="$PERL_CONFIGURE -U$sym"
+    done
+}
+
+

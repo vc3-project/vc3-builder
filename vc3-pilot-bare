@@ -23,8 +23,9 @@ my @external_dependencies = qw/perl sh tail tar uname patch gcc g++ ld pkconfig 
 VC3::Pilot::main();
 
 sub usage {
+    my ($script_name) = @_;
     return <<EOF;
-$0 [options] [--database catalog] --require package [--require package]* [-- command-and-args]
+$script_name [options] [--database catalog] --require package [--require package]* [-- command-and-args]
 
     catalogs          defaults to ./vc3_catalog.json
     command-and-args  defaults to /bin/sh
@@ -45,8 +46,8 @@ $0 [options] [--database catalog] --require package [--require package]* [-- com
     --sh-on-error      On building error, run /bin/sh on the partially-built environment.
 
 Examples:
-    $0 --require parrot 'parrot_run -p \$PARROT_HTTP_PROXY ls /cvmfs/atlas.cern.ch' 
-    $0 --require maker-example-ecoli-01
+    ${script_name} --require parrot 'parrot_run -p \$PARROT_HTTP_PROXY ls /cvmfs/atlas.cern.ch' 
+    ${script_name} --require maker-example-ecoli-01
 EOF
 
 }
@@ -59,7 +60,14 @@ sub main {
     my $make_jobs    = 2;
     my $sh_on_error  = 0;
 
-    my $original_command = join(' ', $0, @ARGV);
+    my $debug_modules_used = 0;
+
+    # if the executable name does looks like "perl", we use $0, as it has the
+    # name of the script. Otherwise, this is a static run, and we use the given
+    # executable name.
+    my $script_name = ${EXECUTABLE_NAME} =~ /perl/ ? $0 : ${EXECUTABLE_NAME};
+
+    my $original_command = join(' ', $script_name, @ARGV);
 
     GetOptions(
         "help"        => \$print_help,
@@ -74,16 +82,24 @@ sub main {
         "repository=s" => \$vc3_repository, 
 
         "make-jobs=n" => \$make_jobs,
-        "sh-on-error" => \$sh_on_error
+        "sh-on-error" => \$sh_on_error,
+
+        # options for developing, not for runtime:
+        "debug-modules-used" => \$debug_modules_used
     );
 
     if($print_help) {
-        print usage();
+        print usage($script_name);
+        exit 0;
+    }
+
+    if($debug_modules_used) {
+        print join("\n", sort { $a <=> $b } keys %INC), "\n";
         exit 0;
     }
 
     unless(@requires) {
-        print "At least one --require option should be given.\n\n" . usage();
+        print "At least one --require option should be given.\n\n" . usage($script_name);
         exit 1;
     }
 

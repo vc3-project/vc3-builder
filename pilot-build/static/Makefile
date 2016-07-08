@@ -30,7 +30,7 @@ MUSL_INS=$(shell readlink -m musl)
 
 all: vc3-pilot-static
 
-vc3-pilot-static: $(MUSL_INS)/bin/musl-gcc
+vc3-pilot-static: $(MUSL_INS)/bin/musl-gcc ../../vc3-pilot-bare
 	-$(SP) install
 	-$(SP) install
 	$(SP) install
@@ -46,7 +46,7 @@ $(MUSL_SRC)/README: $(MUSL_SRC).tar.gz
 	tar zxpf $^
 
 $(MUSL_SRC).tar.gz:
-	wget http://download.virtualclusters.org/repository/$@
+	wget -N http://download.virtualclusters.org/repository/$@
 
 .PHONY: clean distclean
 

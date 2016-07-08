@@ -15,7 +15,7 @@ my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.or
 
 my %vc3_environment;
 
-my @external_dependencies = qw/sh tail tar uname patch gcc g++ ld pkconfig/;
+my @external_dependencies = qw/perl sh tail tar uname patch gcc g++ ld pkconfig make/;
 
 main();
 
@@ -144,8 +144,6 @@ use version ();
 use POSIX ();
 
 use JSON::Tiny;
-
-use Data::Dumper;
 
 sub new {
     my ($class, $catalog, $sh_on_error, @requires) = @_;
@@ -430,8 +428,6 @@ sub say {
 package VC3::Widget;
 use Carp;
 use POSIX ":sys_wait_h";
-
-use Data::Dumper;
 
 # Attributes:
 # name, version, sources, dependencies, environment_variables
@@ -844,7 +840,6 @@ sub runtime_dependencies {
 
 package VC3::Source;
 use Carp;
-use Data::Dumper;
 
 sub new {
     my ($class, $widget, $source_raw) = @_;
@@ -876,8 +871,6 @@ use File::Copy;
 use File::Path;
 use File::Spec;
 use HTTP::Tiny;
-
-use Data::Dumper;
 
 sub new {
     my ($class, $widget, $json_description) = @_;

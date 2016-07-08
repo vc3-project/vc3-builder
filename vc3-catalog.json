@@ -186,6 +186,8 @@
                     "recipe":[
                         "mkdir -p build",
                         "cd build",
+                        ": set NO_INTERNET to stop parcparser tests",
+                        "export NO_INTERNET=1",
                         "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_UUID_ROOT}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_UUID_ROOT}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_OPENSSL_ROOT} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_OPENSSL_ROOT}/include -DOPENSSL_LIBRARIES:PATH=${VC3_OPENSSL_ROOT}/lib -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
                         "make libpacparser",
                         "cd cvmfs",

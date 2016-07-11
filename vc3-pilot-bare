@@ -94,7 +94,10 @@ sub main {
     }
 
     if($debug_modules_used) {
-        print join("\n", sort { $a <=> $b } keys %INC), "\n";
+        my @modules = grep { /\.pm$/ } sort { $a cmp $b } keys %INC;
+        map { s^/^::^g }   @modules;
+        map { s^\.pm$^^g } @modules;
+        print join("\n", @modules), "\n";
         exit 0;
     }
 

@@ -6,22 +6,9 @@ SP=$(shell readlink -m ../local/bin/staticperl)
 CC=$(shell readlink -m ../musl/bin/musl-gcc)
 PERL_CC=$(CC)
 
-MODULES=strict\
-		autodie\
-		English\
-		Errno\
-		File::Spec\
-		File::Copy\
-		File::Path\
-		Getopt::Long\
-		HTTP::Tiny\
-		if\
-		JSON::Tiny\
-		PerlIO\
-		PerlIO::encoding\
-		POSIX\
-		Time::Local\
-		version
+BARE=../../vc3-pilot-bare
+
+MODULES=$(shell $(BARE) --debug-modules-used)
 
 MODULES_M=$(patsubst %, -M%, $(MODULES))
 
@@ -30,11 +17,11 @@ MUSL_INS=$(shell readlink -m musl)
 
 all: vc3-pilot-static
 
-vc3-pilot-static: $(MUSL_INS)/bin/musl-gcc ../../vc3-pilot-bare
+vc3-pilot-static: $(MUSL_INS)/bin/musl-gcc $(BARE)
 	-$(SP) install
 	-$(SP) install
 	$(SP) install
-	$(SP) mkapp $@ --static --strip pod --boot ../../vc3-pilot-bare $(MODULES_M)
+	$(SP) mkapp $@ --static --strip pod --boot $(BARE) $(MODULES_M)
 	strip $@
 
 $(MUSL_INS)/bin/musl-gcc: $(MUSL_SRC)/README

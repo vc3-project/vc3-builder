@@ -17,5 +17,6 @@ pilot-build/static/vc3-pilot-static: vc3-pilot-bare
 
 clean:
 	-$(MAKE) -C pilot-build clean
+	-$(MAKE) -C pilot-build/static clean
 	-rm -rf vc3-pilot
 

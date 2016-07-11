@@ -42,11 +42,9 @@ $(MUSL_INS)/bin/musl-gcc: $(MUSL_SRC)/README
 	cd $(MUSL_SRC) && make
 	cd $(MUSL_SRC) && make install
 
-$(MUSL_SRC)/README: $(MUSL_SRC).tar.gz 
-	tar zxpf $^
-
 $(MUSL_SRC).tar.gz:
-	wget -N http://download.virtualclusters.org/repository/$@
+	curl -o "$@" -z "$@" http://download.virtualclusters.org/repository/$@
+	tar zxpf $^
 
 .PHONY: clean distclean
 

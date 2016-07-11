@@ -161,7 +161,7 @@ package VC3::Bag;
 use Carp qw/carp croak/;
 use English qw/-mo_match_vars/;
 use File::Spec ();
-use version::vpp ();
+use version ();
 use POSIX ();
 
 use JSON::Tiny;

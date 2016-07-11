@@ -1,0 +1,25 @@
+#! /usr/bin/env perl
+
+use v5.8.9; #first perl with Module::CoreList
+
+use strict;
+use warnings;
+
+use Module::CoreList;
+
+my $min_version = 5.008008; # i.e., 5.008008, version on RHEL 5
+
+my @all_modules = qx(../vc3-pilot-bare --debug-modules-used);
+
+for my $module (@all_modules) {
+    chomp($module);
+
+    my $in_version  = Module::CoreList->first_release($module);
+    my $out_version = Module::CoreList->removed_from($module);
+
+    # if not a core module, or removed from core, or added to core after $min_version
+    if( !$in_version || $out_version || ($in_version > $min_version) ) {
+        print $module, "\n";
+    }
+}
+

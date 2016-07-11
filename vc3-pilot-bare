@@ -6,7 +6,6 @@ use warnings;
 
 package VC3::Pilot;
 
-use autodie;
 use English qw/-mo_match_vars/;
 use Getopt::Long qw/GetOptions/;
 
@@ -162,7 +161,7 @@ package VC3::Bag;
 use Carp qw/carp croak/;
 use English qw/-mo_match_vars/;
 use File::Spec ();
-use version ();
+use version::vpp ();
 use POSIX ();
 
 use JSON::Tiny;
@@ -893,6 +892,7 @@ use File::Copy;
 use File::Path;
 use File::Spec;
 use HTTP::Tiny;
+use parent;
 
 sub new {
     my ($class, $widget, $json_description) = @_;

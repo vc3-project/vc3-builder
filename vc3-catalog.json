@@ -876,6 +876,44 @@
         }
     ],
 
+    "gsl": [
+        {
+            "version":"v2.1",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "gsl-2.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
     "gettext": [
         {
             "version":"v0.19.8",
@@ -917,6 +955,69 @@
             ]
         }
     ],
+
+    "cxx11": [
+        {
+            "version":"v4.9.2",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                       "crossx86-x86_64-linux-musl-1.1.6.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_CXX11_ROOT}",
+                        "tar -C ${VC3_CXX11_ROOT} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
+                        "cd ${VC3_CXX11_ROOT}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "mash": [
+        {
+            "version":"v1.1",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                       "mash-Linux64-v1.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_MASH_ROOT}",
+                        "tar -C ${VC3_MASH_ROOT} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MASH_ROOT}",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
 
     "xrootd": [
         {

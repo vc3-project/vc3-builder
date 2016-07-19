@@ -5463,7 +5463,9 @@ sub print_modules_used {
     my $response_a = $ff->mirror($url, $output);
     my $response_b = $ff->mirror($url, $output);
 
-    my @modules = grep { /\.pm$/ } sort { $a cmp $b } keys %INC;
+    my @modules = qw/strict PerlIO encoding/;
+
+    @modules = grep { /\.pm$/ } sort { $a cmp $b } (@modules, keys %INC);
     map { s^/^::^g }   @modules;
     map { s^\.pm$^^g } @modules;
 

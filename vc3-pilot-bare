@@ -167,11 +167,33 @@ sub print_modules_used {
     my $response_a = $ff->mirror($url, $output);
     my $response_b = $ff->mirror($url, $output);
 
-    my @modules = grep { /\.pm$/ } sort { $a cmp $b } keys %INC;
+
+    my @modules = grep { /\.pm$/ } keys %INC;
+
+    # add modules that %INC sometimes does not find:
+    @modules = (@modules, qw/strict PerlIO encoding/);
+
+    # turn :: into /
     map { s^/^::^g }   @modules;
+
+    # remove .pm extension
     map { s^\.pm$^^g } @modules;
 
+    # remove duplicates
+    @modules = uniq_words(@modules);
+
+    @modules = sort { uc($a) cmp uc($b) } @modules;
+
     print join("\n", @modules), "\n";
+}
+
+sub uniq_words {
+    my %words;
+    for my $word (@_) {
+        $words{$word} = 1;
+    }
+
+    return keys %words;
 }
 
 package VC3::Bag; 

@@ -5389,10 +5389,7 @@ sub main {
     }
 
     if($debug_modules_used) {
-        my @modules = grep { /\.pm$/ } sort { $a cmp $b } keys %INC;
-        map { s^/^::^g }   @modules;
-        map { s^\.pm$^^g } @modules;
-        print join("\n", @modules), "\n";
+        print_modules_used();
         exit 0;
     }
 
@@ -5450,6 +5447,27 @@ sub set_vc3_directories {
     $ENV{VC3_DISTFILES} = $vc3_distfiles;
     $ENV{HOME}          = $home;
     $ENV{TMP}           = $tmp_dir;
+}
+
+sub print_modules_used {
+    my $file = "stub-debug-modules.txt";
+
+    unlink "$vc3_distfiles/$file";
+
+    File::Path::make_path($vc3_distfiles);
+
+    my $ff       = HTTP::Tiny->new();
+    my $url      = $vc3_repository . '/' . $file;
+    my $output   = $vc3_distfiles  . '/' . $file;
+
+    my $response_a = $ff->mirror($url, $output);
+    my $response_b = $ff->mirror($url, $output);
+
+    my @modules = grep { /\.pm$/ } sort { $a cmp $b } keys %INC;
+    map { s^/^::^g }   @modules;
+    map { s^\.pm$^^g } @modules;
+
+    print join("\n", @modules), "\n";
 }
 
 package VC3::Bag; 

@@ -5427,7 +5427,9 @@ sub main {
     $bag->say("building phase done!");
 
     chdir "$vc3_root/$vc3_user_home";
-    exec qq(@command_and_args);
+
+    $bag->append_to_epilogue(\@command_and_args);
+    exec 'sh', $bag->epilogue;
 }
 
 sub set_vc3_directories {
@@ -5511,6 +5513,9 @@ sub new {
     $self->{sources} = $self->decode_bag($catalog);
     $self->{indent_level} = 0;
 
+    # prepare epilogue
+    unlink($self->epilogue);
+    $self->append_to_epilogue(['#! /bin/sh', 'set -e']);
 
     my $order = {};
     for my $req (@requires) {
@@ -5690,6 +5695,8 @@ sub set_environment {
     if($exit_status) {
         die "Could not set environment for '" . $widget->name . "' succesfully' . \n";
     }
+    
+    $self->append_to_epilogue($widget->epilogue);
 }
 
 sub set_dependencies {
@@ -5776,6 +5783,26 @@ sub env_variable_value {
     || die "Variable '$varname' has not been defined.";
 }
 
+sub epilogue {
+    my ($self) = @_;
+
+    my $fname = $ENV{'HOME'} . '/.vc3_epilogue';
+}
+
+sub append_to_epilogue {
+    my ($self, $recipe) = @_;
+
+    open(my $epilogue_f, '>>', $self->epilogue);
+
+    if($recipe) {
+        for my $line (@{$recipe}) {
+            print { $epilogue_f } "$line\n";
+        }
+    }
+
+    close($epilogue_f);
+}
+
 sub say {
     my ($self, @rest) = @_;
     print(('.' x $self->{indent_level}), @rest, "\n");
@@ -5798,6 +5825,7 @@ sub new {
     $self->version($json_description->{version});
     $self->sources($json_description->{sources});
     $self->dependencies($json_description->{dependencies});
+    $self->epilogue($json_description->{epilogue});
     $self->environment_variables($json_description->{environment_variables});
 
     add_root_variable($self);
@@ -5896,6 +5924,15 @@ sub sources {
 
     return $self->{sources};
 }
+
+sub epilogue {
+    my ($self, $new_epilogue) = @_;
+
+    $self->{epilogue} = $new_epilogue if($new_epilogue);
+
+    return $self->{epilogue};
+}
+
 
 sub environment_variables {
     my ($self, $new_vars) = @_;
@@ -6146,6 +6183,10 @@ sub setup_build_shell {
 
     # print some debug shell information (e.g., the step about to be executed).
     print { $build_in } "set -ex\n";
+
+    if(-f $self->bag->epilogue) {
+        print { $build_in } 'source ' . $self->bag->epilogue . "\n";
+    }
 
     # return the stdin of the shell, and the pid so we can wait for it.
     return ($build_in, $pid);

@@ -1,12 +1,35 @@
 {
+    "icecube-argon-demo":[
+        {
+            "version":"v1.0",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "icecube-argon-demo-01.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${HOME}/icecube-argon-demo-01",
+                        "tar -C ${HOME}/icecube-argon-demo-01 --strip-components=1 -xpf icecube-argon-demo-01.tar.gz"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "parrot":[
+                    "v5.4.19"
+                ]
+            }
+        }
+    ],
+
     "parrot":[
         {
-            "version":"v5.4.15",
+            "version":"v5.4.19",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "dependencies":{
                 "cctools":[
-                    "v5.4.15"
+                    "v5.4.19"
                 ]
             }
         }
@@ -14,14 +37,14 @@
 
     "cctools":[
         {
-            "version":"v5.4.15",
+            "version":"v5.4.19",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "sources":[
                 {
                     "type":"tarball",
                     "files":[
-                        "cctools-5.4.15-source.tar.gz"
+                        "cctools-5.4.19-source.tar.gz"
                     ],
                     "recipe":[
                         "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --with-uuid-path ${VC3_UUID_ROOT} --without-system-umbrella  --with-openssl-path ${VC3_OPENSSL_ROOT} --with-fuse-path ${VC3_FUSE_ROOT}",

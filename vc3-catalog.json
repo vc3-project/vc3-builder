@@ -2,7 +2,6 @@
     "icecube-argon-demo":[
         {
             "version":"v1.0",
-            "prologue":["eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"],
             "sources":[
                 {
                     "type":"generic",
@@ -15,6 +14,18 @@
                     ]
                 }
             ],
+            "dependencies":{
+                "icecube-environment":[
+                    "v1.0"
+                ]
+            }
+        }
+    ],
+
+    "icecube-environment":[
+        {
+            "version":"v1.0",
+            "prologue":"eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)",
             "dependencies":{
                 "parrot":[
                     "v5.4.19"

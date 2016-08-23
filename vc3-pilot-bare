@@ -496,27 +496,26 @@ sub consolidate_prologue {
     my @progs = keys %{$self->{prologue}};
     @progs = sort { $self->{prologue}{$b} <=> $self->{prologue}{$a} } @progs;
 
-    my @splice;
-    for my $prog (@progs) {
-        @splice = (@splice, @{$prog});
-    }
-
-    return \@splice;
+    return \@progs;
 }
 
 sub consolidate_wrapper {
     my ($self, @command_and_args) = @_;
 
     my $prologue = $self->consolidate_prologue();
-    open(my $profile_f, '>', "$ENV{'HOME'}/.vc3_rc");
+    open(my $profile_f, '>', "$ENV{'HOME'}/.profile");
+
+    print { $profile_f } "#!/bin/sh\n\n";
 
     for my $line (@{$prologue}) {
         print { $profile_f } "$line\n";
     }
 
+    print { $profile_f } "\n\n";
+
     close $profile_f;
 
-    my $payload = "/bin/sh --init-file $ENV{'HOME'}/.vc3_rc -c '" . join(' ', ('exec', @command_and_args)) . "'";
+    my $payload = "/bin/sh -c '" . join(' ', ('. ~/.profile;', 'exec', @command_and_args)) . "'";
 
     my @wraps = keys %{$self->{wrapper}};
     @wraps = sort { $self->{wrapper}{$b} <=> $self->{wrapper}{$a} } @wraps;
@@ -965,7 +964,7 @@ sub setup_build_shell {
     print { $build_in } "set -ex\n";
 
     # return the stdin of the shell, and the pid so we can wait for it.
-    return ($build_in, $pid);
+    return ($pid, $build_in);
 }
 
 sub check_manual_requirements {

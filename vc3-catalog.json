@@ -2,6 +2,7 @@
     "icecube-argon-demo":[
         {
             "version":"v1.0",
+            "prologue":["eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"],
             "sources":[
                 {
                     "type":"generic",
@@ -27,6 +28,7 @@
             "version":"v5.4.19",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
+            "wrapper":"parrot_run -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
             "dependencies":{
                 "cctools":[
                     "v5.4.19"

@@ -132,8 +132,10 @@ sub main {
 
     chdir "$vc3_root/$vc3_user_home";
 
-    $bag->append_to_epilogue(\@command_and_args);
-    exec 'sh', $bag->epilogue;
+    $bag->execute(@command_and_args);
+
+    # we get here only when execute fails.
+    exit -1;
 }
 
 sub set_vc3_directories {
@@ -217,18 +219,17 @@ sub new {
     $self->{sources} = $self->decode_bag($catalog);
     $self->{indent_level} = 0;
 
-    # prepare epilogue
-    unlink($self->epilogue);
-    $self->append_to_epilogue(['#! /bin/sh', 'set -e']);
+    $self->{order}    = {};
+    $self->{wrapper}  = {};
+    $self->{prologue} = {};
 
-    my $order = {};
     for my $req (@requires) {
         my $widget = $self->select_version($req);
-        $widget->runtime_dependencies($order);
+        $widget->runtime_dependencies($self->{order});
     }
 
     # list of all packages needed, from inner to outter.
-    my @ordered_names = sort { $order->{$b} <=> $order->{$a} || $a cmp $b } keys %{$order};
+    my @ordered_names = sort { $self->{order}{$b} <=> $self->{order}{$a} || $a cmp $b } keys %{$self->{order}};
 
     my $restricted_unmet = 0;
     for my $name (@ordered_names) {
@@ -400,7 +401,8 @@ sub set_environment {
         die "Could not set environment for '" . $widget->name . "' succesfully' . \n";
     }
     
-    $self->append_to_epilogue($widget->epilogue);
+    $self->add_to_prologue($widget);
+    $self->add_to_wrapper($widget);
 }
 
 sub set_dependencies {
@@ -472,6 +474,90 @@ sub select_version {
     . "]\n";
 }
 
+sub add_to_prologue {
+    my ($self, $widget) = @_;
+
+    if($widget->prologue) {
+        $self->{prologue}{$widget->prologue} = $self->{order};
+    }
+}
+
+sub add_to_wrapper {
+    my ($self, $widget) = @_;
+
+    if($widget->wrapper) {
+        $self->{wrapper}{$widget->wrapper} = $self->{order};
+    }
+}
+
+sub consolidate_prologue {
+    my ($self) = @_;
+
+    my @progs = keys %{$self->{prologue}};
+    @progs = sort { $self->{prologue}{$b} <=> $self->{prologue}{$a} } @progs;
+
+    my @splice;
+    for my $prog (@progs) {
+        @splice = (@splice, @{$prog});
+    }
+
+    return \@splice;
+}
+
+sub consolidate_wrapper {
+    my ($self, @command_and_args) = @_;
+
+    my $prologue = $self->consolidate_prologue();
+    open(my $profile_f, '>', "$ENV{'HOME'}/.vc3_rc");
+
+    for my $line (@{$prologue}) {
+        print { $profile_f } "$line\n";
+    }
+
+    close $profile_f;
+
+    my $payload = "/bin/sh --init-file $ENV{'HOME'}/.vc3_rc -c '" . join(' ', ('exec', @command_and_args)) . "'";
+
+    my @wraps = keys %{$self->{wrapper}};
+    @wraps = sort { $self->{wrapper}{$b} <=> $self->{wrapper}{$a} } @wraps;
+
+    for my $wrap (@wraps) {
+        if( $wrap =~ /\{\}/ ) {
+            $wrap =~ s/\{\}/$payload/;
+            $payload = $wrap;
+        } else {
+            $payload = $wrap . ' ' . $payload;
+        }
+    }
+
+    return $payload;
+}
+
+sub execute  {
+    my ($self, @command_and_args) = @_;
+
+    my $command = $self->consolidate_wrapper(@command_and_args);
+
+    exec $command;
+}
+
+sub shell {
+    my ($self, $payload) = @_;
+
+    $payload |= '/bin/sh';
+
+    my $prologue = $self->consolidate_prologue();
+    my $wrapper  = $self->consolidate_wrapper($payload);
+
+    my $pid = open(my $input, '|-', $wrapper);
+
+    for my $line (@{$prologue}) {
+        print { $input } "$line\n";
+    }
+
+    return ($pid, $input);
+}
+
 sub expand_env_variable {
     my ($varvalue) = @_;
 
@@ -485,26 +571,6 @@ sub env_variable_value {
 
     my $value = $ENV{$varname}
     || die "Variable '$varname' has not been defined.";
-}
-
-sub epilogue {
-    my ($self) = @_;
-
-    my $fname = $ENV{'HOME'} . '/.vc3_epilogue';
-}
-
-sub append_to_epilogue {
-    my ($self, $recipe) = @_;
-
-    open(my $epilogue_f, '>>', $self->epilogue);
-
-    if($recipe) {
-        for my $line (@{$recipe}) {
-            print { $epilogue_f } "$line\n";
-        }
-    }
-
-    close($epilogue_f);
 }
 
 sub say {
@@ -529,7 +595,8 @@ sub new {
     $self->version($json_description->{version});
     $self->sources($json_description->{sources});
     $self->dependencies($json_description->{dependencies});
-    $self->epilogue($json_description->{epilogue});
+    $self->wrapper($json_description->{wrapper});
+    $self->prologue($json_description->{prologue});
     $self->environment_variables($json_description->{environment_variables});
 
     add_root_variable($self);
@@ -629,12 +696,20 @@ sub sources {
     return $self->{sources};
 }
 
-sub epilogue {
-    my ($self, $new_epilogue) = @_;
+sub prologue {
+    my ($self, $new_prologue) = @_;
 
-    $self->{epilogue} = $new_epilogue if($new_epilogue);
+    $self->{prologue} = $new_prologue if($new_prologue);
 
-    return $self->{epilogue};
+    return $self->{prologue};
+}
+
+sub wrapper {
+    my ($self, $new_wrapper) = @_;
+
+    $self->{wrapper} = $new_wrapper if($new_wrapper);
+
+    return $self->{wrapper};
 }
 
 
@@ -764,8 +839,13 @@ sub process_error {
             warn $@ if $@;
             my $pid = fork();
             if($pid == 0) {
-                exec("/bin/sh -c 'cd " . $self->build_dir . " && exec \${SHELL:-/bin/sh}'");
+                my ($pid, $stdin) = $self->bag->shell();
+                print { $stdin } 'cd ' . $self->build_dir . "\n";
+
+                waitpid $pid, 0;
+
                 exit -1;
+
             } elsif($pid > 0) {
                 waitpid $pid, 0;
             } else {
@@ -829,7 +909,7 @@ sub execute_recipe {
     $ENV{'VC3_PREFIX'} = $self->destination_dir;
     $ENV{'VC3_BUILD'}  = $self->build_dir;
 
-    my ($build_in, $pid) = $self->setup_build_shell($source);
+    my ($pid, $build_in) = $self->setup_build_shell($source);
 
     my @steps = @{$source->recipe};
 
@@ -866,17 +946,15 @@ sub execute_recipe {
 sub setup_build_shell {
     my ($self, $source) = @_;
 
-    my ($build_log, $build_in);
-
     # log the recipe used. Since we are opening sh with -e, the recipe executes
     # as if all steps were &&-ed together.
-    open $build_log,    '>', $self->build_log;
+    open(my $build_log, '>', $self->build_log);
     print { $build_log } join("\n && ", @{$source->recipe}) . "\n";
     close $build_log;
 
     # open sh with -e. This terminates the shell at the first step that returns
     # a non-zero status.
-    my $pid = open($build_in, '|-', '/bin/sh -e');
+    my ($pid, $build_in) = $self->bag->shell();
 
     croak 'Could not open /bin/sh for building.'
     unless $build_in;
@@ -884,13 +962,7 @@ sub setup_build_shell {
     # redirect all output to our log file.
     print { $build_in } 'exec 1>> ' . $self->build_log . "\n";
     print { $build_in } "exec 2>&1\n";
-
-    # print some debug shell information (e.g., the step about to be executed).
     print { $build_in } "set -ex\n";
-
-    if(-f $self->bag->epilogue) {
-        print { $build_in } 'source ' . $self->bag->epilogue . "\n";
-    }
 
     # return the stdin of the shell, and the pid so we can wait for it.
     return ($build_in, $pid);
@@ -917,6 +989,7 @@ sub runtime_dependencies {
     my ($self, $order) = @_;
 
     # if no parents, then give level one, a root package
+    # larger level means more inner 
     $order->{$self->name} |= 1;
 
     my $level = $order->{$self->name};

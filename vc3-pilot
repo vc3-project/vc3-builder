@@ -5893,6 +5893,7 @@ sub new {
     $self->wrapper($json_description->{wrapper});
     $self->prologue($json_description->{prologue});
     $self->environment_variables($json_description->{environment_variables});
+    $self->phony($json_description->{phony});
 
     add_root_variable($self);
 
@@ -6014,6 +6015,14 @@ sub environment_variables {
     $self->{environment_variables} = $new_vars if($new_vars);
 
     return $self->{environment_variables};
+}
+
+sub phony {
+    my ($self, $new_phony) = @_;
+
+    $self->{phony} = $new_phony if($new_phony);
+
+    return $self->{phony};
 }
 
 sub destination_dir {
@@ -6192,8 +6201,10 @@ sub prepare_recipe_sandbox {
 sub execute_recipe {
     my ($self, $source) = @_;
 
-    # if nothing to do, so we return no error:
-    return 0 if -f $self->completion_ribbon();
+    # if nothing to do, we return no error:
+    if(!$self->phony && -f $self->completion_ribbon()) {
+        return 0;
+    }
 
     $self->bag->say("preparing '" . $self->name . "' for ", $self->bag->target);
 

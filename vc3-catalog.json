@@ -1,16 +1,16 @@
 {
-    "icecube-argon-demo":[
+    "icecube-argonne-demo":[
         {
             "version":"v1.0",
             "sources":[
                 {
                     "type":"generic",
                     "files":[
-                        "icecube-argon-demo-01.tar.gz"
+                        "icecube-argonne-demo-01.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${HOME}/icecube-argon-demo-01",
-                        "tar -C ${HOME}/icecube-argon-demo-01 --strip-components=1 -xpf icecube-argon-demo-01.tar.gz"
+                        "mkdir -p ${HOME}/icecube-argonne-demo-01",
+                        "tar -C ${HOME}/icecube-argonne-demo-01 --strip-components=1 -xpf icecube-argonne-demo-01.tar.gz"
                     ]
                 }
             ],
@@ -27,10 +27,36 @@
             "version":"v1.0",
             "prologue":"eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)",
             "dependencies":{
-                "parrot":[
-                    "v5.4.19"
+                "cvmfs":[
+                    "v2.0"
                 ]
             }
+        }
+    ],
+
+    "cvmfs":[
+        {
+            "version":"v2.0",
+            "phony":1,
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "stat /cvmfs/cms.cern.ch"
+                    ]
+                },
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "stat /cvmfs/cms.cern.ch"
+                    ],
+                    "dependencies":{
+                        "parrot":[
+                            "v5.4.19"
+                        ]
+                    }
+                }
+            ]
         }
     ],
 
@@ -74,7 +100,7 @@
                         "perl":[
                             "v5.10"
                         ],
-                        "cvmfs":[
+                        "libcvmfs":[
                             "v2.2"
                         ],
                         "openssl":[
@@ -210,7 +236,7 @@
         }
     ],
 
-    "cvmfs":[
+    "libcvmfs":[
         {
             "version":"v2.2",
             "sources":[

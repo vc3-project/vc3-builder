@@ -86,7 +86,7 @@
                         "cctools-5.4.19-source.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_CVMFS_ROOT} --with-uuid-path ${VC3_UUID_ROOT} --without-system-umbrella  --with-openssl-path ${VC3_OPENSSL_ROOT} --with-fuse-path ${VC3_FUSE_ROOT}",
+                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_LIBCVMFS_ROOT} --with-uuid-path ${VC3_UUID_ROOT} --without-system-umbrella  --with-openssl-path ${VC3_OPENSSL_ROOT} --with-fuse-path ${VC3_FUSE_ROOT}",
                         "make",
                         "make install"
                     ],

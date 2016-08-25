@@ -495,6 +495,7 @@ sub consolidate_prologue {
 
     my @progs = keys %{$self->{prologue}};
     @progs = sort { $self->{prologue}{$b} <=> $self->{prologue}{$a} } @progs;
+    @progs = ("cd $vc3_root/$vc3_user_home", @progs);
 
     return \@progs;
 }

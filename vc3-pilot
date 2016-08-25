@@ -5812,7 +5812,7 @@ sub consolidate_wrapper {
 
     close $profile_f;
 
-    my $payload = "/bin/sh -c '" . join(' ', ('. ~/.profile;', 'exec', @command_and_args)) . "'";
+    my $payload = "/bin/sh --noprofile -c '" . join(' ', ('. ~/.profile;', 'exec', @command_and_args)) . "'";
 
     my @wraps = keys %{$self->{wrapper}};
     @wraps = sort { $self->{wrapper}{$b} <=> $self->{wrapper}{$a} } @wraps;
@@ -5840,7 +5840,7 @@ sub execute  {
 sub shell {
     my ($self, $payload) = @_;
 
-    $payload |= '/bin/sh';
+    $payload |= '/bin/sh --noprofile';
 
     my $prologue = $self->consolidate_prologue();
     my $wrapper  = $self->consolidate_wrapper($payload);

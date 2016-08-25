@@ -2,6 +2,7 @@
     "icecube-argonne-demo":[
         {
             "version":"v1.0",
+            "phony":1,
             "sources":[
                 {
                     "type":"generic",

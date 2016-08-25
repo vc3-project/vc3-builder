@@ -6438,7 +6438,7 @@ sub get_file {
     my ($self, $file) = @_;
 
     unless(-f $self->file_absolute($file)) {
-         $self->widget->bag->say("Downloading '" . $file . "' from $vc3_repository");
+        $self->widget->bag->say("Downloading '" . $file . "' from $vc3_repository");
 
         #if make sure the destination directory exists
         File::Path::make_path($vc3_distfiles);
@@ -6448,17 +6448,36 @@ sub get_file {
         my $url    = $vc3_repository . '/' . $file;
         my $output = $vc3_distfiles  . '/' . $file;
 
-        my $response = $ff->mirror($url, $output);
+        my $retries = 5;
+        my $sleep_before_retry = 5; # seconds
+        my $response;
 
-        # 304 means 'unchanged'
-        unless($response->{success} || $response->{status} eq 304 ) { 
+        for my $i (1..$retries) {
+            $response = $ff->mirror($url, $output);
 
-            if($response->{status} eq 599) {
-                print "Download error:\n$response->{content}\n";
+            return if $response->{success};
+
+            # 304 means file did not change from the last time we downloaded it
+            return if $response->{status} == 304;
+
+            # retries:
+            # 408 is request timeout
+            # 503 is service unavailable
+            # 504 is a gatewat timeout
+            # 524 is a cloudflare timeout
+            # 599 is an internal exception of HTTP::Tiny, which may be a timeout too.
+
+            if( grep { $response->{status} == $_ } (408,503,504,524,599) ) {
+                print "Could not download '" . $file . "':\n" . "$response->{status}: $response->{reason}\n";
+                print "$response->{content}\n" if $response->{content};
+                print "Retrying @{[$retries - $i]} more time(s)\n"; 
+
+                sleep $sleep_before_retry;
+
+                next;
             }
 
-            die "Could not download '" . $file . "':\n"
-            . "$response->{status} $response->{reason}"
+            die "Could not download '" . $file . "':\n" . "$response->{status} $response->{reason}";
         }
     }
 }

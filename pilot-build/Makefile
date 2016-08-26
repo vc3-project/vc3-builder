@@ -11,6 +11,10 @@ all: vc3-pilot
 
 vc3-pilot: $(BARE) | fatlib
 	$(FATPACKER) file $^ -bare > $@ 
+	echo >> $@
+	echo 'package VC3::Pilot;' >> $@
+	echo '__DATA__' >> $@
+	cat ../vc3-catalog.json >> $@
 	@chmod 755 $@
 	@echo generated $@
 

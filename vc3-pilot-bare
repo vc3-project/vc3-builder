@@ -26,7 +26,7 @@ sub usage {
     return <<EOF;
 $script_name [options] [--database catalog] --require package [--require package]* [-- command-and-args]
 
-    catalogs          defaults to ./vc3_catalog.json
+    catalogs          defaults to <internal> if available, otherwise to ./vc3_catalog.json
     command-and-args  defaults to /bin/sh
 
     options are:
@@ -52,7 +52,6 @@ EOF
 }
 
 sub main {
-    my $database     = 'vc3-catalog.json';
     my @requires     = ();
 
     my $print_help   = 0;
@@ -67,6 +66,8 @@ sub main {
     my $script_name = ${EXECUTABLE_NAME} =~ /perl/ ? $0 : ${EXECUTABLE_NAME};
 
     my $original_command = join(' ', $script_name, @ARGV);
+
+    my $database = '<internal>';
 
     GetOptions(
         "help"        => \$print_help,
@@ -334,8 +335,22 @@ sub widget {
 
 sub decode_bag {
     my ($self, $filename) = @_;
-    open( my $catbag_f, '<:encoding(UTF-8)', $filename) ||
-    die "Could not open '$filename': $!";
+
+    {
+        no warnings;
+        if($filename eq '<internal>' && tell(VC3::Pilot::DATA) == -1) {
+            $filename = './vc3-catalog.json';
+        }
+    }
+
+
+    my $catbag_f;
+    if($filename eq '<internal>') {
+        $catbag_f = *VC3::Pilot::DATA;
+    } else {
+        open($catbag_f, '<:encoding(UTF-8)', $filename) ||
+        die "Could not open '$filename': $!";
+    }
 
     my $contents = do { local($/); <$catbag_f> };
     close($catbag_f);

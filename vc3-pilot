@@ -5322,7 +5322,7 @@ sub usage {
     return <<EOF;
 $script_name [options] [--database catalog] --require package [--require package]* [-- command-and-args]
 
-    catalogs          defaults to ./vc3_catalog.json
+    catalogs          defaults to <internal> if available, otherwise to ./vc3_catalog.json
     command-and-args  defaults to /bin/sh
 
     options are:
@@ -5348,7 +5348,6 @@ EOF
 }
 
 sub main {
-    my $database     = 'vc3-catalog.json';
     my @requires     = ();
 
     my $print_help   = 0;
@@ -5363,6 +5362,8 @@ sub main {
     my $script_name = ${EXECUTABLE_NAME} =~ /perl/ ? $0 : ${EXECUTABLE_NAME};
 
     my $original_command = join(' ', $script_name, @ARGV);
+
+    my $database = '<internal>';
 
     GetOptions(
         "help"        => \$print_help,
@@ -5630,8 +5631,22 @@ sub widget {
 
 sub decode_bag {
     my ($self, $filename) = @_;
-    open( my $catbag_f, '<:encoding(UTF-8)', $filename) ||
-    die "Could not open '$filename': $!";
+
+    {
+        no warnings;
+        if($filename eq '<internal>' && tell(VC3::Pilot::DATA) == -1) {
+            $filename = './vc3-catalog.json';
+        }
+    }
+
+
+    my $catbag_f;
+    if($filename eq '<internal>') {
+        $catbag_f = *VC3::Pilot::DATA;
+    } else {
+        open($catbag_f, '<:encoding(UTF-8)', $filename) ||
+        die "Could not open '$filename': $!";
+    }
 
     my $contents = do { local($/); <$catbag_f> };
     close($catbag_f);
@@ -6560,5 +6575,2197 @@ sub check_manual_requirements {
     }
 
     return 1;
+}
+
+
+package VC3::Pilot;
+__DATA__
+{
+    "icecube-argonne-demo":[
+        {
+            "version":"v1.0",
+            "phony":1,
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "icecube-argonne-demo-01.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${HOME}/icecube-argonne-demo-01",
+                        "tar -C ${HOME}/icecube-argonne-demo-01 --strip-components=1 -xpf icecube-argonne-demo-01.tar.gz"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "icecube-environment":[
+                    "v1.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${HOME}/icecube-argonne-demo-01",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "icecube-environment":[
+        {
+            "version":"v1.0",
+            "phony":1,
+            "prologue":"eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)",
+            "dependencies":{
+                "cvmfs":[
+                    "v2.0"
+                ]
+            }
+        }
+    ],
+
+    "cvmfs":[
+        {
+            "version":"v2.0",
+            "phony":1,
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "stat /cvmfs/cms.cern.ch"
+                    ]
+                },
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "stat /cvmfs/cms.cern.ch"
+                    ],
+                    "dependencies":{
+                        "parrot":[
+                            "v5.4.19"
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+
+    "parrot":[
+        {
+            "version":"v5.4.19",
+            "versioncmd":"parrot_run --version",
+            "versionreg":"^parrot_run version ([0-9.]*)",
+            "wrapper":"parrot_run -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
+            "dependencies":{
+                "cctools":[
+                    "v5.4.19"
+                ]
+            }
+        }
+    ],
+
+    "cctools":[
+        {
+            "version":"v5.4.19",
+            "versioncmd":"parrot_run --version",
+            "versionreg":"^parrot_run version ([0-9.]*)",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "cctools-5.4.19-source.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_LIBCVMFS_ROOT} --with-uuid-path ${VC3_UUID_ROOT} --without-system-umbrella  --with-openssl-path ${VC3_OPENSSL_ROOT} --with-fuse-path ${VC3_FUSE_ROOT}",
+                        "make",
+                        "make install"
+                    ],
+                    "dependencies":{
+                        "swig":[
+                            "v3.0"
+                        ],
+                        "python":[
+                            "v2.7"
+                        ],
+                        "perl":[
+                            "v5.10"
+                        ],
+                        "libcvmfs":[
+                            "v2.2"
+                        ],
+                        "openssl":[
+                            "v1.0"
+                        ],
+                        "uuid":[
+                            "v1.0"
+                        ]
+                    }
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ],
+                "perl":[
+                    "v5.8"
+                ],
+                "zlib":[
+                    "v1.2"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PARROT_HTTP_PROXY",
+                    "value":"http://cache01.hep.wisc.edu:3128",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"lib/python2.7/site-packages"
+                },
+                {
+                    "name":"PERL5LIB",
+                    "value":"lib/perl5/site_perl"
+                }
+            ]
+        }
+    ],
+
+    "swig":[
+        {
+            "version":"v3.0.2",
+            "versioncmd":"swig -version",
+            "versionreg":"SWIG Version ([0-9.]*)",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "swig-3.0.2.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib",
+                        "make",
+                        "make install"
+                    ],
+                    "dependencies":{
+                        "python":[
+                            "v2.6"
+                        ],
+                        "perl":[
+                            "v5.8"
+                        ],
+                        "pcre":[
+                            "v8.34"
+                        ]
+                    }
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "patch":[
+        {
+            "version":"v2.7.5",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "patch-2.7.5.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX}",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "cmake":[
+        {
+            "version":"v3.5.2",
+            "versioncmd":"cmake --version",
+            "versionreg":"cmake version ([0-9.]*)",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "cmake-3.5.2.tar.gz"
+                    ],
+                    "recipe":[
+                        "./bootstrap --prefix=${VC3_PREFIX}",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "libcvmfs":[
+        {
+            "version":"v2.2",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "cvmfs.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p build",
+                        "cd build",
+                        ": set NO_INTERNET to stop parcparser tests",
+                        "export NO_INTERNET=1",
+                        "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_UUID_ROOT}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_UUID_ROOT}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_OPENSSL_ROOT} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_OPENSSL_ROOT}/include -DOPENSSL_LIBRARIES:PATH=${VC3_OPENSSL_ROOT}/lib -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
+                        "make libpacparser",
+                        "cd cvmfs",
+                        "make",
+                        "make install"
+                    ],
+                    "dependencies":{
+                        "uuid":[
+                            "v1.0"
+                        ],
+                        "fuse":[
+                            "v2.9"
+                        ],
+                        "cmake":[
+                            "v3.1"
+                        ],
+                        "patch":[
+                            "v2.0"
+                        ],
+                        "attr":[
+                            "v2.4"
+                        ],
+                        "openssl":[
+                            "v1.0"
+                        ]
+                    }
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib64"
+                }
+            ]
+        }
+    ],
+
+    "uuid":[
+        {
+            "version":"v1.0.3",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "libuuid-1.0.3.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "openssl":[
+        {
+            "version":"v1.0.2",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "openssl-1.0.2h.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./config --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic",
+                        "make depend",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "zlib":[
+                    "v1.2"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "berkeley-db":[
+        {
+            "version":"v6.2.23",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "db-6.2.23.tar.gz"
+                    ],
+                    "recipe":[
+                        "cd build_unix",
+                        "export CFLAGS=-fPIC",
+                        "export CXXFLAGS=-fPIC",
+                        "../dist/configure --prefix=${VC3_PREFIX} --enable-static --enable-shared --enable-compat185 --enable-dbm --enable-cxx",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "readline":[
+        {
+            "version":"v6.3",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "readline-6.3.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "glib":[
+        {
+            "version":"v2.18.1",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "glib-2.48.1.tar.gz"
+                    ],
+                    "recipe":[
+                        ": system pcre is not working! using internal",
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --with-python=${VC3_PYTHON_ROOT}/bin/python --with-pcre=internal",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "libffi":[
+                    "v3.2.1"
+                ],
+                "gettext":[
+                    "v0.19"
+                ],
+                "zlib":[
+                    "v1.2"
+                ],
+                "pcre":[
+                    "v8.13"
+                ],
+                "python":[
+                    "v2.5"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "attr":[
+        {
+            "version":"v2.4.47",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "attr-2.4.47.src.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --enable-static --enable-shared",
+                        "make",
+                        "make install install-dev install-lib",
+                        "chmod -v 755 ${VC3_PREFIX}/lib/libattr.so"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "gettext":[
+                    "v0.19"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "libffi":[
+        {
+            "version":"v3.2.1",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "libffi-3.2.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib64:lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "pcre":[
+        {
+            "version":"v8.39",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "pcre-8.39.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 ",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "fuse":[
+        {
+            "version":"v2.9.3",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "fuse-2.9.3.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib  --enable-lib --disable-util",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "perl":[
+        {
+            "version":"v5.24.0",
+            "versioncmd":"perl -e 'print qq($^V)'",
+            "versionreg":"(v[0-9.]*)",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "perl-5.24.0.tar.gz"
+                    ],
+                    "recipe":[
+                        "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -des -A ccflags=-fPIC make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"PERL5LIB",
+                    "value":"lib/perl5/site_perl/5.24.0"
+                }
+            ]
+        }
+    ],
+
+    "perl-cpanminus":[
+        {
+            "version":"v1.7",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "cpanminus-1.7.distribution"
+                    ],
+                    "recipe":[
+                        "cat cpanminus-1.7.distribution | perl - App::cpanminus"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-local-lib":[
+                    "v2.0"
+                ]
+            }
+        }
+    ],
+
+    "python-setuptools":[
+        {
+            "version":"v24.0.2",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "setuptools-24.0.2.tar.gz"
+                    ],
+                    "recipe":[
+                        "python setup.py install --prefix=${VC3_PYTHON_MODULES}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"VC3_PYTHON_MODULES",
+                    "value":"${VC3_PYTHON_ROOT}/local_modules",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${VC3_PYTHON_MODULES}/lib/python2.7/site-packages",
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_PYTHON_MODULES}/bin",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "python-pip":[
+        {
+            "version":"v1.8.2",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "pip-8.1.2.distribution"
+                    ],
+                    "recipe":[
+                        "echo -e \"\\n[install]\\ninstall-option=--prefix=${VC3_PYTHON_MODULES}\\n\" > ${PIP_CONFIG_FILE}",
+                        "python pip-8.1.2.distribution"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ],
+                "python-setuptools":[
+                    "v24.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PIP_CONFIG_FILE",
+                    "value":"pip.conf"
+                }
+            ]
+        }
+    ],
+
+    "python-virtualenv":[
+        {
+            "version":"v0",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "pip install --user virtualenv",
+                        "cd ${HOME}",
+                        ".local/bin/virtualenv ${VC3_PYTHON_MODULES}"
+                    ]
+                }
+            ],
+            "start":[
+                "cd ${HOME}",
+                "source ${VC3_PYTHON_MODULES}/bin/activate"
+            ],
+            "dependencies":{
+                "python-pip":[
+                    "v1.8"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"VC3_PYTHON_MODULES",
+                    "value":"${VC3_PYTHON_PIP_ROOT}/local_modules",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "perl-local-lib":[
+        {
+            "version":"v2.000019",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "local-lib-2.000019.tar.gz"
+                    ],
+                    "recipe":[
+                        "perl Makefile.PL --bootstrap=${VC3_PERL_ROOT}",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl":[
+                    "v5.10"
+                ]
+            },
+            "environment_variables": [
+                {
+                    "name":"VC3_PERL_MODULES", 
+                    "value":"${VC3_PERL_LOCAL_LIB_ROOT}/local_modules",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PERL_MB_OPT", 
+                    "value":"--install_base ${VC3_PERL_MODULES}",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PERL_MM_OPT", 
+                    "value":"INSTALL_BASE=${VC3_PERL_MODULES}",
+                    "clobber":1,
+                    "absolute":1 
+                },
+                {
+                    "name":"PERL5LIB",
+                    "value":"${VC3_PERL_MODULES}/lib/perl5",
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_PERL_MODULES}/bin",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "python":[
+        {
+            "version":"v2.7.12",
+            "versioncmd":"python --version",
+            "versionreg":"Python ([0-9.]*).*",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "Python-2.7.12.tgz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib",
+                        "make",
+                        "make install",
+                        "ln -s ${VC3_PREFIX}/bin/pydoc{,2}"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"lib/python2.7/site-packages"
+                }
+            ]
+        }
+    ],
+
+    "zlib": [
+        {
+            "version":"v1.2.8",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "zlib-1.2.8.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --static",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "gsl": [
+        {
+            "version":"v2.1",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "gsl-2.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "gettext": [
+        {
+            "version":"v0.19.8",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "gettext-0.19.8.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "cxx11": [
+        {
+            "version":"v4.9.2",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                       "crossx86-x86_64-linux-musl-1.1.6.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_CXX11_ROOT}",
+                        "tar -C ${VC3_CXX11_ROOT} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
+                        "cd ${VC3_CXX11_ROOT}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "mash": [
+        {
+            "version":"v1.1",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                       "mash-Linux64-v1.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_MASH_ROOT}",
+                        "tar -C ${VC3_MASH_ROOT} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MASH_ROOT}",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+
+    "xrootd": [
+        {
+            "version":"v4.3.0",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "xrootd-4.3.0.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p build",
+                        "cd build",
+                        "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DCMAKE_INSTALL_LIBDIR=lib ..",
+                        "make",
+                        "make install",
+                        "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
+                    ],
+                    "dependencies":{
+                        "cmake":[
+                            "v3.1"
+                        ]
+                    }
+                }
+            ],
+            "dependencies":{
+                "perl":[
+                    "v5.10"
+                ],
+                "fuse":[
+                    "v2.9"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "irods":[
+        {
+            "version":"v3.0",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "irods3.0.tgz"
+                    ],
+                    "recipe":[
+                        "mv * ${VC3_PREFIX}",
+                        "cd ${VC3_PREFIX}",
+                        "./scripts/configure",
+                        "make"
+                    ],
+                    "dependencies":{
+                        "help2man":[
+                            "v1.0.0"
+                        ]
+                    }
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"clients/icommands/bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib/core/obj"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"lib/api/include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"lib/api/include"
+                }
+            ]
+        }
+    ],
+
+    "help2man":[
+        {
+            "version":"v1.43.3",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "help2man-1.43.3.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "perl-text-soundex":[
+        {
+            "version":"v3.0",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest Text::Soundex"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-bioperl":[
+        {
+            "version":"v1.6",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest BioPerl"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ],
+                "perl-module-build":[
+                    "v0.42"
+                ],
+                "berkeley-db":[
+                    "v6.0"
+                ],
+                "perl-DB_File":[
+                    "v1.8"
+                ]
+
+            }
+        }
+    ],
+
+    "perl-DB_File":[
+        {
+            "version":"v1.8",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":["DB_File-1.838.tar.gz"],
+                    "recipe":[
+                        "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_BERKELEY_DB_ROOT}'/include%;s%^LIB.*%LIB = '${VC3_BERKELEY_DB_ROOT}'/lib%' config.in",
+                        "perl Makefile.PL",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl":[
+                    "v5.10"
+                ],
+                "berkeley-db":[
+                    "v6.0"
+                ]
+            }
+        }
+    ],
+
+    "perl-dbi":[
+        {
+            "version":"v1.6",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest DBI"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-file-which":[
+        {
+            "version":"v1.2",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest File::Which"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-unsafe-signals":[
+        {
+            "version":"v0.03",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest Perl::Unsafe::Signals"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-bit-vector":[
+        {
+            "version":"v7.4",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest Bit::Vector"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-module-build":[
+        {
+            "version":"v0.4218",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest Module::Build"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-inline":[
+        {
+            "version":"v0.8",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest Inline"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-inline-c":[
+        {
+            "version":"v0.76",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest Inline::C"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-forks":[
+        {
+            "version":"v0.36",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest forks"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-forks-shared":[
+        {
+            "version":"v0.36",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest forks"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-io-all":[
+        {
+            "version":"v0.86",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest IO::All"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-io-prompt":[
+        {
+            "version":"v0.997",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest IO::All"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-dbd-sqlite":[
+        {
+            "version":"v1.5",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest DBD::SQLite"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-want":[
+        {
+            "version":"v0.29",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest Want"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-lwp-simple":[
+        {
+            "version":"v6.15",
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "cpanm --notest LWP::Simple"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "hmmer":[
+        {
+            "version":"v3.1",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "hmmer-3.1b2.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-mpi",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "openmpi":[
+                    "v1.10"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "openmpi":[
+        {
+            "version":"v1.10",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "openmpi-1.10.3.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "ncbi-blast":[
+        {
+            "version":"v2.2.28",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "ncbi-blast-2.2.28+-src.tar.gz"
+                    ],
+                    "recipe":[
+                        "cd c++",
+                        "export CFLAGS=-fpermissive", 
+                        "export CXXFLAGS=-fpermissive", 
+                        ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
+                        "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
+                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "zlib":[
+                    "v1.2"
+                ],
+                "pcre":[
+                    "v8.34"
+                ],
+                "python":[
+                    "v2.6"
+                ],
+                "perl":[
+                    "v5.8"
+                ],
+                "sqlite3":[
+                    "v3.13"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "rmblast":[
+        {
+            "version":"v2.2.28",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "rmblastn-2.2.28+-src.tar.gz"
+                    ],
+                    "recipe":[
+                        "cd c++",
+                        "export CFLAGS=-fpermissive", 
+                        "export CXXFLAGS=-fpermissive", 
+                        ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
+                        "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
+                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "zlib":[
+                    "v1.2"
+                ],
+                "pcre":[
+                    "v8.34"
+                ],
+                "python":[
+                    "v2.6"
+                ],
+                "perl":[
+                    "v5.8"
+                ],
+                "sqlite3":[
+                    "v3.13"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "sqlite3":[
+        {
+            "version":"v3.13",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "sqlite-autoconf-3130000.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-readline",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "readline":[
+                    "v6.3"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "exonerate":[
+        {
+            "version":"v2.2.0",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "exonerate-2.2.0.tar.gz"
+                    ],
+                    "recipe":[
+                        ": exonerate does not like parallel compilation",
+                        "export MAKEFLAGS=-j1",
+                        ": for old glibc we need to manually link librt",
+                        "export LDFLAGS=-lrt",
+                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-glib2 --enable-utilities",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "glib":[
+                    "v2"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "snap":[
+        {
+            "version":"v2013.11.29",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "snap-2013-11-29.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "cp -af ${VC3_BUILD} ${VC3_PREFIX}/snap",
+                        "cd ${VC3_PREFIX}/snap",
+                        "make"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl":[
+                    "v5.8"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"ZOE",
+                    "value":"${VC3_SNAP_ROOT}/snap/Zoe",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_SNAP_ROOT}/snap",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "repeatmasker":[
+        {
+            "version":"v4.0.6",
+            "dependencies":{
+                "repeatmasker-restricted":[
+                    "v4.0.6"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${VC3_REPEATMASKER_ROOT}",
+                    "absolute":1
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"${VC3_REPEATMASKER_ROOT}/lib",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "repeatmasker-restricted":[
+        {
+            "version":"v4.0.6",
+            "sources":[
+                {
+                    "type":"manual-distribution",
+                    "msg_manual_requirement":[
+"RepeatMasker libraries have a restrictive distribution license, and have to",
+"be downloaded manually. Please follow these steps:",
+"    1) On http://www.girinst.org, click on 'Downloads'.",
+"    2) Register for a free account.",
+"    3) Download the most recent libray repeatmaskerlibraries-YEARMONTDAY.tar.gz.",
+"    4) Copy the file into",
+"${VC3_DISTFILES}/manual-distribution/repeatmaskerlibraries-LATEST.tar.gz.",
+"    For example:",
+"cp ~/Downloads/repeatmaskerlibraries-20150807.tar.gz ${VC3_DISTFILES}/manual-distribution/repeatmaskerlibraries-LATEST.tar.gz",
+"    5) Try again '${VC3_COMMAND_LINE}'."],
+                    "files":[
+                        "repeatmaskerlibraries-LATEST.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_REPEATMASKER_ROOT}",
+                        "tar -C ${VC3_REPEATMASKER_ROOT} -xpf repeatmaskerlibraries-LATEST.tar.gz",
+                        "cd ${VC3_REPEATMASKER_ROOT}",
+                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_PERL_ROOT}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -rmblast_bin_dir=${VC3_RMBLAST_ROOT}/bin -default_engine=rmblast"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "repeatmasker-free":[
+                    "v4.0.6"
+                ]
+            }
+        }
+    ],
+
+    "repeatmasker-free":[
+        {
+            "version":"v4.0.6",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "RepeatMasker-open-4-0-6.tar.gz",
+                        "VC3_RepeatMasker-open-4-0-6.configure"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_REPEATMASKER_ROOT}",
+                        "tar -C ${VC3_REPEATMASKER_ROOT} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_REPEATMASKER_ROOT}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl":[
+                    "v5.8"
+                ],
+                "hmmer":[
+                    "v3.1"
+                ],
+                "ncbi-blast":[
+                    "v2.2.28"
+                ],
+                "rmblast":[
+                    "v2.2.28"
+                ],
+                "trf":[
+                    "v4.0.9"
+                ],
+                "perl-text-soundex":[
+                    "v3.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${VC3_REPEATMASKER_ROOT}",
+                    "absolute":1
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"${VC3_REPEATMASKER_ROOT}/lib",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "augustus":[
+        {
+            "version":"v2.4",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "augustus.2.4.src.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf augustus.2.4.src.tar.gz",
+                        "cd ${VC3_PREFIX}",
+                        "make"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"AUGUSTUS_CONFIG_PATH",
+                    "value":"config",
+                    "clobber":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "trf":[
+        {
+            "version":"v4.09",
+            "sources":[
+                {
+                    "msg_manual_requirement":[
+"Tandem Repeats Finder (trf) has a restrictive distribution license, and has to",
+"be downloaded manually. Please follow these steps:",
+"    1) On https://tandem.bu.edu/trf/trf.html, click on 'Download Your Own Copy of the Program'.",
+"    2) Download the version appropiate for your machine.",
+"      (Your machine is a ${VC3_MACHINE_OS}-${VC3_MACHINE_ARCH}, GLIBC version ${VC3_MACHINE_GLIBC_VERSION})",
+"    3) Copy the file into",
+"${VC3_DISTFILES}/manual-distribution/trf409",
+"    For example:",
+"cp ~/Downloads/trf409.legacylinux64 ${VC3_DISTFILES}/manual-distribution/trf409",
+"    4) Try again '${VC3_COMMAND_LINE}'."],
+                    "type":"manual-distribution",
+                    "files":[
+                        "trf409"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        ": -L to ensure real files are copied, and not only symlinks",
+                        "cp -L trf409 ${VC3_PREFIX}/bin/trf",
+                        "chmod 755 ${VC3_PREFIX}/bin/trf"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "maker":[
+        {
+            "version":"v2.31",
+            "sources":[
+                {
+                    "type":"manual-distribution",
+                    "msg_manual_requirement":[
+"maker has a restrictive distribution license, and has to",
+"be downloaded manually. Please follow these steps:",
+"    1) On http://www.yandell-lab.org/software/maker.html, click on 'Registration Page'.",
+"    2) Fill the form and click on 'Submit and Download MAKER.",
+"    3) Download maker-2.31.8.tgz.",
+"    4) Copy the file into",
+"${VC3_DISTFILES}/manual-distribution/maker-2.31.8.tgz",
+"    For example:",
+"cp ~/Downloads/maker-2.31.8.tgz ${VC3_DISTFILES}/manual-distribution/",
+"    5) Try again '${VC3_COMMAND_LINE}'."],
+                    "files":[
+                        "maker-2.31.8.tgz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf maker-2.31.8.tgz",
+                        "cd ${VC3_PREFIX}/src",
+                        ": y to activate MPI support",
+                        "/bin/echo 'y' | perl Build.PL",
+                        "./Build install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "ncbi-blast":[
+                    "v2.2.28"
+                ],
+                "snap":[
+                    "v2013.11.29"
+                ],
+                "repeatmasker":[
+                    "v4.0.6"
+                ],
+                "exonerate":[
+                    "v2.2"
+                ],
+                "augustus":[
+                    "v2.4"
+                ],
+                "perl-bioperl":[
+                    "v1.6"
+                ],
+                "perl-dbi":[
+                    "v1.6"
+                ],
+                "perl-dbd-sqlite":[
+                    "v1.5"
+                ],
+                "perl-want":[
+                    "v0.29"
+                ],
+                "perl-lwp-simple":[
+                    "v6.15"
+                ],
+                "perl-file-which":[
+                    "v1.2"
+                ],
+                "perl-unsafe-signals":[
+                    "v0.03"
+                ],
+                "perl-bit-vector":[
+                    "v7.4"
+                ],
+                "perl-inline":[
+                    "v0.8"
+                ],
+                "perl-inline-c":[
+                    "v0.76"
+                ],
+                "perl-forks":[
+                    "v0.36"
+                ],
+                "perl-forks-shared":[
+                    "v0.36"
+                ],
+                "perl-io-all":[
+                    "v0.86"
+                ],
+                "perl-io-prompt":[
+                    "v0.997"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MAKER_ROOT}/bin",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "maker-example-ecoli-01":[
+        {
+            "version":"v1",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "maker-example-ecoli-01.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${HOME}/maker-example-ecoli-01",
+                        "tar -C ${HOME}/maker-example-ecoli-01 --strip-components=1 -xpf maker-example-ecoli-01.tar.gz"
+                    ]
+                }
+            ],
+            "dependencies":
+            {
+                "maker":[
+                    "v2.31"
+                ]
+            }
+        }
+    ]
 }
 

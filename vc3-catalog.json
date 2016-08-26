@@ -19,7 +19,14 @@
                 "icecube-environment":[
                     "v1.0"
                 ]
-            }
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"${HOME}/icecube-argonne-demo-01",
+                    "absolute":1
+                }
+            ]
         }
     ],
 

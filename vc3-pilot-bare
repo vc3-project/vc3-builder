@@ -105,7 +105,7 @@ sub main {
     # set defaults
     my @command_and_args = @ARGV;
     if(!@command_and_args) {
-        @command_and_args = ('/bin/sh',);
+        @command_and_args = ('/bin/sh --noprofile',);
     }
 
     # clean this!
@@ -504,7 +504,7 @@ sub consolidate_wrapper {
     my ($self, @command_and_args) = @_;
 
     my $prologue = $self->consolidate_prologue();
-    open(my $profile_f, '>', "$ENV{'HOME'}/.profile");
+    open(my $profile_f, '>', "$ENV{'HOME'}/.vc3_sh_init");
 
     print { $profile_f } "#!/bin/sh\n\n";
 
@@ -512,11 +512,13 @@ sub consolidate_wrapper {
         print { $profile_f } "$line\n";
     }
 
-    print { $profile_f } "\n\n";
+    if(@command_and_args) {
+        print { $profile_f } join(' ', 'exec', @command_and_args, "\n");
+    }
 
     close $profile_f;
 
-    my $payload = "/bin/sh --noprofile -c '" . join(' ', ('. ~/.profile;', 'exec', @command_and_args)) . "'";
+    my $payload = "/bin/sh --noprofile -c '. $ENV{'HOME'}/.vc3_sh_init'";
 
     my @wraps = keys %{$self->{wrapper}};
     @wraps = sort { $self->{wrapper}{$b} <=> $self->{wrapper}{$a} } @wraps;
@@ -546,14 +548,9 @@ sub shell {
 
     $payload |= '/bin/sh --noprofile';
 
-    my $prologue = $self->consolidate_prologue();
     my $wrapper  = $self->consolidate_wrapper($payload);
 
     my $pid = open(my $input, '|-', $wrapper);
-
-    for my $line (@{$prologue}) {
-        print { $input } "$line\n";
-    }
 
     return ($pid, $input);
 }

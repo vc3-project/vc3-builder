@@ -8,9 +8,11 @@ package VC3::Pilot;
 
 use English qw/-mo_match_vars/;
 use Getopt::Long qw/GetOptions/;
+use Cwd;
 
-my $vc3_root       = $ENV{VC3_ROOT}       || "$ENV{PWD}/vc3-root";
-my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "$ENV{PWD}/vc3-distfiles";
+my $pwd            = getcwd();
+my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
+my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
 my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
 

@@ -6276,7 +6276,7 @@ sub main {
     # set defaults
     my @command_and_args = @ARGV;
     if(!@command_and_args) {
-        @command_and_args = ('/bin/sh --noprofile',);
+        @command_and_args = ('/bin/sh',);
     }
 
     # clean this!
@@ -6703,7 +6703,7 @@ sub consolidate_wrapper {
 
     close $profile_f;
 
-    my $payload = "/bin/sh --noprofile -c '. $ENV{'HOME'}/.vc3_sh_init'";
+    my $payload = "/bin/sh -c '. $ENV{'HOME'}/.vc3_sh_init'";
 
     my @wraps = keys %{$self->{wrapper}};
     @wraps = sort { $self->{wrapper}{$b} <=> $self->{wrapper}{$a} } @wraps;
@@ -6731,7 +6731,7 @@ sub execute  {
 sub shell {
     my ($self, $payload) = @_;
 
-    $payload |= '/bin/sh --noprofile';
+    $payload |= '/bin/sh';
 
     my $wrapper  = $self->consolidate_wrapper($payload);
 

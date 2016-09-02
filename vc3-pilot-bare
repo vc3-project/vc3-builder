@@ -18,7 +18,7 @@ my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.or
 
 my %vc3_environment;
 
-my @external_dependencies = qw/perl sh tail tar uname patch gcc g++ ld pkconfig make/;
+my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;
 
 # call main if running interactively
 VC3::Pilot::main();
@@ -62,6 +62,7 @@ sub main {
 
     my $debug_modules_used = 0;
     my $dry_run            = 0;
+    my $dot_output;
 
     # if the executable name does looks like "perl", we use $0, as it has the
     # name of the script. Otherwise, this is a static run, and we use the given
@@ -90,6 +91,7 @@ sub main {
         "dry-run"     => \$dry_run,
 
         # options for developing, not for runtime:
+        "dot=s"       => \$dot_output,
         "debug-modules-used" => \$debug_modules_used
     );
 
@@ -101,6 +103,10 @@ sub main {
     if($debug_modules_used) {
         print_modules_used();
         exit 0;
+    }
+
+    if(defined $dot_output) {
+        $dry_run = 1;
     }
 
     unless(@requires) {
@@ -133,6 +139,11 @@ sub main {
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
     my $bag = VC3::Bag->new($database, $sh_on_error, $dry_run, @requires);
+
+    if(defined $dot_output) {
+        $bag->dot_graph($dot_output);
+        exit 0;
+    }
 
     $bag->say("building phase done!");
 
@@ -231,9 +242,10 @@ sub new {
     $self->{sources} = $self->decode_bag($catalog);
     $self->{indent_level} = 0;
 
-    $self->{order}    = {};
-    $self->{wrapper}  = {};
-    $self->{prologue} = {};
+    $self->{order}        = {};
+    $self->{dependencies} = {};
+    $self->{wrapper}      = {};
+    $self->{prologue}     = {};
 
     for my $req (@requires) {
         my $widget = $self->select_version($req);
@@ -393,7 +405,11 @@ sub set_environment {
 
     # set root of this widget, in case dependencies need to refer to its parent.
     $ENV{$widget->var_root_name} = $widget->destination_dir;
-    
+
+    if(!$self->{dependencies}{$widget_name}) {
+        $self->{dependencies}{$widget_name} = {};
+    }
+
     $self->set_dependencies($widget, $sh_on_error, $widget->dependencies);
     $widget->set_environment_variables();
 
@@ -443,13 +459,15 @@ sub set_dependencies {
     my $namev = $widget->name . '-' . $widget->version; 
 
     $self->{indent_level}++;
-
+    
     if($dependencies) {
         for my $dependency (keys %{$dependencies}) {
             my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
 
             $self->say("$namev needs $dependency");
             $self->set_environment($dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
+
+            $self->{dependencies}{$widget->name}{$dependency} = 1;
         }
     }
 
@@ -506,6 +524,34 @@ sub select_version {
     . "]\n";
 }
 
+sub dot_graph {
+    my ($self, $dotname) = @_;
+
+    open(my $dot_f, '>', $dotname) 
+    || die "Could not open '$dotname': $!";
+
+    print { $dot_f } "digraph {\n";
+
+    #$self->{dependencies}{vc3_pilot} = {};
+    #$self->{dependencies}{vc3_pilot}{$_} = 1 for @external_dependencies;
+
+    for my $pkg (keys %{$self->{dependencies}}) {
+        my @deps = keys %{$self->{dependencies}{$pkg}};
+
+        if(@deps) {
+            for my $dep (@deps) {
+                print { $dot_f } qq(\t"$dep"->"$pkg";\n);
+            }
+        } else {
+            print { $dot_f } qq(\t"$pkg";\n);
+        }
+    }
+
+    print { $dot_f } "}\n";
+
+    close $dot_f;
+}
+
 sub add_to_prologue {
     my ($self, $widget) = @_;
 
@@ -536,7 +582,8 @@ sub consolidate_wrapper {
     my ($self, @command_and_args) = @_;
 
     my $prologue = $self->consolidate_prologue();
-    open(my $profile_f, '>', "$ENV{'HOME'}/.vc3_sh_init");
+    open(my $profile_f, '>', "$ENV{'HOME'}/.vc3_sh_init") 
+    || die "Could not open file $ENV{'HOME'}/.vc3_sh_init: $!";
 
     print { $profile_f } "#!/bin/sh\n\n";
 
@@ -1038,11 +1085,11 @@ sub runtime_dependencies {
 
     my $level = $order->{$self->name};
 
-    my $dependencies = $self->dependencies;
+    my $wdeps = $self->dependencies;
 
-    if($dependencies) {
-        for my $dependency (keys %{$dependencies}) {
-            my ($min_ver, $max_ver) = @{$dependencies->{$dependency}};
+    if($wdeps) {
+        for my $dependency (keys %{$wdeps}) {
+            my ($min_ver, $max_ver) = @{$wdeps->{$dependency}};
             my $next = $self->bag->select_version($dependency, $min_ver, $max_ver);
 
             my $next_level = $order->{$next->name} || 0;

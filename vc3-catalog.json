@@ -18,6 +18,9 @@
             "dependencies":{
                 "icecube-environment":[
                     "v1.0"
+                ],
+                "python":[
+                    "v2.6"
                 ]
             },
             "environment_variables":[
@@ -38,6 +41,9 @@
             "dependencies":{
                 "cvmfs":[
                     "v2.0"
+                ],
+                "python":[
+                    "v2.6"
                 ]
             }
         }

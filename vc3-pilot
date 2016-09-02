@@ -6229,6 +6229,7 @@ sub main {
     my $sh_on_error  = 0;
 
     my $debug_modules_used = 0;
+    my $dry_run            = 0;
 
     # if the executable name does looks like "perl", we use $0, as it has the
     # name of the script. Otherwise, this is a static run, and we use the given
@@ -6253,6 +6254,8 @@ sub main {
 
         "make-jobs=n" => \$make_jobs,
         "sh-on-error" => \$sh_on_error,
+
+        "dry-run"     => \$dry_run,
 
         # options for developing, not for runtime:
         "debug-modules-used" => \$debug_modules_used
@@ -6297,9 +6300,13 @@ sub main {
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag->new($database, $sh_on_error, @requires);
+    my $bag = VC3::Bag->new($database, $sh_on_error, $dry_run, @requires);
 
     $bag->say("building phase done!");
+
+    if($bag->dry_run) {
+        exit 0;
+    }
 
     chdir "$vc3_root/$vc3_user_home";
 
@@ -6382,10 +6389,12 @@ use POSIX ();
 use JSON::Tiny;
 
 sub new {
-    my ($class, $catalog, $sh_on_error, @requires) = @_;
+    my ($class, $catalog, $sh_on_error, $dry_run, @requires) = @_;
 
     my $self = bless {}, $class;
     $self->set_machine_vars();
+
+    $self->{dry_run} = $dry_run;
 
     $self->{sources} = $self->decode_bag($catalog);
     $self->{indent_level} = 0;
@@ -6419,6 +6428,12 @@ sub new {
     }
 
     return $self;
+}
+
+sub dry_run {
+    my ($self) = @_;
+
+    return $self->{dry_run};
 }
 
 sub set_machine_vars {
@@ -7094,6 +7109,10 @@ sub execute_recipe {
     }
 
     $self->bag->say("preparing '" . $self->name . "' for ", $self->bag->target);
+
+    if($self->bag->dry_run) {
+        return 0;
+    }
 
     $self->prepare_recipe_sandbox($source);
 

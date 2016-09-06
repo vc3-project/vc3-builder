@@ -1243,7 +1243,7 @@
                 {
                     "type":"generic",
                     "recipe":[
-                        "cpanm --notest BioPerl"
+                        "cpanm --notest CJFIELDS/BioPerl-1.6.924.tar.gz"
                     ]
                 }
             ],
@@ -1610,7 +1610,7 @@
                     ],
                     "recipe":[
                         "export CFLAGS=-fPIC",
-                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
+                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --disable-readline",
                         "make",
                         "make install"
                     ]
@@ -1641,6 +1641,16 @@
         {
             "version":"v2.2.28",
             "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "ncbi-blast-2.2.28+-x64-linux.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_NCBI_BLAST_ROOT}",
+                        "tar -C ${VC3_NCBI_BLAST_ROOT} -xpf ncbi-blast-2.2.28+-x64-linux.tar.gz"
+                    ]
+                },
                 {
                     "type":"tarball",
                     "files":[
@@ -1701,6 +1711,16 @@
         {
             "version":"v2.2.28",
             "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_RMBLAST_ROOT}",
+                        "tar -C ${VC3_RMBLAST_ROOT} -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
+                    ]
+                },
                 {
                     "type":"tarball",
                     "files":[
@@ -1768,17 +1788,12 @@
                     ],
                     "recipe":[
                         "export CFLAGS=-fPIC",
-                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-readline",
+                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static",
                         "make",
                         "make install"
                     ]
                 }
             ],
-            "dependencies":{
-                "readline":[
-                    "v6.3"
-                ]
-            },
             "environment_variables":[
                 {
                     "name":"PATH",

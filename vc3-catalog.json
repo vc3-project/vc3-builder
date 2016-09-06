@@ -1874,6 +1874,9 @@
                         "mkdir -p ${VC3_PREFIX}",
                         "cp -af ${VC3_BUILD} ${VC3_PREFIX}/snap",
                         "cd ${VC3_PREFIX}/snap",
+                        "sed -i -e '678s/h2->q_end/h1->q_end/;684s/h2->s_end/h1->s_end/' Zoe/zoeAlignment.c",
+                        "sed -i -e 's/-Wall//;s/-Werror//' Makefile",
+                        "sed -i -e 's/-Wall//;s/-Werror//' Zoe/Makefile",
                         "make"
                     ]
                 }

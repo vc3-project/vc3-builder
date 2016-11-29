@@ -49,6 +49,36 @@
         }
     ],
 
+    "htcondor-glidein-wrapper":[
+        {
+            "version":"v1.0",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "htcondor-glidein-wrapper"
+                    ],
+                    "recipe":[
+                        "chmod 755 htcondor-glidein-wrapper",
+                        "mkdir ${VC3_PREFIX}/bin",
+                        "cp htcondor-glidein-wrapper ${VC3_PREFIX}/bin"
+                    ],
+                    "dependencies":{
+                        "python":[
+                            "v2.6"
+                        ]
+                    }
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
     "cvmfs":[
         {
             "version":"v2.0",
@@ -885,6 +915,15 @@
             "versioncmd":"python --version",
             "versionreg":"Python ([0-9.]*).*",
             "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "python_name=$(which python2 || which python)",
+                        "[ -z \"$python_name\" ] && exit 1",
+                        "ln -s python2 python",
+                        "python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
+                    ]
+                },
                 {
                     "type":"tarball",
                     "files":[

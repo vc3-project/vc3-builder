@@ -6183,6 +6183,7 @@ my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
 my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
+my $vc3_env_output = ".vc3_sh";
 
 my %vc3_environment;
 
@@ -6202,16 +6203,18 @@ $script_name [options] [--database catalog] --require package [--require package
     options are:
     --install <root>   Install with base <root>. 
                        Default is ${vc3_root}
-    --home    <home>   Set \${HOME} to <root>/<home>.
+    --home <home>      Set \${HOME} to <root>/<home>.
                        Default is ${vc3_user_home}
 
-    --distfiles  <dir> Directory to cache unbuilt packages locally.
+    --distfiles <dir>  Directory to cache unbuilt packages locally.
                        Default is ${vc3_distfiles}
     --repository <url> Site to fetch packages if needed.
                        Default is ${vc3_repository}
 
     --make-jobs <n>    Concurrent make jobs.
                        Default is 2.
+    --env-to <file>    Write environment scripts to <root>/<home>/<file>.{sh,profile}, but do not
+                       execute the payload.
     --sh-on-error      On building error, run /bin/sh on the partially-built environment.
 
 Examples:
@@ -6227,6 +6230,7 @@ sub main {
     my $print_help   = 0;
     my $make_jobs    = 2;
     my $sh_on_error  = 0;
+    my $env_to       = 0;
 
     my $debug_modules_used = 0;
     my $dry_run            = 0;
@@ -6256,6 +6260,7 @@ sub main {
         "make-jobs=n" => \$make_jobs,
         "sh-on-error" => \$sh_on_error,
 
+        "env-to=s"    => \$env_to,
         "dry-run"     => \$dry_run,
 
         # options for developing, not for runtime:
@@ -6319,12 +6324,16 @@ sub main {
         exit 0;
     }
 
-    chdir "$vc3_root/$vc3_user_home";
 
-    $bag->execute(@command_and_args);
+    if($env_to) {
+        $bag->consolidate_environment($env_to, @command_and_args);
+    } else {
+        $bag->execute(@command_and_args);
+        # we get here only when execute fails.
+        exit -1;
+    }
 
-    # we get here only when execute fails.
-    exit -1;
+    exit 0;
 }
 
 sub set_vc3_directories {
@@ -6746,15 +6755,16 @@ sub consolidate_prologue {
     return \@progs;
 }
 
-sub consolidate_wrapper {
-    my ($self, @command_and_args) = @_;
+sub consolidate_profile {
+    my ($self, $profile_file, @command_and_args) = @_;
 
-    my $prologue = $self->consolidate_prologue();
-    open(my $profile_f, '>', "$ENV{'HOME'}/.vc3_sh_init") 
-    || die "Could not open file $ENV{'HOME'}/.vc3_sh_init: $!";
+    # write to $profile
+    open(my $profile_f, '>', $profile_file)
+    || die "Could not open file '$profile_file': $!";
 
     print { $profile_f } "#!/bin/sh\n\n";
 
+    my $prologue = $self->consolidate_prologue();
     for my $line (@{$prologue}) {
         print { $profile_f } "$line\n";
     }
@@ -6762,10 +6772,24 @@ sub consolidate_wrapper {
     if(@command_and_args) {
         print { $profile_f } join(' ', 'exec', @command_and_args, "\n");
     }
-
     close $profile_f;
+}
 
-    my $payload = "/bin/sh -c '. $ENV{'HOME'}/.vc3_sh_init'";
+sub consolidate_wrapper {
+    my ($self, $wrapper_file, $profile_file) = @_;
+
+    # write to $env_file
+    open(my $sh_f, '>', "$wrapper_file")
+    || die "Could not open file $wrapper_file: $!";
+
+    print { $sh_f } "#!/usr/bin/env -i /bin/sh\n\n";
+
+    my @keys = sort { $a cmp $b } keys %ENV;
+    for my $key (@keys) {
+        print { $sh_f } "export $key=\"$ENV{$key}\"\n"
+    }
+
+    my $payload = "/bin/sh -c '. $profile_file'";
 
     my @wraps = keys %{$self->{wrapper}};
     @wraps = sort { $self->{wrapper}{$b} <=> $self->{wrapper}{$a} } @wraps;
@@ -6779,15 +6803,28 @@ sub consolidate_wrapper {
         }
     }
 
+    print { $sh_f } "\ncd $vc3_root/$vc3_user_home\n";
+    print { $sh_f } "exec $payload\n\n";
     return $payload;
 }
 
-sub execute  {
+sub execute {
     my ($self, @command_and_args) = @_;
 
-    my $command = $self->consolidate_wrapper(@command_and_args);
+    $self->consolidate_environment($vc3_env_output, @command_and_args);
+    exec "/bin/sh -c '. $ENV{'HOME'}/$vc3_env_output'";
+}
 
-    exec $command;
+sub consolidate_environment {
+    my ($self, $wrapper_file, @command_and_args) = @_;
+
+    $wrapper_file = "$ENV{'HOME'}/$wrapper_file";
+    my $profile_file = "$wrapper_file.init";
+
+    $self->consolidate_profile($profile_file, @command_and_args);
+    my $wrapper = $self->consolidate_wrapper($wrapper_file, $profile_file);
+
+    return $wrapper;
 }
 
 sub shell {
@@ -6795,9 +6832,8 @@ sub shell {
 
     $payload |= '/bin/sh';
 
-    my $wrapper  = $self->consolidate_wrapper($payload);
-
-    my $pid = open(my $input, '|-', $wrapper);
+    my $wrapper  = $self->consolidate_environment($vc3_env_output, $payload);
+    my $pid = open(my $input, '|-', "/bin/sh -c '. $ENV{'HOME'}/$vc3_env_output'");
 
     return ($pid, $input);
 }

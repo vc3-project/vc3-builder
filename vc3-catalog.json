@@ -920,8 +920,11 @@
                     "recipe":[
                         "python_name=$(which python2 || which python)",
                         "[ -z \"$python_name\" ] && exit 1",
-                        "ln -s python2 python",
-                        "python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
+                        "cd ${VC3_PYTHON_ROOT}",
+                        "mkdir bin",
+                        "ln -s ${python_name} bin/python",
+                        "ln -s ${python_name} bin/python2",
+                        "./bin/python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
                     ]
                 },
                 {

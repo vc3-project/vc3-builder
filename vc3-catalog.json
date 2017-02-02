@@ -283,12 +283,12 @@
 
     "libcvmfs":[
         {
-            "version":"v2.2",
+            "version":"v2.3",
             "sources":[
                 {
                     "type":"tarball",
                     "files":[
-                        "cvmfs.tar.gz"
+                        "cvmfs-0941e442.tar.gz"
                     ],
                     "recipe":[
                         "mkdir -p build",
@@ -920,7 +920,11 @@
                     "recipe":[
                         "python_name=$(which python2 || which python)",
                         "[ -z \"$python_name\" ] && exit 1",
+                        "python_root=${python_name%/bin*}",
+                        "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
                         "cd ${VC3_PYTHON_ROOT}",
+                        "ln -s ${python_root}/lib lib",
+                        "ln -s ${python_root}/include include",
                         "mkdir bin",
                         "ln -s ${python_name} bin/python",
                         "ln -s ${python_name} bin/python2",

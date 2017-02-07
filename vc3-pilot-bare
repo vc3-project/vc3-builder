@@ -694,6 +694,9 @@ sub say {
 package VC3::Widget;
 use Carp;
 use POSIX ":sys_wait_h";
+use Digest::MD5 qw(md5_hex);
+
+use JSON::Tiny;
 
 # Attributes:
 # name, version, sources, dependencies, environment_variables
@@ -711,6 +714,8 @@ sub new {
     $self->prologue($json_description->{prologue});
     $self->environment_variables($json_description->{environment_variables});
     $self->phony($json_description->{phony});
+
+    $self->checksum($json_description);
 
     add_root_variable($self);
 
@@ -861,7 +866,7 @@ sub build_log {
 
 sub completion_ribbon {
     my ($self) = @_;
-    my $ribbon = $self->destination_dir . '/.VC3_DEPENDENCY_BUILD_COMPLETE';
+    my $ribbon = $self->destination_dir . '/.VC3_DEPENDENCY_BUILD';
 
     return $ribbon;
 }
@@ -980,7 +985,50 @@ sub create_ribbon {
     my ($self) = @_;
 
     open (my $ribbon_fh, '>', $self->completion_ribbon);
+
+    my $report = {};
+    $report->{'checksum'} = $self->checksum;
+
+    printf { $ribbon_fh } JSON::Tiny::encode_json($report);
+
     close $ribbon_fh;
+}
+
+sub checksum {
+    my ($self, $load) = @_;
+
+    if($load) {
+        my $txt = $self->hash_to_canonical_str($load);
+        my $dgt = md5_hex($txt);
+
+        $self->{'checksum'} = $dgt;
+    }
+
+    return $self->{'checksum'};
+}
+
+sub hash_to_canonical_str {
+    my ($self, $ref) = @_;
+
+    my $str;
+
+    if(ref($ref) eq 'HASH') {
+        my @ks = sort { $a cmp $b } keys %{$ref};
+
+        $str 
+        = '{'
+        . join(',', map { $_ .  ':' . $self->hash_to_canonical_str($ref->{$_}) } @ks)
+        . '}';
+    } elsif(ref($ref) eq 'ARRAY') {
+        $str 
+        = '['
+        . join(',', map { $self->hash_to_canonical_str($_) } @{$ref})
+        . ']';
+    } else {
+        $str = $ref;
+    }
+
+    return $str;
 }
 
 sub prepare_recipe_sandbox {

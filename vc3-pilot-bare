@@ -275,7 +275,20 @@ sub new {
 
     exit 1 if $restricted_unmet > 0;
 
-    # do the actual bulding
+    # do the building, requirements isolated
+    for my $req (@requires) {
+        $pid = fork();
+
+        if($pid == 0) {
+            $self->set_environment($req, $sh_on_error);
+        } elsif($pid > 0) {
+            waitpid($pid), 0;
+        } else {
+            die("Could not fork to build requirement '" . $req . "'");
+        }
+    }
+
+    # do the actual setting of the consolidated environment.
     for my $req (@requires) {
         $self->set_environment($req, $sh_on_error);
     }

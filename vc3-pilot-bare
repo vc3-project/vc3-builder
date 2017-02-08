@@ -654,9 +654,7 @@ sub consolidate_environment {
     my $profile_file = "$wrapper_file.init";
 
     $self->consolidate_profile($profile_file, @command_and_args);
-    my $wrapper = $self->consolidate_wrapper($wrapper_file, $profile_file);
-
-    return $wrapper;
+    $self->consolidate_wrapper($wrapper_file, $profile_file);
 }
 
 sub shell {
@@ -664,10 +662,21 @@ sub shell {
 
     $payload |= '/bin/sh';
 
-    my $wrapper  = $self->consolidate_environment($vc3_env_output, $payload);
+    $self->consolidate_environment($vc3_env_output, $payload);
     my $pid = open(my $input, '|-', "/bin/sh -c '. $ENV{'HOME'}/$vc3_env_output'");
 
     return ($pid, $input);
+}
+
+sub shell_user {
+    my ($self, $payload) = @_;
+
+    $payload |= '/bin/sh';
+
+    $self->consolidate_environment($vc3_env_output, $payload);
+    my $status = system("/bin/sh -c '. $ENV{'HOME'}/$vc3_env_output'");
+
+    return $status;
 }
 
 sub expand_env_variable {
@@ -965,8 +974,8 @@ sub process_error {
             warn $@ if $@;
             my $pid = fork();
             if($pid == 0) {
-                my ($pid, $stdin) = $self->bag->shell();
-                print { $stdin } 'cd ' . $self->build_dir . "\n";
+                chdir $self->build_dir;
+                my ($pid, $stdin) = $self->bag->shell_user();
 
                 waitpid $pid, 0;
 

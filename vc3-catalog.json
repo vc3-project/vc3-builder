@@ -37,7 +37,9 @@
         {
             "version":"v1.0",
             "phony":1,
-            "prologue":"eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)",
+            "prologue": [
+                "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"
+            ],
             "dependencies":{
                 "cvmfs":[
                     "v2.0"

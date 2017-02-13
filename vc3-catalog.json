@@ -133,7 +133,7 @@
                         "cctools-5.4.19-source.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_LIBCVMFS_ROOT} --with-uuid-path ${VC3_UUID_ROOT} --without-system-umbrella  --with-openssl-path ${VC3_OPENSSL_ROOT} --with-fuse-path ${VC3_FUSE_ROOT}",
+                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
                         "make",
                         "make install"
                     ],
@@ -297,7 +297,7 @@
                         "cd build",
                         ": set NO_INTERNET to stop parcparser tests",
                         "export NO_INTERNET=1",
-                        "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_UUID_ROOT}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_UUID_ROOT}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_OPENSSL_ROOT} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_OPENSSL_ROOT}/include -DOPENSSL_LIBRARIES:PATH=${VC3_OPENSSL_ROOT}/lib -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
+                        "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_LIBRARIES:PATH=${VC3_ROOT_OPENSSL}/lib -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
                         "make libpacparser",
                         "cd cvmfs",
                         "make",
@@ -490,7 +490,7 @@
                     "recipe":[
                         ": system pcre is not working! using internal",
                         "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --with-python=${VC3_PYTHON_ROOT}/bin/python --with-pcre=internal",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --with-python=${VC3_ROOT_PYTHON}/bin/python --with-pcre=internal",
                         "make",
                         "make install"
                     ]
@@ -764,7 +764,7 @@
                         "setuptools-24.0.2.tar.gz"
                     ],
                     "recipe":[
-                        "python setup.py install --prefix=${VC3_PYTHON_MODULES}"
+                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
                     ]
                 }
             ],
@@ -775,19 +775,19 @@
             },
             "environment_variables":[
                 {
-                    "name":"VC3_PYTHON_MODULES",
-                    "value":"${VC3_PYTHON_ROOT}/local_modules",
+                    "name":"VC3_MODULES_PYTHON",
+                    "value":"${VC3_ROOT_PYTHON}/local_modules",
                     "clobber":1,
                     "absolute":1
                 },
                 {
                     "name":"PYTHONPATH",
-                    "value":"${VC3_PYTHON_MODULES}/lib/python2.7/site-packages",
+                    "value":"${VC3_MODULES_PYTHON}/lib/python2.7/site-packages",
                     "absolute":1
                 },
                 {
                     "name":"PATH",
-                    "value":"${VC3_PYTHON_MODULES}/bin",
+                    "value":"${VC3_MODULES_PYTHON}/bin",
                     "absolute":1
                 }
             ]
@@ -804,7 +804,7 @@
                         "pip-8.1.2.distribution"
                     ],
                     "recipe":[
-                        "echo -e \"\\n[install]\\ninstall-option=--prefix=${VC3_PYTHON_MODULES}\\n\" > ${PIP_CONFIG_FILE}",
+                        "echo -e \"\\n[install]\\ninstall-option=--prefix=${VC3_MODULES_PYTHON}\\n\" > ${PIP_CONFIG_FILE}",
                         "python pip-8.1.2.distribution"
                     ]
                 }
@@ -835,13 +835,13 @@
                     "recipe":[
                         "pip install --user virtualenv",
                         "cd ${HOME}",
-                        ".local/bin/virtualenv ${VC3_PYTHON_MODULES}"
+                        ".local/bin/virtualenv ${VC3_MODULES_PYTHON}"
                     ]
                 }
             ],
             "start":[
                 "cd ${HOME}",
-                "source ${VC3_PYTHON_MODULES}/bin/activate"
+                "source ${VC3_MODULES_PYTHON}/bin/activate"
             ],
             "dependencies":{
                 "python-pip":[
@@ -850,8 +850,8 @@
             },
             "environment_variables":[
                 {
-                    "name":"VC3_PYTHON_MODULES",
-                    "value":"${VC3_PYTHON_PIP_ROOT}/local_modules",
+                    "name":"VC3_MODULES_PYTHON",
+                    "value":"${VC3_ROOT_PYTHON_PIP}/local_modules",
                     "absolute":1
                 }
             ]
@@ -868,7 +868,7 @@
                         "local-lib-2.000019.tar.gz"
                     ],
                     "recipe":[
-                        "perl Makefile.PL --bootstrap=${VC3_PERL_ROOT}",
+                        "perl Makefile.PL --bootstrap=${VC3_ROOT_PERL}",
                         "make install"
                     ]
                 }
@@ -880,31 +880,31 @@
             },
             "environment_variables": [
                 {
-                    "name":"VC3_PERL_MODULES", 
-                    "value":"${VC3_PERL_LOCAL_LIB_ROOT}/local_modules",
+                    "name":"VC3_MODULES_PERL", 
+                    "value":"${VC3_ROOT_PERL_LOCAL_LIB}/local_modules",
                     "clobber":1,
                     "absolute":1
                 },
                 {
                     "name":"PERL_MB_OPT", 
-                    "value":"--install_base ${VC3_PERL_MODULES}",
+                    "value":"--install_base ${VC3_MODULES_PERL}",
                     "clobber":1,
                     "absolute":1
                 },
                 {
                     "name":"PERL_MM_OPT", 
-                    "value":"INSTALL_BASE=${VC3_PERL_MODULES}",
+                    "value":"INSTALL_BASE=${VC3_MODULES_PERL}",
                     "clobber":1,
                     "absolute":1 
                 },
                 {
                     "name":"PERL5LIB",
-                    "value":"${VC3_PERL_MODULES}/lib/perl5",
+                    "value":"${VC3_MODULES_PERL}/lib/perl5",
                     "absolute":1
                 },
                 {
                     "name":"PATH",
-                    "value":"${VC3_PERL_MODULES}/bin",
+                    "value":"${VC3_MODULES_PERL}/bin",
                     "absolute":1
                 }
             ]
@@ -924,7 +924,7 @@
                         "[ -z \"$python_name\" ] && exit 1",
                         "python_root=${python_name%/bin*}",
                         "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
-                        "cd ${VC3_PYTHON_ROOT}",
+                        "cd ${VC3_ROOT_PYTHON}",
                         "ln -s ${python_root}/lib lib",
                         "ln -s ${python_root}/include include",
                         "mkdir bin",
@@ -1091,9 +1091,9 @@
                        "crossx86-x86_64-linux-musl-1.1.6.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_CXX11_ROOT}",
-                        "tar -C ${VC3_CXX11_ROOT} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
-                        "cd ${VC3_CXX11_ROOT}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
+                        "mkdir -p ${VC3_ROOT_CXX11}",
+                        "tar -C ${VC3_ROOT_CXX11} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
+                        "cd ${VC3_ROOT_CXX11}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
                     ]
                 }
             ],
@@ -1128,15 +1128,15 @@
                        "mash-Linux64-v1.1.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_MASH_ROOT}",
-                        "tar -C ${VC3_MASH_ROOT} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
+                        "mkdir -p ${VC3_ROOT_MASH}",
+                        "tar -C ${VC3_ROOT_MASH} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
                     ]
                 }
             ],
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_MASH_ROOT}",
+                    "value":"${VC3_ROOT_MASH}",
                     "absolute":1
                 }
             ]
@@ -1321,7 +1321,7 @@
                     "type":"tarball",
                     "files":["DB_File-1.838.tar.gz"],
                     "recipe":[
-                        "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_BERKELEY_DB_ROOT}'/include%;s%^LIB.*%LIB = '${VC3_BERKELEY_DB_ROOT}'/lib%' config.in",
+                        "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_ROOT_BERKELEY_DB_ROOT}'/include%;s%^LIB.*%LIB = '${VC3_BERKELEY_DB}'/lib%' config.in",
                         "perl Makefile.PL",
                         "make",
                         "make install"
@@ -1695,8 +1695,8 @@
                         "ncbi-blast-2.2.28+-x64-linux.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_NCBI_BLAST_ROOT}",
-                        "tar -C ${VC3_NCBI_BLAST_ROOT} --strip-components=1 -xpf ncbi-blast-2.2.28+-x64-linux.tar.gz"
+                        "mkdir -p ${VC3_ROOT_NCBI_BLAST}",
+                        "tar -C ${VC3_ROOT_NCBI_BLAST} --strip-components=1 -xpf ncbi-blast-2.2.28+-x64-linux.tar.gz"
                     ]
                 },
                 {
@@ -1710,8 +1710,8 @@
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
+                        ": ./configure --prefix=${VC3_ROOT_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        "./configure --prefix=${VC3_ROOT_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
                         "make",
                         "make install"
                     ]
@@ -1765,8 +1765,8 @@
                         "ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_RMBLAST_ROOT}",
-                        "tar -C ${VC3_RMBLAST_ROOT} -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
+                        "mkdir -p ${VC3_ROOT_RMBLAST}",
+                        "tar -C ${VC3_ROOT_RMBLAST} -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
                     ]
                 },
                 {
@@ -1780,8 +1780,8 @@
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
+                        ": ./configure --prefix=${VC3_ROOT_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        "./configure --prefix=${VC3_ROOT_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
                         "make",
                         "make install"
                     ]
@@ -1937,13 +1937,13 @@
             "environment_variables":[
                 {
                     "name":"ZOE",
-                    "value":"${VC3_SNAP_ROOT}/snap/Zoe",
+                    "value":"${VC3_ROOT_SNAP}/snap/Zoe",
                     "clobber":1,
                     "absolute":1
                 },
                 {
                     "name":"PATH",
-                    "value":"${VC3_SNAP_ROOT}/snap",
+                    "value":"${VC3_ROOT_SNAP}/snap",
                     "absolute":1
                 }
             ]
@@ -1961,12 +1961,12 @@
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_REPEATMASKER_ROOT}",
+                    "value":"${VC3_ROOT_REPEATMASKER}",
                     "absolute":1
                 },
                 {
                     "name":"LD_LIBRARY_PATH",
-                    "value":"${VC3_REPEATMASKER_ROOT}/lib",
+                    "value":"${VC3_ROOT_REPEATMASKER}/lib",
                     "absolute":1
                 }
             ]
@@ -1994,10 +1994,10 @@
                         "repeatmaskerlibraries-LATEST.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_REPEATMASKER_ROOT}",
-                        "tar -C ${VC3_REPEATMASKER_ROOT} -xpf repeatmaskerlibraries-LATEST.tar.gz",
-                        "cd ${VC3_REPEATMASKER_ROOT}",
-                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_PERL_ROOT}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -rmblast_bin_dir=${VC3_RMBLAST_ROOT}/bin -default_engine=rmblast"
+                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
+                        "tar -C ${VC3_ROOT_REPEATMASKER} -xpf repeatmaskerlibraries-LATEST.tar.gz",
+                        "cd ${VC3_ROOT_REPEATMASKER}",
+                        "perl VC3_ROOT_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_ROOT_PERL}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -rmblast_bin_dir=${VC3_RMBLAST}/bin -default_engine=rmblast"
                     ]
                 }
             ],
@@ -2020,9 +2020,9 @@
                         "VC3_RepeatMasker-open-4-0-6.configure"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_REPEATMASKER_ROOT}",
-                        "tar -C ${VC3_REPEATMASKER_ROOT} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
-                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_REPEATMASKER_ROOT}"
+                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
+                        "tar -C ${VC3_ROOT_REPEATMASKER} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "cp VC3_ROOT_RepeatMasker-open-4-0-6.configure ${VC3_REPEATMASKER}"
                     ]
                 }
             ],
@@ -2049,12 +2049,12 @@
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_REPEATMASKER_ROOT}",
+                    "value":"${VC3_ROOT_REPEATMASKER}",
                     "absolute":1
                 },
                 {
                     "name":"LD_LIBRARY_PATH",
-                    "value":"${VC3_REPEATMASKER_ROOT}/lib",
+                    "value":"${VC3_ROOT_REPEATMASKER}/lib",
                     "absolute":1
                 }
             ]
@@ -2227,7 +2227,7 @@
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_MAKER_ROOT}/bin",
+                    "value":"${VC3_ROOT_MAKER}/bin",
                     "absolute":1
                 }
             ]

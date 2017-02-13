@@ -6186,8 +6186,6 @@ my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
 my $vc3_env_output = ".vc3_sh";
 
-my %vc3_environment;
-
 my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;
 
 # call main if running interactively
@@ -6295,31 +6293,20 @@ sub main {
         @command_and_args = ('/bin/sh',);
     }
 
-    # clean this!
-    %ENV = ();
-    $ENV{VC3_COMMAND_LINE} = File::Spec->rel2abs(join(" ", $original_command));
-    $ENV{PATH}             = '/bin:/usr/bin';
-    $ENV{MAKEFLAGS}        = "-j${make_jobs}";
-    $ENV{TERM}             = 'linux';
-
-    # clean this! set default path more cleanly (see also PATH above)
-    # set to '2' so this paths come after the packages path (which are set to
-    # 1)
-    $vc3_environment{PATH}->{'/bin'}     = 2;
-    $vc3_environment{PATH}->{'/usr/bin'} = 2;
-
-    set_vc3_directories();
-
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag->new($database, $sh_on_error, $dry_run, @requires);
+    my $bag = VC3::Bag->new($database, $sh_on_error, $dry_run);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
         exit 0;
     }
 
+    $bag->add_pilot_variable('MAKEFLAGS',        "-j${make_jobs}");
+    $bag->add_pilot_variable('VC3_COMMAND_LINE', File::Spec->rel2abs(join(" ", $original_command)));
+
+    $bag->make_import(@requires);
     $bag->say("building phase done!");
 
     if($bag->dry_run) {
@@ -6328,7 +6315,7 @@ sub main {
 
 
     if($env_to) {
-        $bag->consolidate_environment($env_to, @command_and_args);
+        $bag->set_environment($env_to, @command_and_args);
     } else {
         $bag->execute(@command_and_args);
         # we get here only when execute fails.
@@ -6336,25 +6323,6 @@ sub main {
     }
 
     exit 0;
-}
-
-sub set_vc3_directories {
-    $vc3_root      = File::Spec->rel2abs("${vc3_root}");
-    $vc3_distfiles = File::Spec->rel2abs("${vc3_distfiles}");
-
-    my $home    = "$vc3_root/$vc3_user_home";
-    my $tmp_dir = "$vc3_root/tmp";
-
-    File::Path::make_path($vc3_root);
-    File::Path::make_path($vc3_distfiles);
-    File::Path::make_path("$vc3_distfiles/manual-distribution");
-    File::Path::make_path($home);
-    File::Path::make_path($tmp_dir);
-
-    $ENV{VC3_ROOT}      = $vc3_root;
-    $ENV{VC3_DISTFILES} = $vc3_distfiles;
-    $ENV{HOME}          = $home;
-    $ENV{TMP}           = $tmp_dir;
 }
 
 sub print_modules_used {
@@ -6414,34 +6382,27 @@ sub new {
     my ($class, $catalog, $sh_on_error, $dry_run, @requires) = @_;
 
     my $self = bless {}, $class;
-    $self->set_machine_vars();
 
     $self->{dry_run} = $dry_run;
 
+    $self->{environment_variables} = [];
+    $self->set_pilot_variables();
+
     $self->{sources} = $self->decode_bag($catalog);
-    $self->{indent_level} = 0;
 
     # create first environment
     $self->push_environment();
 
-    my (%environment, %order);
+    my %environment;
     tie %environment, 'Tie::RefHash';
-    tie %order, 'Tie::RefHash';
 
     $self->{environment}  = $self->peak_environment();
-    $self->{order}        = \%order;
     $self->{dependencies} = {};
 
-    for my $req (@requires) {
-        my $widget = $self->select_version($req);
-        $widget->order_dependencies($req, $self->{order});
-    }
-
-    # list of all packages needed, from inner to outter.
-    my @ordered_widgets = sort { $self->{order}{$b} <=> $self->{order}{$a} || $a cmp $b } keys %{$self->{order}};
+    $self->order_widgets(@requires);
 
     my $restricted_unmet = 0;
-    for my $w (@ordered_widgets) {
+    for my $w (@{$self->{order}}) {
         if($w->check_manual_requirements()) {
             $restricted_unmet++;
         }
@@ -6450,11 +6411,28 @@ sub new {
     exit 1 if $restricted_unmet > 0;
 
     # do the actual setting of the consolidated environment.
+    $self->{indent_level} = 0;
     for my $req (@requires) {
         $self->set_environment($req, $sh_on_error);
     }
 
     return $self;
+}
+
+sub order_widgets {
+    my ($self, @requires) = @_;
+
+    my %order;
+    tie %order, 'Tie::RefHash';
+
+    for my $req (@requires) {
+        my $widget = $self->select_version($req);
+        $widget->order_dependencies(\%order);
+    }
+
+    # list of all packages needed, from inner to outter.
+    my @ordered_widgets = sort { $order{$b} <=> $order{$a} || $a->name cmp $b->name } keys %order;
+    $self->{order} = \@ordered_widgets;
 }
 
 sub push_environment {
@@ -6491,6 +6469,91 @@ sub peak_environment {
     return $self->{environment_stack}[0];
 }
 
+sub set_pilot_variables {
+    my ($self) = @_;
+
+    $self->set_machine_vars();
+
+    $vc3_root      = File::Spec->rel2abs("${vc3_root}");
+    $vc3_distfiles = File::Spec->rel2abs("${vc3_distfiles}");
+
+    my $home    = "$vc3_root/$vc3_user_home";
+    my $tmp_dir = "$vc3_root/tmp";
+
+    $self->root_dir($vc3_root);
+    $self->home_dir($home);
+    $self->tmp_dir($tmp_dir);
+
+    File::Path::make_path($vc3_root);
+    File::Path::make_path($vc3_distfiles);
+    File::Path::make_path("$vc3_distfiles/manual-distribution");
+    File::Path::make_path($home);
+    File::Path::make_path($tmp_dir);
+
+    $self->add_pilot_variable('VC3_ROOT',      $vc3_root);
+    $self->add_pilot_variable('VC3_DISTFILES', $vc3_distfiles);
+    $self->add_pilot_variable('HOME',          $home);
+    $self->add_pilot_variable('TMP',           $tmp_dir);
+    $self->add_pilot_variable('TERM',          'linux');
+}
+
+sub environment_variables {
+    my ($self, $new_vars) = @_;
+
+    $self->{environment_variables} = $new_vars if($new_vars);
+
+    return $self->{environment_variables};
+}
+
+sub add_pilot_variable {
+    my ($self, $name, $value) = @_;
+
+    my $var = {
+        name     => $name,
+        value    => $value,
+        clobber  => 1,
+        absolute => 1
+    };
+
+    my $vars = $self->environment_variables;
+    push @{$vars}, $var;
+
+    return $var;
+}
+
+sub del_pilot_variable {
+    my ($self, $name) = @_;
+
+    my @vars = @{$self->environment_variables};
+    @vars = grep { $name ne $_->name } @vars;
+
+    $self->environment_variables(\@vars);
+}
+
+sub root_dir {
+    my ($self, $root) = @_;
+
+    $self->{root_dir} = $root if($root);
+
+    return $self->{root_dir};
+}
+
+sub home_dir {
+    my ($self, $home) = @_;
+
+    $self->{home_dir} = $home if($home);
+
+    return $self->{home_dir};
+}
+
+sub tmp_dir {
+    my ($self, $tmp) = @_;
+
+    $self->{tmp_dir} = $tmp if($tmp);
+
+    return $self->{tmp_dir};
+}
+
 sub dry_run {
     my ($self) = @_;
     return $self->{dry_run};
@@ -6521,9 +6584,9 @@ sub set_machine_vars {
     $self->{glibc_version} = $1
     || 'unknown';
 
-    $ENV{VC3_MACHINE_OS}   = $self->osname;
-    $ENV{VC3_MACHINE_ARCH} = $self->architecture;
-    $ENV{VC3_MACHINE_GLIBC_VERSION} = $self->glibc_version;
+    $self->add_pilot_variable('VC3_MACHINE_OS',            $self->osname);
+    $self->add_pilot_variable('VC3_MACHINE_ARCH',          $self->architecture);
+    $self->add_pilot_variable('VC3_MACHINE_GLIBC_VERSION', $self->glibc_version);
 }
 
 sub target {
@@ -6612,33 +6675,33 @@ sub decode_bag {
     return $sources;
 }
 
-sub set_environment {
+sub make_import {
     my ($self, $widget_name, $sh_on_error, $min_version, $max_version) = @_;
 
     my $widget = $self->select_version($widget_name, $min_version, $max_version);
 
     $self->say("processing for $widget_name-" . $widget->version);
 
-    # set root of this widget, in case dependencies need to refer to its parent.
-    $ENV{$widget->var_root_name} = $widget->destination_dir;
-
     if(!$self->{dependencies}{$widget_name}) {
         $self->{dependencies}{$widget_name} = {};
-    }
+    } else {
 
-    $self->set_dependencies($widget, $sh_on_error, $widget->dependencies);
-    $widget->set_environment_variables();
+        # set root of this widget, in case dependencies need to refer to its parent.
+        $self->add_pilot_variable($widget->var_root_name, $widget->destination_dir);
+        $self->set_dependencies($widget, $sh_on_error, $widget->dependencies);
+        $self->del_pilot_variable($widget->var_root_name);
+    }
 
     # check here missing, we are not checking anything here, only below at
     # sources!
     $self->say("checking for $widget_name-" . $widget->version);
+    ####
 
     my $exit_status = 0;
     if($widget->sources) { 
         for my $source (@{$widget->sources}) {
             # save current environment so that we can rollback in case of error.
-            my %old_ENV = %ENV;
-            my %old_vc3_environment = %vc3_environment;
+            $self->push_environment();
 
             # set dependencies particular to this source
             $self->set_dependencies($widget, $sh_on_error, $source->dependencies);
@@ -6649,9 +6712,7 @@ sub set_environment {
                 # file.
                 
                 $widget->process_error($sh_on_error, $EVAL_ERROR, $exit_status);
-
-                %ENV = %old_ENV;
-                my %vc3_environment = %old_vc3_environment;
+                $self->pop_environment();
             } else {
                 # on success, we keep break out and do no try more recipes.
                 last;
@@ -6769,7 +6830,92 @@ sub dot_graph {
 sub add_to_environment {
     my ($self, $widget) = @_;
 
-    $self->{environment}{$widget} = $self->{order}{$widget};
+    $self->{environment}{$widget} = 1;
+}
+
+sub set_environment_variables {
+    my ($self, $sh_f) = @_;
+
+    my $environment = $self->peak_environment();
+
+    my $env = {};
+    $env->{'PATH'} = ['/bin', '/usr/bin'];
+
+    my $count = 0;
+    for my $wid (@{$self->{order}}) {
+        next unless $environment->{$wid};
+
+        $wid->consolidate_environment_variables($env);
+    }
+
+    my $order = {};
+    for my $var_name (keys %{$env}) {
+        $self->order_of_var($env, $order, $var_name);
+    }
+
+    my @ordered = sort { ($order->{$b} <=> $order->{$a}) || ($a cmp $b) } keys %{$env};
+
+    for my $var_name (@ordered) {
+        my $dotted = join(':', $env->{$var_name});
+        print { $sh_f } "export $var_name=\"$dotted\"\n";
+    }
+}
+
+sub order_of_var {
+    my ($self, $env, $order, $var_name) = @_;
+
+    # the smaller, the later the variable is written in the profile.
+    $order->{$var_name} ||= 0;
+
+    if($order->{$var_name} > (scalar keys %{$env})) {
+        carp "Cyclic dependency detected for variable '$var_name'";
+    }
+
+    my @deps = ($env->{$var_name} =~ m/\$\{(\w+)\}/g);
+
+    for my $dep (@deps) {
+        $order->{$dep} ||= $order->{$var_name} + 1;
+
+        if($order->{$dep} <= $order->{$var_name} + 1) {
+            $self->order_of_var($env, $order, $var_name);
+        }
+    }
+}
+
+sub set_wrapper {
+    my ($self, $wrapper_file, $profile_file) = @_;
+
+    # write to $env_file
+    open(my $sh_f, '>', "$wrapper_file")
+    || die "Could not open file $wrapper_file: $!";
+
+    print { $sh_f } "#!/usr/bin/env -i /bin/sh\n\n";
+
+    $self->set_environment_variables($sh_f);
+
+    my $payload = "/bin/sh -c '. $profile_file'";
+
+    my @widgets = keys %{$self->{environment}};
+    @widgets    = sort { $self->{environment}{$b} <=> $self->{environment}{$a} } @widgets;
+
+    for my $w (@widgets) {
+        my $wrap = $w->wrapper;
+
+        next unless $wrap;
+
+        if( $wrap =~ /\{\}/ ) {
+            $wrap =~ s/\{\}/$payload/;
+            $payload = $wrap;
+        } else {
+            $payload = $wrap . ' ' . $payload;
+        }
+    }
+
+    $self->consolidate_environment_variables($sh_f);
+
+    print { $sh_f } "\ncd $vc3_root/$vc3_user_home\n";
+    print { $sh_f } "exec $payload\n\n";
+    return $payload;
 }
 
 sub consolidate_prologue {
@@ -6790,40 +6936,7 @@ sub consolidate_prologue {
     return \@progs;
 }
 
-sub consolidate_wrapper {
-    my ($self, $wrapper_file, $profile_file) = @_;
-
-    # write to $env_file
-    open(my $sh_f, '>', "$wrapper_file")
-    || die "Could not open file $wrapper_file: $!";
-
-    print { $sh_f } "#!/usr/bin/env -i /bin/sh\n\n";
-
-    my @keys = sort { $a cmp $b } keys %ENV;
-    for my $key (@keys) {
-        print { $sh_f } "export $key=\"$ENV{$key}\"\n"
-    }
-
-    my $payload = "/bin/sh -c '. $profile_file'";
-
-    my @wraps = keys %{$self->{wrapper}};
-    @wraps = sort { $self->{wrapper}{$b} <=> $self->{wrapper}{$a} } @wraps;
-
-    for my $wrap (@wraps) {
-        if( $wrap =~ /\{\}/ ) {
-            $wrap =~ s/\{\}/$payload/;
-            $payload = $wrap;
-        } else {
-            $payload = $wrap . ' ' . $payload;
-        }
-    }
-
-    print { $sh_f } "\ncd $vc3_root/$vc3_user_home\n";
-    print { $sh_f } "exec $payload\n\n";
-    return $payload;
-}
-
-sub consolidate_profile {
+sub set_profile {
     my ($self, $profile_file, @command_and_args) = @_;
 
     # write to $profile
@@ -6843,22 +6956,22 @@ sub consolidate_profile {
     close $profile_f;
 }
 
+sub set_environment {
+    my ($self, $wrapper_file, @command_and_args) = @_;
+
+    $wrapper_file = $self->home_dir . "/$wrapper_file";
+    my $profile_file = "$wrapper_file.init";
+
+    $self->set_profile($profile_file, @command_and_args);
+    $self->set_wrapper($wrapper_file, $profile_file);
+}
+
 
 sub execute {
     my ($self, @command_and_args) = @_;
 
-    $self->consolidate_environment($vc3_env_output, @command_and_args);
-    exec "/bin/sh -c '. $ENV{'HOME'}/$vc3_env_output'";
-}
-
-sub consolidate_environment {
-    my ($self, $wrapper_file, @command_and_args) = @_;
-
-    $wrapper_file = "$ENV{'HOME'}/$wrapper_file";
-    my $profile_file = "$wrapper_file.init";
-
-    $self->consolidate_profile($profile_file, @command_and_args);
-    $self->consolidate_wrapper($wrapper_file, $profile_file);
+    $self->set_environment($vc3_env_output, @command_and_args);
+    exec "/bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'";
 }
 
 sub shell {
@@ -6866,8 +6979,9 @@ sub shell {
 
     $payload |= '/bin/sh';
 
-    $self->consolidate_environment($vc3_env_output, $payload);
-    my $pid = open(my $input, '|-', "/bin/sh -c '. $ENV{'HOME'}/$vc3_env_output'");
+    $self->set_environment($vc3_env_output, $payload);
+
+    my $pid = open(my $input, '|-', "/bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
 
     return ($pid, $input);
 }
@@ -6878,24 +6992,9 @@ sub shell_user {
     $payload |= '/bin/sh';
 
     $self->consolidate_environment($vc3_env_output, $payload);
-    my $status = system("/bin/sh -c '. $ENV{'HOME'}/$vc3_env_output'");
+    my $status = system("/bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
 
     return $status;
-}
-
-sub expand_env_variable {
-    my ($varvalue) = @_;
-
-    $varvalue =~ s/\$\{(\w+)\}/env_variable_value($1)/eg;
-
-    return $varvalue;
-}
-
-sub env_variable_value {
-    my ($varname) = @_;
-
-    my $value = $ENV{$varname}
-    || die "Variable '$varname' has not been defined.";
 }
 
 sub say {
@@ -7084,8 +7183,8 @@ sub completion_ribbon {
     return $ribbon;
 }
 
-sub set_environment_variables {
-    my ($self) = @_; 
+sub consolidate_environment_variables {
+    my ($self, $env) = @_; 
 
     my $vars = $self->environment_variables
     || return;
@@ -7101,12 +7200,18 @@ sub set_environment_variables {
         my $clobber  = $var->{clobber};
         my $absolute = $var->{absolute};
 
-        # split paths on : if necessary
+        if($env->{$name} && $clobber) {
+            carp("Asked to clobber variable '%s', but it already had a value.", $name);
+        }
+
+        $env->{$name} ||= [];
+
         my @paths;
         if($clobber) {
-            $vc3_environment{$name} = {};
+            # when clobber, we use the value as is.
             @paths = ($value);
         } else {
+            # otherwise, split paths on :
             @paths = split /:/, $value;
         }
 
@@ -7114,14 +7219,11 @@ sub set_environment_variables {
             if(!$absolute) {
                 $path = $self->destination_dir . '/' . $path;
             }
-            $path = VC3::Bag::expand_env_variable($path);
-            $vc3_environment{$name}->{$path} = 1;
+
+            $path = $self->bag->expand_env_variable($env, $path);
+
+            push @{$env->{$name}}, {$path};
         }
-
-        my $dirs = $vc3_environment{$name};
-
-        my $dotted = join(':', sort { $dirs->{$a} <=> $dirs->{$b} || $a cmp $b } keys %{$dirs});
-        $ENV{$name} = $dotted;
     }
 }
 
@@ -7265,7 +7367,7 @@ sub prepare_recipe_sandbox {
     File::Path::make_path($self->destination_dir);
 
     # make sure tmp dir exists
-    File::Path::make_path($ENV{'TMPDIR'});
+    File::Path::make_path($self->bag->tmp_dir);
 
     # download to $vc3_distfiles the ingredient (i.e., input files) if missing.
     $source->get_files();
@@ -7294,8 +7396,10 @@ sub execute_recipe {
 
     # set the destination directory as an environment variable before
     # setting up the shell, so that the child created inherets it.
-    $ENV{'VC3_PREFIX'} = $self->destination_dir;
-    $ENV{'VC3_BUILD'}  = $self->build_dir;
+    $self->bag->push_environment();
+
+    $self->bag->add_pilot_variable('VC3_PREFIX', $self->destination_dir);
+    $self->bag->add_pilot_variable('VC3_BUILD',  $self->build_dir);
 
     my ($pid, $build_in) = $self->setup_build_shell($source);
 
@@ -7319,8 +7423,7 @@ sub execute_recipe {
     my $status = -1;
     eval { close $build_in; $status = $? };
 
-    delete $ENV{VC3_PREFIX}; 
-    delete $ENV{VC3_BUILD}; 
+    $self->bag->pop_environment();
 
     if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
         $self->create_ribbon();
@@ -7380,7 +7483,6 @@ sub order_dependencies {
     # larger level means more inner 
     $order->{$self} |= 1;
 
-    die;
     my $level = $order->{$self};
 
     $self->order_dependency($level, $self, $order);
@@ -7499,13 +7601,13 @@ sub files {
 sub msg_manual_requirement {
     my ($self, $new_message) = @_;
 
-    if($new_message) {
-        my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
-        $self->{msg_manual_requirement} = join("\n", @expansions);
-        $self->{msg_manual_requirement} = "\n" . ${self}->{msg_manual_requirement};
-    }
+    # if($new_message) {
+    #     my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
+    #     $self->{msg_manual_requirement} = join("\n", @expansions);
+    #     $self->{msg_manual_requirement} = "\n" . ${self}->{msg_manual_requirement};
+    # }
 
-    return $self->{msg_manual_requirement};
+    # return $self->{msg_manual_requirement};
 }
 
 sub check_manual_requirements {

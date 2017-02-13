@@ -687,19 +687,18 @@ sub set_environment_variables {
     my $env = $self->peak_environment();
 
     my $expansion = {};
-    $expansion->{'PATH'} = ['/bin', '/usr/bin'];
 
     for my $var (@{$self->environment_variables}) {
         $expansion->{$var->{name}} = [$var->{value}];
     }
 
     for my $wid (@{$self->{order}}) {
-        print $wid->name, "\n";
         next unless $env->{$wid};
-        print $wid->name, "\n";
-
         $wid->consolidate_environment_variables($expansion);
     }
+
+    $expansion->{'PATH'} ||= [];
+    push @{$expansion->{'PATH'}}, qw(/bin /usr/bin);
 
     my $order = {};
 

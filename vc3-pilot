@@ -6179,6 +6179,10 @@ use Getopt::Long qw/GetOptions/;
 use Tie::RefHash;
 use Cwd;
 
+use Carp qw( confess );
+$SIG{__DIE__} =  \&confess;
+$SIG{__WARN__} = \&confess;
+
 my $pwd            = getcwd();
 my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
@@ -6306,13 +6310,15 @@ sub main {
     $bag->add_pilot_variable('MAKEFLAGS',        "-j${make_jobs}");
     $bag->add_pilot_variable('VC3_COMMAND_LINE', File::Spec->rel2abs(join(" ", $original_command)));
 
-    $bag->make_import(@requires);
-    $bag->say("building phase done!");
+    for my $req (@requires) {
+        $bag->add_requirement($req, $sh_on_error);
+    }
 
     if($bag->dry_run) {
         exit 0;
     }
 
+    $bag->prepare_exec_environment();
 
     if($env_to) {
         $bag->set_environment($env_to, @command_and_args);
@@ -6379,7 +6385,7 @@ use POSIX ();
 use JSON::Tiny;
 
 sub new {
-    my ($class, $catalog, $sh_on_error, $dry_run, @requires) = @_;
+    my ($class, $catalog, $sh_on_error, $dry_run) = @_;
 
     my $self = bless {}, $class;
 
@@ -6391,15 +6397,12 @@ sub new {
     $self->{sources} = $self->decode_bag($catalog);
 
     # create first environment
-    $self->push_environment();
+    $self->clear_environment();
 
     my %environment;
     tie %environment, 'Tie::RefHash';
 
-    $self->{environment}  = $self->peak_environment();
     $self->{dependencies} = {};
-
-    $self->order_widgets(@requires);
 
     my $restricted_unmet = 0;
     for my $w (@{$self->{order}}) {
@@ -6409,12 +6412,6 @@ sub new {
     }
 
     exit 1 if $restricted_unmet > 0;
-
-    # do the actual setting of the consolidated environment.
-    $self->{indent_level} = 0;
-    for my $req (@requires) {
-        $self->set_environment($req, $sh_on_error);
-    }
 
     return $self;
 }
@@ -6435,26 +6432,31 @@ sub order_widgets {
     $self->{order} = \@ordered_widgets;
 }
 
+sub clear_environment {
+    my ($self) = @_;
+
+    my %first;
+    tie %first, 'Tie::RefHash';
+
+    $self->{environment_stack} = [\%first];
+}
+
 sub push_environment {
-    my ($self, $env) = @_;
+    my ($self) = @_;
 
-    if(!$self->{environment_stack}) {
-        $self->{environment_stack} = [];
+    $self->{environment_stack} ||= [];
+
+    my $current = $self->peak_environment || {};
+
+    my %next;
+    tie %next, 'Tie::RefHash';
+
+    # copy to next. manually because widgets are refs, no strings
+    for my $w (keys %{$current}) {
+        $next{$w} = 1;
     }
 
-    if(!$env) {
-        my $current = $self->peak_environment;
-
-        my %next;
-        if($current) {
-            my %next = %{$current};
-        }
-        tie %next, 'Tie::RefHash';
-
-        $env = \%next;
-    }
-
-    push @{$self->{environment_stack}}, $env;
+    push @{$self->{environment_stack}}, \%next;
 }
 
 sub pop_environment {
@@ -6466,7 +6468,7 @@ sub pop_environment {
 
 sub peak_environment {
     my ($self) = @_;
-    return $self->{environment_stack}[0];
+    return @{$self->{environment_stack}}[-1];
 }
 
 sub set_pilot_variables {
@@ -6525,10 +6527,59 @@ sub del_pilot_variable {
     my ($self, $name) = @_;
 
     my @vars = @{$self->environment_variables};
-    @vars = grep { $name ne $_->name } @vars;
+    @vars = grep { $name ne $_->{name} } @vars;
 
     $self->environment_variables(\@vars);
 }
+
+sub requirements {
+    my ($self, $reqs) = @_;
+
+    $self->{requirements}   = $reqs if($reqs);
+    $self->{requirements} ||= [];
+
+    return $self->{requirements};
+}
+
+sub add_requirement {
+    my ($self, $req, $sh_on_error) = @_;
+
+    push @{$self->requirements}, $req;
+
+    $self->order_widgets(@{$self->requirements});
+
+    $self->{indent_level} = 0;
+    $self->clear_environment();
+    $self->build_requirement($req, $sh_on_error);
+    $self->clear_environment();
+}
+
+sub prepare_exec_environment {
+    my ($self) = @_;
+
+    $self->clear_environment();
+    for my $req (@{$self->requirements}) {
+        $self->collect_environment($req);
+    }
+}
+
+sub collect_environment {
+    my ($self, $requirement, $min_version, $max_version) = @_;
+    
+    my $widget = $self->select_version($requirement, $min_version, $max_version);
+    $self->add_to_environment($widget);
+
+    $self->{dependencies}{$widget->name} ||= {};
+
+    my $dependencies = $widget->dependencies;
+    for my $dependency (keys %{$dependencies}) {
+        my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
+
+        $self->collect_environment($dependency, $min_dep_ver, $max_dep_ver);
+        $self->{dependencies}{$widget->name}{$dependency} = 1;
+    }
+}
+
 
 sub root_dir {
     my ($self, $root) = @_;
@@ -6675,22 +6726,14 @@ sub decode_bag {
     return $sources;
 }
 
-sub make_import {
+sub build_requirement {
     my ($self, $widget_name, $sh_on_error, $min_version, $max_version) = @_;
 
     my $widget = $self->select_version($widget_name, $min_version, $max_version);
 
     $self->say("processing for $widget_name-" . $widget->version);
 
-    if(!$self->{dependencies}{$widget_name}) {
-        $self->{dependencies}{$widget_name} = {};
-    } else {
-
-        # set root of this widget, in case dependencies need to refer to its parent.
-        $self->add_pilot_variable($widget->var_root_name, $widget->destination_dir);
-        $self->set_dependencies($widget, $sh_on_error, $widget->dependencies);
-        $self->del_pilot_variable($widget->var_root_name);
-    }
+    $self->set_dependencies($widget, $sh_on_error, $widget->dependencies);
 
     # check here missing, we are not checking anything here, only below at
     # sources!
@@ -6731,8 +6774,10 @@ sub make_import {
 sub set_dependencies {
     my ($self, $widget, $sh_on_error, $dependencies) = @_;
 
-    my $namev = $widget->name . '-' . $widget->version; 
+    # set root of this widget, in case dependencies need to refer to its parent.
+    $self->add_pilot_variable($widget->var_root_name, $widget->destination_dir);
 
+    my $namev = $widget->name . '-' . $widget->version; 
     $self->{indent_level}++;
     
     if($dependencies) {
@@ -6741,10 +6786,11 @@ sub set_dependencies {
 
             $self->say("$namev needs $dependency");
 
-            $self->set_environment($dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
-            $self->{dependencies}{$widget->name}{$dependency} = 1;
+            $self->build_requirement($dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
         }
     }
+
+    $self->del_pilot_variable($widget->var_root_name);
 
     $self->{indent_level}--;
 }
@@ -6830,54 +6876,65 @@ sub dot_graph {
 sub add_to_environment {
     my ($self, $widget) = @_;
 
-    $self->{environment}{$widget} = 1;
+    my $env = $self->peak_environment;
+
+    $env->{$widget} = 1;
 }
 
 sub set_environment_variables {
     my ($self, $sh_f) = @_;
 
-    my $environment = $self->peak_environment();
+    my $env = $self->peak_environment();
 
-    my $env = {};
-    $env->{'PATH'} = ['/bin', '/usr/bin'];
+    my $expansion = {};
 
-    my $count = 0;
-    for my $wid (@{$self->{order}}) {
-        next unless $environment->{$wid};
-
-        $wid->consolidate_environment_variables($env);
+    for my $var (@{$self->environment_variables}) {
+        $expansion->{$var->{name}} = [$var->{value}];
     }
+
+    for my $wid (@{$self->{order}}) {
+        next unless $env->{$wid};
+        $wid->consolidate_environment_variables($expansion);
+    }
+
+    $expansion->{'PATH'} ||= [];
+    push @{$expansion->{'PATH'}}, qw(/bin /usr/bin);
 
     my $order = {};
-    for my $var_name (keys %{$env}) {
-        $self->order_of_var($env, $order, $var_name);
+
+    for my $var_name (keys %{$expansion}) {
+        $self->order_of_var($expansion, $order, $var_name);
     }
 
-    my @ordered = sort { ($order->{$b} <=> $order->{$a}) || ($a cmp $b) } keys %{$env};
+    my @ordered = sort { ($order->{$b} <=> $order->{$a}) || ($a cmp $b) } keys %{$expansion};
 
     for my $var_name (@ordered) {
-        my $dotted = join(':', $env->{$var_name});
+        my $dotted = join(':', @{$expansion->{$var_name}});
         print { $sh_f } "export $var_name=\"$dotted\"\n";
     }
 }
 
 sub order_of_var {
-    my ($self, $env, $order, $var_name) = @_;
+    my ($self, $expansion, $order, $var_name) = @_;
 
     # the smaller, the later the variable is written in the profile.
     $order->{$var_name} ||= 0;
 
-    if($order->{$var_name} > (scalar keys %{$env})) {
+    if($order->{$var_name} > (scalar keys %{$expansion})) {
         carp "Cyclic dependency detected for variable '$var_name'";
     }
 
-    my @deps = ($env->{$var_name} =~ m/\$\{(\w+)\}/g);
+    my @deps;
+    for my $path (@{$expansion->{$var_name}}) {
+        my @deps_now = ($path =~ m/\$\{(\w+)\}/g);
+        push @deps, @deps_now;
+    }
 
     for my $dep (@deps) {
         $order->{$dep} ||= $order->{$var_name} + 1;
 
         if($order->{$dep} <= $order->{$var_name} + 1) {
-            $self->order_of_var($env, $order, $var_name);
+            $self->order_of_var($expansion, $order, $dep);
         }
     }
 }
@@ -6885,20 +6942,12 @@ sub order_of_var {
 sub set_wrapper {
     my ($self, $wrapper_file, $profile_file) = @_;
 
-    # write to $env_file
-    open(my $sh_f, '>', "$wrapper_file")
-    || die "Could not open file $wrapper_file: $!";
-
-    print { $sh_f } "#!/usr/bin/env -i /bin/sh\n\n";
-
-    $self->set_environment_variables($sh_f);
+    my $env = $self->peak_environment;
 
     my $payload = "/bin/sh -c '. $profile_file'";
+    for my $w (@{$self->{order}}) {
+        next unless $env->{$w};
 
-    my @widgets = keys %{$self->{environment}};
-    @widgets    = sort { $self->{environment}{$b} <=> $self->{environment}{$a} } @widgets;
-
-    for my $w (@widgets) {
         my $wrap = $w->wrapper;
 
         next unless $wrap;
@@ -6911,7 +6960,14 @@ sub set_wrapper {
         }
     }
 
-    $self->consolidate_environment_variables($sh_f);
+
+    # write to $env_file
+    open(my $sh_f, '>', "$wrapper_file")
+    || die "Could not open file $wrapper_file: $!";
+
+    print { $sh_f } "#!/usr/bin/env -i /bin/sh\n\n";
+
+    $self->set_environment_variables($sh_f);
 
     print { $sh_f } "\ncd $vc3_root/$vc3_user_home\n";
     print { $sh_f } "exec $payload\n\n";
@@ -6921,12 +6977,13 @@ sub set_wrapper {
 sub consolidate_prologue {
     my ($self) = @_;
 
-    my @widgets = keys %{$self->{environment}};
-    @widgets    = sort { $self->{environment}{$b} <=> $self->{environment}{$a} } @widgets;
+    my $env = $self->peak_environment;
 
     my @progs = ("cd $vc3_root/$vc3_user_home");
 
-    for my $w (@widgets) {
+    for my $w (@{$self->{order}}) {
+        next unless $env->{$w};
+
         if($w->prologue) {
             push @progs, @{$w->prologue};
         }
@@ -6991,7 +7048,7 @@ sub shell_user {
 
     $payload |= '/bin/sh';
 
-    $self->consolidate_environment($vc3_env_output, $payload);
+    $self->set_environment($vc3_env_output, $payload);
     my $status = system("/bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
 
     return $status;
@@ -7039,7 +7096,7 @@ sub add_root_variable {
 
     my $vars      = $self->environment_variables || [];
 
-    my $root_name = 'VC3_' . uc($self->name) . '_ROOT';
+    my $root_name = 'VC3_ROOT_' . uc($self->name);
 
     # replace - with _, as env vars cannot have - in their names.
     $root_name =~ s/-/_/g;
@@ -7184,7 +7241,7 @@ sub completion_ribbon {
 }
 
 sub consolidate_environment_variables {
-    my ($self, $env) = @_; 
+    my ($self, $expansion) = @_; 
 
     my $vars = $self->environment_variables
     || return;
@@ -7200,11 +7257,11 @@ sub consolidate_environment_variables {
         my $clobber  = $var->{clobber};
         my $absolute = $var->{absolute};
 
-        if($env->{$name} && $clobber) {
+        if($expansion->{$name} && $clobber) {
             carp("Asked to clobber variable '%s', but it already had a value.", $name);
         }
 
-        $env->{$name} ||= [];
+        $expansion->{$name} ||= [];
 
         my @paths;
         if($clobber) {
@@ -7220,9 +7277,7 @@ sub consolidate_environment_variables {
                 $path = $self->destination_dir . '/' . $path;
             }
 
-            $path = $self->bag->expand_env_variable($env, $path);
-
-            push @{$env->{$name}}, {$path};
+            push @{$expansion->{$name}}, $path;
         }
     }
 }
@@ -7601,13 +7656,14 @@ sub files {
 sub msg_manual_requirement {
     my ($self, $new_message) = @_;
 
-    # if($new_message) {
-    #     my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
-    #     $self->{msg_manual_requirement} = join("\n", @expansions);
-    #     $self->{msg_manual_requirement} = "\n" . ${self}->{msg_manual_requirement};
-    # }
+    if($new_message) {
+        #my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
+        my @expansions = map { $_ } @{$new_message};
+        $self->{msg_manual_requirement} = join("\n", @expansions);
+        $self->{msg_manual_requirement} = "\n" . ${self}->{msg_manual_requirement};
+    }
 
-    # return $self->{msg_manual_requirement};
+    return $self->{msg_manual_requirement};
 }
 
 sub check_manual_requirements {
@@ -7898,7 +7954,7 @@ __DATA__
                         "cctools-5.4.19-source.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_SWIG_ROOT} --with-python-path ${VC3_PYTHON_ROOT} --with-perl-path ${VC3_PERL_ROOT} --with-zlib-path ${VC3_ZLIB_ROOT} --with-cvmfs-path ${VC3_LIBCVMFS_ROOT} --with-uuid-path ${VC3_UUID_ROOT} --without-system-umbrella  --with-openssl-path ${VC3_OPENSSL_ROOT} --with-fuse-path ${VC3_FUSE_ROOT}",
+                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_FUSE}",
                         "make",
                         "make install"
                     ],
@@ -8062,7 +8118,7 @@ __DATA__
                         "cd build",
                         ": set NO_INTERNET to stop parcparser tests",
                         "export NO_INTERNET=1",
-                        "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_UUID_ROOT}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_UUID_ROOT}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_OPENSSL_ROOT} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_OPENSSL_ROOT}/include -DOPENSSL_LIBRARIES:PATH=${VC3_OPENSSL_ROOT}/lib -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
+                        "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_LIBRARIES:PATH=${VC3_ROOT_OPENSSL}/lib -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
                         "make libpacparser",
                         "cd cvmfs",
                         "make",
@@ -8255,7 +8311,7 @@ __DATA__
                     "recipe":[
                         ": system pcre is not working! using internal",
                         "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --with-python=${VC3_PYTHON_ROOT}/bin/python --with-pcre=internal",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --with-python=${VC3_ROOT_PYTHON}/bin/python --with-pcre=internal",
                         "make",
                         "make install"
                     ]
@@ -8470,6 +8526,34 @@ __DATA__
     "perl":[
         {
             "version":"v5.24.0",
+            "sources": [
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "rm -rf ${VC3_PREFIX}",
+                        "mkdir -p ${VC3_PREFIX}",
+                        "cd ${VC3_PREFIX}",
+                        "ln -s ${VC3_ROOT_PERL_CORE}/bin",
+                        "ln -s ${VC3_ROOT_PERL_CORE}/lib",
+                        "ln -s ${VC3_ROOT_PERL_CORE}/local_modules",
+                        "ln -s ${VC3_ROOT_PERL_CORE}/man"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-local-lib":[
+                    "v2.000019"
+                ],
+                "perl-cpanminus":[
+                    "v1.7"
+                ]
+            }
+        }
+    ],
+
+    "perl-core":[
+        {
+            "version":"v5.24.0",
             "versioncmd":"perl -e 'print qq($^V)'",
             "versionreg":"(v[0-9.]*)",
             "sources":[
@@ -8480,7 +8564,8 @@ __DATA__
                     ],
                     "recipe":[
                         "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -des -A ccflags=-fPIC make",
-                        "make install"
+                        "make install",
+                        "mkdir -p ${VC3_PREFIX}/local_modules"
                     ]
                 }
             ],
@@ -8490,10 +8575,61 @@ __DATA__
                     "value":"bin"
                 },
                 {
+                    "name":"VC3_MODULES_PERL", 
+                    "value":"${VC3_ROOT_PERL_CORE}/local_modules",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PERL5LIB",
+                    "value":"${VC3_MODULES_PERL}/lib/perl5",
+                    "absolute":1
+                },
+                {
                     "name":"PERL5LIB",
                     "value":"lib/perl5/site_perl/5.24.0"
+                },
+                {
+                    "name":"PERL_MB_OPT", 
+                    "value":"--install_base ${VC3_MODULES_PERL}",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PERL_MM_OPT", 
+                    "value":"INSTALL_BASE=${VC3_MODULES_PERL}",
+                    "clobber":1,
+                    "absolute":1 
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MODULES_PERL}/bin",
+                    "absolute":1
                 }
             ]
+        }
+    ],
+
+    "perl-local-lib":[
+        {
+            "version":"v2.000019",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "local-lib-2.000019.tar.gz"
+                    ],
+                    "recipe":[
+                        "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "perl-core":[
+                    "v5.10"
+                ]
+            }
         }
     ],
 
@@ -8507,7 +8643,8 @@ __DATA__
                         "cpanminus-1.7.distribution"
                     ],
                     "recipe":[
-                        "cat cpanminus-1.7.distribution | perl - App::cpanminus"
+                        "chmod 755 cpanminus-1.7.distribution",
+                        "cp cpanminus-1.7.distribution ${VC3_MODULES_PERL}/bin/cpanm"
                     ]
                 }
             ],
@@ -8529,7 +8666,7 @@ __DATA__
                         "setuptools-24.0.2.tar.gz"
                     ],
                     "recipe":[
-                        "python setup.py install --prefix=${VC3_PYTHON_MODULES}"
+                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
                     ]
                 }
             ],
@@ -8540,19 +8677,19 @@ __DATA__
             },
             "environment_variables":[
                 {
-                    "name":"VC3_PYTHON_MODULES",
-                    "value":"${VC3_PYTHON_ROOT}/local_modules",
+                    "name":"VC3_MODULES_PYTHON",
+                    "value":"${VC3_ROOT_PYTHON}/local_modules",
                     "clobber":1,
                     "absolute":1
                 },
                 {
                     "name":"PYTHONPATH",
-                    "value":"${VC3_PYTHON_MODULES}/lib/python2.7/site-packages",
+                    "value":"${VC3_MODULES_PYTHON}/lib/python2.7/site-packages",
                     "absolute":1
                 },
                 {
                     "name":"PATH",
-                    "value":"${VC3_PYTHON_MODULES}/bin",
+                    "value":"${VC3_MODULES_PYTHON}/bin",
                     "absolute":1
                 }
             ]
@@ -8569,7 +8706,7 @@ __DATA__
                         "pip-8.1.2.distribution"
                     ],
                     "recipe":[
-                        "echo -e \"\\n[install]\\ninstall-option=--prefix=${VC3_PYTHON_MODULES}\\n\" > ${PIP_CONFIG_FILE}",
+                        "echo -e \"\\n[install]\\ninstall-option=--prefix=${VC3_MODULES_PYTHON}\\n\" > ${PIP_CONFIG_FILE}",
                         "python pip-8.1.2.distribution"
                     ]
                 }
@@ -8600,13 +8737,13 @@ __DATA__
                     "recipe":[
                         "pip install --user virtualenv",
                         "cd ${HOME}",
-                        ".local/bin/virtualenv ${VC3_PYTHON_MODULES}"
+                        ".local/bin/virtualenv ${VC3_MODULES_PYTHON}"
                     ]
                 }
             ],
             "start":[
                 "cd ${HOME}",
-                "source ${VC3_PYTHON_MODULES}/bin/activate"
+                "source ${VC3_MODULES_PYTHON}/bin/activate"
             ],
             "dependencies":{
                 "python-pip":[
@@ -8615,61 +8752,8 @@ __DATA__
             },
             "environment_variables":[
                 {
-                    "name":"VC3_PYTHON_MODULES",
-                    "value":"${VC3_PYTHON_PIP_ROOT}/local_modules",
-                    "absolute":1
-                }
-            ]
-        }
-    ],
-
-    "perl-local-lib":[
-        {
-            "version":"v2.000019",
-            "sources":[
-                {
-                    "type":"tarball",
-                    "files":[
-                        "local-lib-2.000019.tar.gz"
-                    ],
-                    "recipe":[
-                        "perl Makefile.PL --bootstrap=${VC3_PERL_ROOT}",
-                        "make install"
-                    ]
-                }
-            ],
-            "dependencies":{
-                "perl":[
-                    "v5.10"
-                ]
-            },
-            "environment_variables": [
-                {
-                    "name":"VC3_PERL_MODULES", 
-                    "value":"${VC3_PERL_LOCAL_LIB_ROOT}/local_modules",
-                    "clobber":1,
-                    "absolute":1
-                },
-                {
-                    "name":"PERL_MB_OPT", 
-                    "value":"--install_base ${VC3_PERL_MODULES}",
-                    "clobber":1,
-                    "absolute":1
-                },
-                {
-                    "name":"PERL_MM_OPT", 
-                    "value":"INSTALL_BASE=${VC3_PERL_MODULES}",
-                    "clobber":1,
-                    "absolute":1 
-                },
-                {
-                    "name":"PERL5LIB",
-                    "value":"${VC3_PERL_MODULES}/lib/perl5",
-                    "absolute":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"${VC3_PERL_MODULES}/bin",
+                    "name":"VC3_MODULES_PYTHON",
+                    "value":"${VC3_ROOT_PYTHON_PIP}/local_modules",
                     "absolute":1
                 }
             ]
@@ -8689,7 +8773,7 @@ __DATA__
                         "[ -z \"$python_name\" ] && exit 1",
                         "python_root=${python_name%/bin*}",
                         "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
-                        "cd ${VC3_PYTHON_ROOT}",
+                        "cd ${VC3_ROOT_PYTHON}",
                         "ln -s ${python_root}/lib lib",
                         "ln -s ${python_root}/include include",
                         "mkdir bin",
@@ -8856,9 +8940,9 @@ __DATA__
                        "crossx86-x86_64-linux-musl-1.1.6.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_CXX11_ROOT}",
-                        "tar -C ${VC3_CXX11_ROOT} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
-                        "cd ${VC3_CXX11_ROOT}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
+                        "mkdir -p ${VC3_ROOT_CXX11}",
+                        "tar -C ${VC3_ROOT_CXX11} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
+                        "cd ${VC3_ROOT_CXX11}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
                     ]
                 }
             ],
@@ -8893,15 +8977,15 @@ __DATA__
                        "mash-Linux64-v1.1.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_MASH_ROOT}",
-                        "tar -C ${VC3_MASH_ROOT} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
+                        "mkdir -p ${VC3_ROOT_MASH}",
+                        "tar -C ${VC3_ROOT_MASH} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
                     ]
                 }
             ],
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_MASH_ROOT}",
+                    "value":"${VC3_ROOT_MASH}",
                     "absolute":1
                 }
             ]
@@ -9086,7 +9170,7 @@ __DATA__
                     "type":"tarball",
                     "files":["DB_File-1.838.tar.gz"],
                     "recipe":[
-                        "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_BERKELEY_DB_ROOT}'/include%;s%^LIB.*%LIB = '${VC3_BERKELEY_DB_ROOT}'/lib%' config.in",
+                        "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_ROOT_ROOT_BERKELEY_DB}'/include%;s%^LIB.*%LIB = '${VC3_BERKELEY_DB}'/lib%' config.in",
                         "perl Makefile.PL",
                         "make",
                         "make install"
@@ -9460,8 +9544,8 @@ __DATA__
                         "ncbi-blast-2.2.28+-x64-linux.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_NCBI_BLAST_ROOT}",
-                        "tar -C ${VC3_NCBI_BLAST_ROOT} --strip-components=1 -xpf ncbi-blast-2.2.28+-x64-linux.tar.gz"
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf ncbi-blast-2.2.28+-x64-linux.tar.gz"
                     ]
                 },
                 {
@@ -9475,8 +9559,8 @@ __DATA__
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
+                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
                         "make",
                         "make install"
                     ]
@@ -9530,8 +9614,8 @@ __DATA__
                         "ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_RMBLAST_ROOT}",
-                        "tar -C ${VC3_RMBLAST_ROOT} -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
                     ]
                 },
                 {
@@ -9545,8 +9629,8 @@ __DATA__
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_PYTHON_ROOT} --with-sqlite3=${VC3_SQLITE3_ROOT} --without-debug",
+                        ": ./configure --prefix=${VC3_ROOT_ROOT_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        "./configure --prefix=${VC3_ROOT_ROOT_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
                         "make",
                         "make install"
                     ]
@@ -9702,13 +9786,13 @@ __DATA__
             "environment_variables":[
                 {
                     "name":"ZOE",
-                    "value":"${VC3_SNAP_ROOT}/snap/Zoe",
+                    "value":"${VC3_ROOT_SNAP}/snap/Zoe",
                     "clobber":1,
                     "absolute":1
                 },
                 {
                     "name":"PATH",
-                    "value":"${VC3_SNAP_ROOT}/snap",
+                    "value":"${VC3_ROOT_SNAP}/snap",
                     "absolute":1
                 }
             ]
@@ -9726,12 +9810,12 @@ __DATA__
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_REPEATMASKER_ROOT}",
+                    "value":"${VC3_ROOT_REPEATMASKER}",
                     "absolute":1
                 },
                 {
                     "name":"LD_LIBRARY_PATH",
-                    "value":"${VC3_REPEATMASKER_ROOT}/lib",
+                    "value":"${VC3_ROOT_REPEATMASKER}/lib",
                     "absolute":1
                 }
             ]
@@ -9759,10 +9843,10 @@ __DATA__
                         "repeatmaskerlibraries-LATEST.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_REPEATMASKER_ROOT}",
-                        "tar -C ${VC3_REPEATMASKER_ROOT} -xpf repeatmaskerlibraries-LATEST.tar.gz",
-                        "cd ${VC3_REPEATMASKER_ROOT}",
-                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_PERL_ROOT}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER_ROOT}/bin -rmblast_bin_dir=${VC3_RMBLAST_ROOT}/bin -default_engine=rmblast"
+                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
+                        "tar -C ${VC3_ROOT_REPEATMASKER} -xpf repeatmaskerlibraries-LATEST.tar.gz",
+                        "cd ${VC3_ROOT_REPEATMASKER}",
+                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_ROOT_PERL}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER}/bin -rmblast_bin_dir=${VC3_RMBLAST}/bin -default_engine=rmblast"
                     ]
                 }
             ],
@@ -9785,9 +9869,9 @@ __DATA__
                         "VC3_RepeatMasker-open-4-0-6.configure"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_REPEATMASKER_ROOT}",
-                        "tar -C ${VC3_REPEATMASKER_ROOT} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
-                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_REPEATMASKER_ROOT}"
+                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
+                        "tar -C ${VC3_ROOT_REPEATMASKER} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_ROOT_REPEATMASKER}"
                     ]
                 }
             ],
@@ -9814,12 +9898,12 @@ __DATA__
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_REPEATMASKER_ROOT}",
+                    "value":"${VC3_ROOT_REPEATMASKER}",
                     "absolute":1
                 },
                 {
                     "name":"LD_LIBRARY_PATH",
-                    "value":"${VC3_REPEATMASKER_ROOT}/lib",
+                    "value":"${VC3_ROOT_REPEATMASKER}/lib",
                     "absolute":1
                 }
             ]
@@ -9992,7 +10076,7 @@ __DATA__
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_MAKER_ROOT}/bin",
+                    "value":"${VC3_ROOT_MAKER}/bin",
                     "absolute":1
                 }
             ]

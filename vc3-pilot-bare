@@ -381,9 +381,9 @@ sub add_requirement {
     $self->order_widgets(@{$self->requirements});
 
     $self->{indent_level} = 0;
-    $self->push_environment();
+    $self->clear_environment();
     $self->build_requirement($req, $sh_on_error);
-    $self->pop_environment();
+    $self->clear_environment();
 }
 
 sub prepare_exec_environment {
@@ -880,7 +880,7 @@ sub shell_user {
 
     $payload |= '/bin/sh';
 
-    $self->consolidate_environment($vc3_env_output, $payload);
+    $self->set_environment($vc3_env_output, $payload);
     my $status = system("/bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
 
     return $status;

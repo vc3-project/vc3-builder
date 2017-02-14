@@ -150,6 +150,8 @@ sub main {
         exit 0;
     }
 
+    $bag->prepare_exec_environment();
+
     if($env_to) {
         $bag->set_environment($env_to, @command_and_args);
     } else {
@@ -227,7 +229,7 @@ sub new {
     $self->{sources} = $self->decode_bag($catalog);
 
     # create first environment
-    $self->push_environment();
+    $self->clear_environment();
 
     my %environment;
     tie %environment, 'Tie::RefHash';
@@ -260,6 +262,15 @@ sub order_widgets {
     # list of all packages needed, from inner to outter.
     my @ordered_widgets = sort { $order{$b} <=> $order{$a} || $a->name cmp $b->name } keys %order;
     $self->{order} = \@ordered_widgets;
+}
+
+sub clear_environment {
+    my ($self) = @_;
+
+    my %first;
+    tie %first, 'Tie::RefHash';
+
+    $self->{environment_stack} = [\%first];
 }
 
 sub push_environment {
@@ -374,6 +385,33 @@ sub add_requirement {
     $self->build_requirement($req, $sh_on_error);
     $self->pop_environment();
 }
+
+sub prepare_exec_environment {
+    my ($self) = @_;
+
+    $self->clear_environment();
+    for my $req (@{$self->requirements}) {
+        $self->collect_environment($req);
+    }
+}
+
+sub collect_environment {
+    my ($self, $requirement, $min_version, $max_version) = @_;
+    
+    my $widget = $self->select_version($requirement, $min_version, $max_version);
+    $self->add_to_environment($widget);
+
+    $self->{dependencies}{$widget->name} ||= {};
+
+    my $dependencies = $widget->dependencies;
+    for my $dependency (keys %{$dependencies}) {
+        my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
+
+        $self->collect_environment($dependency, $min_dep_ver, $max_dep_ver);
+        $self->{dependencies}{$widget->name}{$dependency} = 1;
+    }
+}
+
 
 sub root_dir {
     my ($self, $root) = @_;
@@ -520,9 +558,6 @@ sub decode_bag {
     return $sources;
 }
 
-sub collect_final_environment {
-}
-
 sub build_requirement {
     my ($self, $widget_name, $sh_on_error, $min_version, $max_version) = @_;
 
@@ -571,8 +606,6 @@ sub build_requirement {
 sub set_dependencies {
     my ($self, $widget, $sh_on_error, $dependencies) = @_;
 
-    $self->{dependencies}{$widget->name} ||= {};
-
     # set root of this widget, in case dependencies need to refer to its parent.
     $self->add_pilot_variable($widget->var_root_name, $widget->destination_dir);
 
@@ -586,7 +619,6 @@ sub set_dependencies {
             $self->say("$namev needs $dependency");
 
             $self->build_requirement($dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
-            $self->{dependencies}{$widget->name}{$dependency} = 1;
         }
     }
 
@@ -708,14 +740,9 @@ sub set_environment_variables {
 
     my @ordered = sort { ($order->{$b} <=> $order->{$a}) || ($a cmp $b) } keys %{$expansion};
 
-    print '[', join(' ', map { $_->name } keys %{$env}), "]\n";
-    print '[', join(' ', map { $_ } keys %{$expansion}), "]\n";
-    print '[', join(' ', map { $_ } @ordered), "]\n";
-
     for my $var_name (@ordered) {
         my $dotted = join(':', @{$expansion->{$var_name}});
         print { $sh_f } "export $var_name=\"$dotted\"\n";
-        print "export $var_name=\"$dotted\"\n";
     }
 }
 
@@ -1461,13 +1488,14 @@ sub files {
 sub msg_manual_requirement {
     my ($self, $new_message) = @_;
 
-    # if($new_message) {
-    #     my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
-    #     $self->{msg_manual_requirement} = join("\n", @expansions);
-    #     $self->{msg_manual_requirement} = "\n" . ${self}->{msg_manual_requirement};
-    # }
+    if($new_message) {
+        #my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
+        my @expansions = map { $_ } @{$new_message};
+        $self->{msg_manual_requirement} = join("\n", @expansions);
+        $self->{msg_manual_requirement} = "\n" . ${self}->{msg_manual_requirement};
+    }
 
-    # return $self->{msg_manual_requirement};
+    return $self->{msg_manual_requirement};
 }
 
 sub check_manual_requirements {

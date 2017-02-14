@@ -31,30 +31,31 @@ VC3::Pilot::main();
 sub usage {
     my ($script_name) = @_;
     return <<EOF;
-$script_name [options] [--database catalog] --require package [--require package]* [-- command-and-args]
+$script_name [options] --require package [--require package]* [-- command-and-args]
 
-    catalogs          defaults to <internal> if available, otherwise to ./vc3_catalog.json
-    command-and-args  defaults to /bin/sh
+  --database <catalog>  defaults to <internal> if available, otherwise 
+                        to ./vc3_catalog.json
+  command-and-args      defaults to /bin/sh
 
-    options are:
-    --install <root>   Install with base <root>. 
-                       Default is ${vc3_root}
-    --home <home>      Set \${HOME} to <root>/<home>.
-                       Default is ${vc3_user_home}
+  options are:
+  --install <root>      Install with base <root>. 
+                        Default is ${vc3_root}
+  --home <home>         Set \${HOME} to <root>/<home>.
+                        Default is ${vc3_user_home}
 
-    --distfiles <dir>  Directory to cache unbuilt packages locally.
-                       Default is ${vc3_distfiles}
-    --repository <url> Site to fetch packages if needed.
-                       Default is ${vc3_repository}
+  --distfiles <dir>     Directory to cache unbuilt packages locally.
+                        Default is ${vc3_distfiles}
+  --repository <url>    Site to fetch packages if needed.
+                        Default is ${vc3_repository}
 
-    --make-jobs <n>    Concurrent make jobs.
-                       Default is 2.
-    --env-to <file>    Write environment scripts to <root>/<home>/<file>.{sh,profile}, but do not
-                       execute the payload.
-    --sh-on-error      On building error, run /bin/sh on the partially-built environment.
+  --make-jobs <n>       Concurrent make jobs. Default is 2.
+  --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.init},
+                        but do not execute the payload.
+  --sh-on-error         On building error, run /bin/sh on the partially-built
+                        environment.
 
 Examples:
-    ${script_name} --require parrot 'parrot_run -p \$PARROT_HTTP_PROXY ls /cvmfs/atlas.cern.ch' 
+    ${script_name} --require parrot 'ls /cvmfs/atlas.cern.ch' 
     ${script_name} --require maker-example-ecoli-01
 EOF
 

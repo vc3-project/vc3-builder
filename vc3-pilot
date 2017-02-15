@@ -6572,12 +6572,23 @@ sub collect_environment {
 
     $self->{dependencies}{$widget->name} ||= {};
 
-    my $dependencies = $widget->dependencies;
-    for my $dependency (keys %{$dependencies}) {
-        my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
+    my @all_dependencies;
 
-        $self->collect_environment($dependency, $min_dep_ver, $max_dep_ver);
-        $self->{dependencies}{$widget->name}{$dependency} = 1;
+    if($widget->dependencies) {
+        push @all_dependencies, $widget->dependencies;
+    }
+
+    if($widget->active_source && $widget->active_source->dependencies) {
+        push @all_dependencies, $widget->active_source->dependencies;
+    }
+
+    for my $dependencies (@all_dependencies) {
+        for my $dependency (keys %{$dependencies}) {
+            my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
+
+            $self->collect_environment($dependency, $min_dep_ver, $max_dep_ver);
+            $self->{dependencies}{$widget->name}{$dependency} = 1;
+        }
     }
 }
 
@@ -6759,6 +6770,8 @@ sub build_requirement {
                 $self->pop_environment();
             } else {
                 # on success, we keep break out and do no try more recipes.
+                # we also record the succesful recipe.
+                $widget->active_source($source);
                 last;
             }
         }
@@ -7029,7 +7042,7 @@ sub execute {
     my ($self, @command_and_args) = @_;
 
     $self->set_environment($vc3_env_output, @command_and_args);
-    exec "/bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'";
+    exec "/usr/bin/env -i /bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'";
 }
 
 sub shell {
@@ -7039,7 +7052,7 @@ sub shell {
 
     $self->set_environment($vc3_env_output, $payload);
 
-    my $pid = open(my $input, '|-', "/bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
+    my $pid = open(my $input, '|-', "/usr/bin/env -i /bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
 
     return ($pid, $input);
 }
@@ -7050,7 +7063,7 @@ sub shell_user {
     $payload |= '/bin/sh';
 
     $self->set_environment($vc3_env_output, $payload);
-    my $status = system("/bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
+    my $status = system("/usr/bin/env -i /bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
 
     return $status;
 }
@@ -7182,6 +7195,16 @@ sub sources {
     }
 
     return $self->{sources};
+}
+
+sub active_source {
+    my ($self, $source) = @_;
+
+    if($source) {
+        $self->{active_source} = $source;
+    }
+
+    return $self->{active_source};
 }
 
 sub prologue {
@@ -7334,26 +7357,21 @@ sub process_error {
 
         if($sh_on_error) {
             warn $@ if $@;
-            my $pid = fork();
-            if($pid == 0) {
-                chdir $self->build_dir;
-                my ($pid, $stdin) = $self->bag->shell_user();
 
-                waitpid $pid, 0;
+            my $cwd = getcwd();
 
-                exit -1;
+            chdir $self->build_dir;
+            $self->bag->shell_user();
 
-            } elsif($pid > 0) {
-                waitpid $pid, 0;
-            } else {
-                croak 'Could not fork for debugging shell.';
-            }
+            chdir $cwd;
         }
     }
 }
 
 sub create_ribbon {
     my ($self) = @_;
+
+    return if $self->phony;
 
     open (my $ribbon_fh, '>', $self->completion_ribbon);
 

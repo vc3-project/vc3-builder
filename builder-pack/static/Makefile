@@ -9,7 +9,7 @@ SP=$(shell readlink -m ../local/bin/staticperl)
 CC=$(shell readlink -m ../musl/bin/musl-gcc)
 PERL_CC=$(CC)
 
-BARE=../../vc3-pilot-bare
+BARE=../../vc3-builder-bare
 
 MODULES=$(shell PERL5LIB=$(PERL5LIB) $(BARE) --debug-modules-used)
 
@@ -18,9 +18,9 @@ MODULES_M=$(patsubst %, -M%, $(MODULES))
 MUSL_SRC=musl-1.1.15
 MUSL_INS=$(shell readlink -m musl)
 
-all: vc3-pilot-static
+all: vc3-builder-static
 
-vc3-pilot-static: $(MUSL_INS)/bin/musl-gcc $(BARE)
+vc3-builder-static: $(MUSL_INS)/bin/musl-gcc $(BARE)
 	-$(SP) install
 	-$(SP) install
 	$(SP) install
@@ -41,7 +41,7 @@ $(MUSL_SRC).tar.gz:
 .PHONY: clean distclean
 
 clean:
-	-rm vc3-pilot-static
+	-rm vc3-builder-static
 
 distclean:
 	-rm -rf musl* build

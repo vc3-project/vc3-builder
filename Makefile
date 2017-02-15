@@ -1,22 +1,22 @@
-all: vc3-pilot
+all: vc3-builder
 
-vc3-pilot: vc3-pilot-bare
-	$(MAKE) -C pilot-build vc3-pilot
-	mv pilot-build/vc3-pilot .
+vc3-builder: vc3-builder-bare
+	$(MAKE) -C builder-pack vc3-builder
+	mv builder-pack/vc3-builder .
 
-static: vc3-pilot-static
+static: vc3-builder-static
 
 
-vc3-pilot-static: pilot-build/static/vc3-pilot-static
+vc3-builder-static: builder-pack/static/vc3-builder-static
 	cp $^ $@
 
-pilot-build/static/vc3-pilot-static: vc3-pilot-bare
-	$(MAKE) -C pilot-build/static vc3-pilot-static
+builder-pack/static/vc3-builder-static: vc3-builder-bare
+	$(MAKE) -C builder-pack/static vc3-builder-static
 
 .PHONY: clean static
 
 clean:
-	-$(MAKE) -C pilot-build clean
-	-$(MAKE) -C pilot-build/static clean
-	-rm -rf vc3-pilot
+	-$(MAKE) -C builder-pack clean
+	-$(MAKE) -C builder-pack/static clean
+	-rm -rf vc3-builder
 

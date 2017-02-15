@@ -1,15 +1,15 @@
 PERL5LIB=$(CURDIR)/local/lib/perl5:$(CURDIR)/fatlib
 export PERL5LIB
 
-BARE=../vc3-pilot-bare
+BARE=../vc3-builder-bare
 FATPACKER=$(CURDIR)/local/bin/fatpack
 
 MODULES=$(shell ./find_modules_needed)
 MODULES_DIR=$(shell echo $(MODULES) | xargs -n1 | sed -e 's^::^/^g;s/$$/.pm/')
 
-all: vc3-pilot
+all: vc3-builder
 
-vc3-pilot: $(BARE) | fatlib
+vc3-builder: $(BARE) | fatlib
 	$(FATPACKER) file $^ -bare > $@ 
 	echo >> $@
 	echo 'package VC3::Pilot;' >> $@
@@ -25,5 +25,5 @@ fatlib:
 .PHONY: clean
 
 clean:
-	-rm vc3-pilot
+	-rm vc3-builder
 

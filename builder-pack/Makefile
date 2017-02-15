@@ -12,7 +12,7 @@ all: vc3-builder
 vc3-builder: $(BARE) | fatlib
 	$(FATPACKER) file $^ -bare > $@ 
 	echo >> $@
-	echo 'package VC3::Pilot;' >> $@
+	echo 'package VC3::Builder;' >> $@
 	echo '__DATA__' >> $@
 	cat ../vc3-catalog.json >> $@
 	@chmod 755 $@

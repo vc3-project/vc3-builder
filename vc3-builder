@@ -6172,7 +6172,7 @@ use v5.009;
 use strict;
 use warnings;
 
-package VC3::Pilot;
+package VC3::Builder;
 
 use English qw/-mo_match_vars/;
 use Getopt::Long qw/GetOptions/;
@@ -6193,7 +6193,7 @@ my $vc3_env_output = ".vc3_sh";
 my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;
 
 # call main if running interactively
-VC3::Pilot::main();
+VC3::Builder::main();
 
 
 sub usage {
@@ -6308,8 +6308,8 @@ sub main {
         exit 0;
     }
 
-    $bag->add_pilot_variable('MAKEFLAGS',        "-j${make_jobs}");
-    $bag->add_pilot_variable('VC3_COMMAND_LINE', File::Spec->rel2abs(join(" ", $original_command)));
+    $bag->add_builder_variable('MAKEFLAGS',        "-j${make_jobs}");
+    $bag->add_builder_variable('VC3_COMMAND_LINE', File::Spec->rel2abs(join(" ", $original_command)));
 
     for my $req (@requires) {
         $bag->add_requirement($req, $sh_on_error);
@@ -6393,7 +6393,7 @@ sub new {
     $self->{dry_run} = $dry_run;
 
     $self->{environment_variables} = [];
-    $self->set_pilot_variables();
+    $self->set_builder_variables();
 
     $self->{sources} = $self->decode_bag($catalog);
 
@@ -6472,7 +6472,7 @@ sub peak_environment {
     return @{$self->{environment_stack}}[-1];
 }
 
-sub set_pilot_variables {
+sub set_builder_variables {
     my ($self) = @_;
 
     $self->set_machine_vars();
@@ -6493,11 +6493,11 @@ sub set_pilot_variables {
     File::Path::make_path($home);
     File::Path::make_path($tmp_dir);
 
-    $self->add_pilot_variable('VC3_ROOT',      $vc3_root);
-    $self->add_pilot_variable('VC3_DISTFILES', $vc3_distfiles);
-    $self->add_pilot_variable('HOME',          $home);
-    $self->add_pilot_variable('TMP',           $tmp_dir);
-    $self->add_pilot_variable('TERM',          'linux');
+    $self->add_builder_variable('VC3_ROOT',      $vc3_root);
+    $self->add_builder_variable('VC3_DISTFILES', $vc3_distfiles);
+    $self->add_builder_variable('HOME',          $home);
+    $self->add_builder_variable('TMP',           $tmp_dir);
+    $self->add_builder_variable('TERM',          'linux');
 }
 
 sub environment_variables {
@@ -6508,7 +6508,7 @@ sub environment_variables {
     return $self->{environment_variables};
 }
 
-sub add_pilot_variable {
+sub add_builder_variable {
     my ($self, $name, $value) = @_;
 
     my $var = {
@@ -6524,7 +6524,7 @@ sub add_pilot_variable {
     return $var;
 }
 
-sub del_pilot_variable {
+sub del_builder_variable {
     my ($self, $name) = @_;
 
     my @vars = @{$self->environment_variables};
@@ -6647,9 +6647,9 @@ sub set_machine_vars {
     $self->{glibc_version} = $1
     || 'unknown';
 
-    $self->add_pilot_variable('VC3_MACHINE_OS',            $self->osname);
-    $self->add_pilot_variable('VC3_MACHINE_ARCH',          $self->architecture);
-    $self->add_pilot_variable('VC3_MACHINE_GLIBC_VERSION', $self->glibc_version);
+    $self->add_builder_variable('VC3_MACHINE_OS',            $self->osname);
+    $self->add_builder_variable('VC3_MACHINE_ARCH',          $self->architecture);
+    $self->add_builder_variable('VC3_MACHINE_GLIBC_VERSION', $self->glibc_version);
 }
 
 sub target {
@@ -6709,7 +6709,7 @@ sub decode_bag {
 
     {
         no warnings;
-        if($filename eq '<internal>' && tell(VC3::Pilot::DATA) == -1) {
+        if($filename eq '<internal>' && tell(VC3::Builder::DATA) == -1) {
             $filename = './vc3-catalog.json';
         }
     }
@@ -6717,7 +6717,7 @@ sub decode_bag {
 
     my $catbag_f;
     if($filename eq '<internal>') {
-        $catbag_f = *VC3::Pilot::DATA;
+        $catbag_f = *VC3::Builder::DATA;
     } else {
         open($catbag_f, '<:encoding(UTF-8)', $filename) ||
         die "Could not open '$filename': $!";
@@ -6793,7 +6793,7 @@ sub set_dependencies {
     my ($self, $widget, $sh_on_error, $dependencies) = @_;
 
     # set root of this widget, in case dependencies need to refer to its parent.
-    $self->add_pilot_variable($widget->var_root_name, $widget->destination_dir);
+    $self->add_builder_variable($widget->var_root_name, $widget->destination_dir);
 
     my $namev = $widget->name . '-' . $widget->version; 
     $self->{indent_level}++;
@@ -6808,7 +6808,7 @@ sub set_dependencies {
         }
     }
 
-    $self->del_pilot_variable($widget->var_root_name);
+    $self->del_builder_variable($widget->var_root_name);
 
     $self->{indent_level}--;
 }
@@ -6871,8 +6871,8 @@ sub dot_graph {
 
     print { $dot_f } "digraph {\n";
 
-    #$self->{dependencies}{vc3_pilot} = {};
-    #$self->{dependencies}{vc3_pilot}{$_} = 1 for @external_dependencies;
+    #$self->{dependencies}{vc3_builder} = {};
+    #$self->{dependencies}{vc3_builder}{$_} = 1 for @external_dependencies;
 
     for my $pkg (keys %{$self->{dependencies}}) {
         my @deps = keys %{$self->{dependencies}{$pkg}};
@@ -7476,8 +7476,8 @@ sub execute_recipe {
     # setting up the shell, so that the child created inherets it.
     $self->bag->push_environment();
 
-    $self->bag->add_pilot_variable('VC3_PREFIX', $self->destination_dir);
-    $self->bag->add_pilot_variable('VC3_BUILD',  $self->build_dir);
+    $self->bag->add_builder_variable('VC3_PREFIX', $self->destination_dir);
+    $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
 
     my ($pid, $build_in) = $self->setup_build_shell($source);
 
@@ -7840,7 +7840,7 @@ sub check_manual_requirements {
 }
 
 
-package VC3::Pilot;
+package VC3::Builder;
 __DATA__
 {
     "icecube-argonne-demo":[

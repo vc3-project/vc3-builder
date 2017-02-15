@@ -577,6 +577,10 @@ sub build_requirement {
 
     $self->say("processing for $widget_name-" . $widget->version);
 
+    if($widget->active_source && $widget->active_source->dependencies) {
+        $self->set_dependencies($widget, $sh_on_error, $widget->active_source->dependencies);
+    }
+
     $self->set_dependencies($widget, $sh_on_error, $widget->dependencies);
 
     # check here missing, we are not checking anything here, only below at

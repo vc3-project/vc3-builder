@@ -99,7 +99,7 @@
                     ],
                     "dependencies":{
                         "parrot":[
-                            "v5.4.19"
+                            "v6.0.16"
                         ]
                     }
                 }
@@ -109,13 +109,13 @@
 
     "parrot":[
         {
-            "version":"v5.4.19",
+            "version":"v6.0.16",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "wrapper":"parrot_run -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
             "dependencies":{
                 "cctools":[
-                    "v5.4.19"
+                    "v6.0.16"
                 ]
             }
         }
@@ -123,14 +123,14 @@
 
     "cctools":[
         {
-            "version":"v5.4.19",
+            "version":"v6.0.16",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "sources":[
                 {
                     "type":"tarball",
                     "files":[
-                        "cctools-5.4.19-source.tar.gz"
+                        "cctools-6.0.16-source.tar.gz"
                     ],
                     "recipe":[
                         "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_FUSE}",

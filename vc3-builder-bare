@@ -972,7 +972,7 @@ sub add_root_variable {
 
     my $root_var = {
         name     => $root_name,
-        value    => $self->destination_dir,
+        value    => '${VC3_ROOT}/' . $self->destination_dir(1),
         clobber  => 1,
         absolute => 1
     };
@@ -1096,8 +1096,15 @@ sub phony {
 }
 
 sub destination_dir {
-    my ($self) = @_;
-    return File::Spec->rel2abs($vc3_root) . '/' . $self->bag->target . '/' . $self->name . '-' . $self->version;
+    my ($self, $relative) = @_;
+
+    my $rel = $self->bag->target . '/' . $self->name . '-' . $self->version;
+
+    if($relative) {
+        return $rel;
+    }
+
+    return File::Spec->rel2abs($vc3_root) . '/' . $rel;
 }
 
 sub build_dir {
@@ -1153,7 +1160,7 @@ sub consolidate_environment_variables {
 
         for my $path (@paths) {
             if(!$absolute) {
-                $path = $self->destination_dir . '/' . $path;
+                $path = '${' . $self->var_root_name . '}/' . $path;
             }
 
             push @{$expansion->{$name}}, $path;

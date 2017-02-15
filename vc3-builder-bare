@@ -211,6 +211,7 @@ package VC3::Bag;
 
 use Carp qw/carp croak/;
 use English qw/-mo_match_vars/;
+use List::Util qw/max/;
 use File::Spec ();
 use version ();
 use POSIX ();
@@ -750,44 +751,62 @@ sub set_environment_variables {
     $expansion->{'PATH'} ||= [];
     push @{$expansion->{'PATH'}}, qw(/bin /usr/bin);
 
-    my $order = {};
-
     for my $var_name (keys %{$expansion}) {
-        $self->order_of_var($expansion, $order, $var_name);
+        $expansion->{$var_name} = join(':', @{$expansion->{$var_name}});
     }
 
-    my @ordered = sort { ($order->{$b} <=> $order->{$a}) || ($a cmp $b) } keys %{$expansion};
+    my @ordered = $self->order_variables($expansion);
 
     for my $var_name (@ordered) {
-        my $dotted = join(':', @{$expansion->{$var_name}});
-        print { $sh_f } "export $var_name=\"$dotted\"\n";
+        my $value = $expansion->{$var_name};
+        print { $sh_f } "export $var_name=\"$value\"\n";
     }
 }
 
-sub order_of_var {
-    my ($self, $expansion, $order, $var_name) = @_;
+sub order_variables {
+    my ($self, $expansion) = @_;
 
-    # the smaller, the later the variable is written in the profile.
-    $order->{$var_name} ||= 0;
+    my @alpha = sort { $a cmp $b } keys %{$expansion};
 
-    if($order->{$var_name} > (scalar keys %{$expansion})) {
-        carp "Cyclic dependency detected for variable '$var_name'";
+    my $order = {};
+
+    my $index = 1;
+    for my $var (@alpha) {
+        $order->{$var} = $index;
+        $index++;
     }
 
-    my @deps;
-    for my $path (@{$expansion->{$var_name}}) {
-        my @deps_now = ($path =~ m/\$\{(\w+)\}/g);
-        push @deps, @deps_now;
-    }
+    my $total_passes = 0;
+    my $swap       = 1;
 
-    for my $dep (@deps) {
-        $order->{$dep} ||= $order->{$var_name} + 1;
+    while($swap) {
+        $swap = 0;
 
-        if($order->{$dep} <= $order->{$var_name} + 1) {
-            $self->order_of_var($expansion, $order, $dep);
+        my @ordered = sort { ($order->{$a} <=> $order->{$b}) || ($a cmp $b) } keys %{$expansion};
+
+        for my $var (@ordered) {
+            my $value = $expansion->{$var};
+            my @deps  = ($value =~ m/\$\{(\w+)\}/g);
+
+            next unless @deps;
+
+            my $org   = $order->{$var};
+            my $nxt   = 1 + max(map { $order->{$_} || carp "Variable '$_' is not defined." } @deps);
+
+            if($nxt > $org) {
+                $swap++;
+                $order->{$var} = $nxt;
+            }
         }
+
+        $total_passes++;
+        carp "Cyclic dependency in environment variables." if $total_passes > @alpha;
     }
+
+    my @ordered = sort { ($order->{$a} <=> $order->{$b}) || ($a cmp $b) } keys %{$expansion};
+    return @ordered;
 }
+
 
 sub set_wrapper {
     my ($self, $wrapper_file, $profile_file) = @_;

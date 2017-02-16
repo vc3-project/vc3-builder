@@ -6301,7 +6301,7 @@ sub main {
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag->new($database, $sh_on_error, $dry_run);
+    my $bag = VC3::Bag->new($database, $dry_run);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -6312,8 +6312,10 @@ sub main {
     $bag->add_builder_variable('VC3_COMMAND_LINE', File::Spec->rel2abs(join(" ", $original_command)));
 
     for my $req (@requires) {
-        $bag->add_requirement($req, $sh_on_error);
+        $bag->add_requirement($req);
     }
+
+    $bag->build_requirements($sh_on_error);
 
     if($bag->dry_run) {
         exit 0;
@@ -6387,7 +6389,7 @@ use POSIX ();
 use JSON::Tiny;
 
 sub new {
-    my ($class, $catalog, $sh_on_error, $dry_run) = @_;
+    my ($class, $catalog, $dry_run) = @_;
 
     my $self = bless {}, $class;
 
@@ -6404,20 +6406,20 @@ sub new {
     my %environment;
     tie %environment, 'Tie::RefHash';
 
-    $self->{dependencies} = {};
-
     return $self;
 }
 
 sub order_widgets {
     my ($self, @requires) = @_;
 
-    my %order;
+    my (%order, %dependencies);
+
     tie %order, 'Tie::RefHash';
+    tie %dependencies, 'Tie::RefHash';
 
     for my $req (@requires) {
         my $widget = $self->select_version($req);
-        $widget->order_dependencies(\%order);
+        $widget->order_dependencies(\%order, \%dependencies);
     }
 
     # list of all packages needed, from inner to outter.
@@ -6568,17 +6570,25 @@ sub requirements {
 }
 
 sub add_requirement {
-    my ($self, $req, $sh_on_error) = @_;
+    my ($self, $req) = @_;
 
     push @{$self->requirements}, $req;
 
     $self->order_widgets(@{$self->requirements});
+}
+
+sub build_requirements {
+    my ($self, $sh_on_error) = @_;
 
     $self->check_manual_requirements();
 
     $self->{indent_level} = 0;
-    $self->clear_environment();
-    $self->build_requirement($req, $sh_on_error);
+
+    for my $req (@{$self->requirements}) {
+        $self->clear_environment();
+        $self->build_requirement($req, $sh_on_error);
+    }
+
     $self->clear_environment();
 }
 
@@ -7126,6 +7136,7 @@ sub say {
 package VC3::Widget;
 use Carp;
 use POSIX ":sys_wait_h";
+use IO::Handle;
 use Digest::MD5 qw(md5_hex);
 
 use JSON::Tiny;
@@ -7446,16 +7457,18 @@ sub process_error {
 sub create_ribbon {
     my ($self) = @_;
 
-    return if $self->phony;
-
-    open (my $ribbon_fh, '>', $self->completion_ribbon);
+    my $ribbon_fh = IO::Handle->new();
+    open ($ribbon_fh, '>', $self->completion_ribbon);
 
     my $report = {};
     $report->{'checksum'} = $self->checksum;
 
     printf { $ribbon_fh } JSON::Tiny::encode_json($report);
 
-    close $ribbon_fh;
+    $ribbon_fh->flush();
+    $ribbon_fh->sync();
+
+    $ribbon_fh->close();
 }
 
 sub checksum {
@@ -7573,6 +7586,9 @@ sub execute_recipe {
     eval { close $build_in; $status = $? };
 
     $self->bag->pop_environment();
+
+    $self->bag->del_builder_variable('VC3_PREFIX');
+    $self->bag->del_builder_variable('VC3_BUILD');
 
     if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
         $self->create_ribbon();

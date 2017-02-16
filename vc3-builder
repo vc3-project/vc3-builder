@@ -6406,15 +6406,6 @@ sub new {
 
     $self->{dependencies} = {};
 
-    my $restricted_unmet = 0;
-    for my $w (@{$self->{order}}) {
-        if($w->check_manual_requirements()) {
-            $restricted_unmet++;
-        }
-    }
-
-    exit 1 if $restricted_unmet > 0;
-
     return $self;
 }
 
@@ -6433,6 +6424,40 @@ sub order_widgets {
     my @ordered_widgets = sort { $order{$b} <=> $order{$a} || $a->name cmp $b->name } keys %order;
     $self->{order} = \@ordered_widgets;
 }
+
+sub check_manual_requirements() {
+    my ($self) = @_;
+
+    my @restricted_unmet;
+    for my $w (@{$self->{order}}) {
+        push @restricted_unmet, $w->msgs_manual_requirements();
+        $self->add_to_environment($w);
+    }
+
+    if(@restricted_unmet > 0) {
+        my ($pid, $build_in) = $self->shell();
+
+        print { $build_in } "cat <<EOF\n";
+
+        for my $msg (@restricted_unmet) {
+            for my $line (@{$msg}) {
+                print { $build_in } "$line\n";
+            }
+            print { $build_in } "\n";
+        }
+
+        print { $build_in } "EOF\n";
+        print { $build_in } "exit 0\n";
+
+        exit 1;
+    }
+
+    print "aaa";
+
+    $self->clear_environment();
+    return 1;
+}
+
 
 sub clear_environment {
     my ($self) = @_;
@@ -6550,6 +6575,8 @@ sub add_requirement {
     push @{$self->requirements}, $req;
 
     $self->order_widgets(@{$self->requirements});
+
+    $self->check_manual_requirements();
 
     $self->{indent_level} = 0;
     $self->clear_environment();
@@ -7564,20 +7591,19 @@ sub setup_build_shell {
     return ($pid, $build_in);
 }
 
-sub check_manual_requirements {
+sub msgs_manual_requirements {
     my ($self) = @_;
 
     my $sources = $self->sources;
 
-    my $restricted_unmet = 0;
+    my @restricted_unmet;
     for my $source (@{$sources}) {
         unless($source->check_manual_requirements()) {
-            $restricted_unmet++;
-            print "\n", $source->msg_manual_requirement(), "\n\n";
+            push @restricted_unmet, $source->msg_manual_requirement();
         }
     }
 
-    return $restricted_unmet;
+    return @restricted_unmet;
 }
 
 
@@ -7707,10 +7733,7 @@ sub msg_manual_requirement {
     my ($self, $new_message) = @_;
 
     if($new_message) {
-        #my @expansions = map { VC3::Bag::expand_env_variable($_) } @{$new_message};
-        my @expansions = map { $_ } @{$new_message};
-        $self->{msg_manual_requirement} = join("\n", @expansions);
-        $self->{msg_manual_requirement} = "\n" . ${self}->{msg_manual_requirement};
+        $self->{msg_manual_requirement} = $new_message;
     }
 
     return $self->{msg_manual_requirement};
@@ -7843,8 +7866,7 @@ sub get_file {
     my ($self, $file) = @_;
 
     unless(-f $self->file_absolute($file)) {
-        print $self->msg_manual_requirement . "\n";
-        die "Missing manual or restricted distribution file.\n";
+        die "Missing manual or restricted distribution file '$file'.\n";
     }
 }
 

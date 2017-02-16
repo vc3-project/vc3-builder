@@ -1348,7 +1348,7 @@
                     "type":"tarball",
                     "files":["DB_File-1.838.tar.gz"],
                     "recipe":[
-                        "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_ROOT_ROOT_BERKELEY_DB}'/include%;s%^LIB.*%LIB = '${VC3_BERKELEY_DB}'/lib%' config.in",
+                        "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_ROOT_BERKELEY_DB}'/include%;s%^LIB.*%LIB = '${VC3_ROOT_BERKELEY_DB}'/lib%' config.in",
                         "perl Makefile.PL",
                         "make",
                         "make install"
@@ -1807,8 +1807,8 @@
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_ROOT_ROOT_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
-                        "./configure --prefix=${VC3_ROOT_ROOT_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
                         "make",
                         "make install"
                     ]

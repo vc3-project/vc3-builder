@@ -8005,7 +8005,7 @@ __DATA__
             "version":"v6.0.16",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
-            "wrapper":"parrot_run -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
+            "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
             "dependencies":{
                 "cctools":[
                     "v6.0.16"

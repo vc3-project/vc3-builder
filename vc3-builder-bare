@@ -331,6 +331,7 @@ sub set_builder_variables {
     $self->add_builder_variable('HOME',          $home);
     $self->add_builder_variable('TMP',           $tmp_dir);
     $self->add_builder_variable('TERM',          'linux');
+    $self->add_builder_variable('USER',          getlogin());
 }
 
 sub environment_variables {

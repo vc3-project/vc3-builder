@@ -31,7 +31,7 @@ VC3::Builder::main();
 sub usage {
     my ($script_name) = @_;
     return <<EOF;
-$script_name [options] --require package [--require package]* [-- command-and-args]
+$script_name [options] --require package[:min_version[:max_version]] --require ... [-- command-and-args]
 
   --database <catalog>  defaults to <internal> if available, otherwise 
                         to ./vc3_catalog.json
@@ -250,7 +250,7 @@ sub order_widgets {
     tie %dependencies, 'Tie::RefHash';
 
     for my $req (@requires) {
-        my $widget = $self->select_version($req);
+        my $widget = $self->select_version($req->{name}, $req->{min}, $req->{max});
         $widget->order_dependencies(\%order, \%dependencies);
     }
 
@@ -404,8 +404,24 @@ sub requirements {
 sub add_requirement {
     my ($self, $req) = @_;
 
-    push @{$self->requirements}, $req;
+    $req =~ m/
+    ^
+    (?<name> [A-z0-9_]+)
+    (:                      # start of min version
+    (?<min> [^:]*)
+    (:                      # start of max version
+    (?<max> [^:]*)
+    )?)?
+    $
+    /x;
 
+    my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
+
+    # turn into version strings
+    $min = "v$min" if($min);
+    $max = "v$max" if($max);
+
+    push @{$self->requirements}, { 'name' => $name, 'min' => $min, 'max' => $max };
     $self->order_widgets(@{$self->requirements});
 }
 
@@ -418,7 +434,7 @@ sub build_requirements {
 
     for my $req (@{$self->requirements}) {
         $self->clear_environment();
-        $self->build_requirement($req, $sh_on_error);
+        $self->build_requirement($req->{name}, $sh_on_error, $req->{min}, $req->{max});
     }
 
     $self->clear_environment();
@@ -429,7 +445,7 @@ sub prepare_exec_environment {
 
     $self->clear_environment();
     for my $req (@{$self->requirements}) {
-        $self->collect_environment($req);
+        $self->collect_environment($req->{name}, $req->{min}, $req->{max});
     }
 }
 

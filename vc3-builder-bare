@@ -55,7 +55,7 @@ $script_name [options] --require package [--require package]* [-- command-and-ar
                         environment.
 
 Examples:
-    ${script_name} --require parrot 'ls /cvmfs/atlas.cern.ch' 
+    ${script_name} --require cvmfs 'ls /cvmfs/atlas.cern.ch' 
     ${script_name} --require maker-example-ecoli-01
 EOF
 
@@ -283,8 +283,6 @@ sub check_manual_requirements() {
 
         exit 1;
     }
-
-    print "aaa";
 
     $self->clear_environment();
     return 1;

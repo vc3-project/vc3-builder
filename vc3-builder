@@ -9679,8 +9679,8 @@ __DATA__
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
                         "make",
                         "make install"
                     ]
@@ -9724,7 +9724,7 @@ __DATA__
         }
     ],
 
-    "rmblast":[
+    "ncbi-rmblastn":[
         {
             "version":"v2.2.28",
             "sources":[
@@ -9735,7 +9735,8 @@ __DATA__
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz",
+						"cp ${VC3_PREFIX}/../ncbi-blast-v2.2.28/bin/* ${VC3_PREFIX}/bin"
                     ]
                 },
                 {
@@ -9749,8 +9750,8 @@ __DATA__
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ZLIB_ROOT} --with-pcre=${VC3_PCRE_ROOT} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug",
                         "make",
                         "make install"
                     ]
@@ -9768,6 +9769,9 @@ __DATA__
                 ],
                 "perl":[
                     "v5.8"
+                ],
+                "ncbi-blast":[
+                    "v2.2.28"
                 ],
                 "sqlite3":[
                     "v3.13"
@@ -9966,7 +9970,7 @@ __DATA__
                         "mkdir -p ${VC3_ROOT_REPEATMASKER}",
                         "tar -C ${VC3_ROOT_REPEATMASKER} -xpf repeatmaskerlibraries-LATEST.tar.gz",
                         "cd ${VC3_ROOT_REPEATMASKER}",
-                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_ROOT_PERL}/bin/perl -repeatmasker_dir=${VC3_REPEATMASKER_ROOT} -trf_bin_path=${VC3_TRF_ROOT}/bin/trf -hmmer_bin_dir=${VC3_HMMER}/bin -rmblast_bin_dir=${VC3_RMBLAST}/bin -default_engine=rmblast"
+                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_ROOT_PERL}/bin/perl -repeatmasker_dir=${VC3_ROOT_REPEATMASKER} -trf_bin_path=${VC3_ROOT_TRF}/bin/trf -hmmer_bin_dir=${VC3_ROOT_HMMER}/bin -rmblast_bin_dir=${VC3_ROOT_NCBI_RMBLASTN}/bin -default_engine=rmblast"
                     ]
                 }
             ],
@@ -10005,7 +10009,7 @@ __DATA__
                 "ncbi-blast":[
                     "v2.2.28"
                 ],
-                "rmblast":[
+                "ncbi-rmblastn":[
                     "v2.2.28"
                 ],
                 "trf":[

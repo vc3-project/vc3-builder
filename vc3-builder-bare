@@ -818,7 +818,9 @@ sub set_environment_variables {
     }
 
     $expansion->{'PATH'} ||= [];
-    push @{$expansion->{'PATH'}}, qw(/bin /usr/bin);
+
+    # use default PATH:
+    push @{$expansion->{'PATH'}}, $ENV{'PATH'} || '/bin:/usr/bin';
 
     for my $var_name (keys %{$expansion}) {
         eval { $expansion->{$var_name} = join(':', @{$expansion->{$var_name}}) };

@@ -1737,7 +1737,6 @@
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
                         "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
                         "make",
                         "make install"
@@ -1794,7 +1793,8 @@
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz",
-						"cp ${VC3_PREFIX}/../ncbi-blast-v2.2.28/bin/* ${VC3_PREFIX}/bin"
+                        "cd ${VC3_PREFIX}/bin",
+                        "for file in $VC3_ROOT_NCBI_BLAST/bin/*; do ln -s ../../${file#${VC3_ROOT}/${VC3_MACHINE_TARGET}/}; done"
                     ]
                 },
                 {
@@ -1808,7 +1808,6 @@
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        ": ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-static-exe --with-static --without-caution --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug",
                         "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug",
                         "make",
                         "make install"

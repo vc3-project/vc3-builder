@@ -406,7 +406,7 @@ sub add_requirement {
 
     $req =~ m/
     ^
-    (?<name> [A-z0-9_]+)
+    (?<name> [A-z0-9_-]+)
     (:                      # start of min version
     (?<min> [^:]*)
     (:                      # start of max version
@@ -535,6 +535,7 @@ sub set_machine_vars {
     $self->add_builder_variable('VC3_MACHINE_OS',            $self->osname);
     $self->add_builder_variable('VC3_MACHINE_ARCH',          $self->architecture);
     $self->add_builder_variable('VC3_MACHINE_GLIBC_VERSION', $self->glibc_version);
+    $self->add_builder_variable('VC3_MACHINE_TARGET',        $self->{target});
 }
 
 sub target {
@@ -1029,7 +1030,6 @@ sub add_root_variable {
         clobber  => 1,
         absolute => 1
     };
-
     unshift @{$vars}, $root_var;
 
     $self->var_root_name($root_name);

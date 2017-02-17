@@ -1,6 +1,6 @@
 all: vc3-builder
 
-vc3-builder: vc3-builder-bare
+vc3-builder: vc3-builder-bare vc3-catalog.json
 	$(MAKE) -C builder-pack vc3-builder
 	mv builder-pack/vc3-builder .
 

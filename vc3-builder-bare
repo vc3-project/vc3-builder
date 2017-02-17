@@ -190,7 +190,7 @@ sub print_modules_used {
     my @modules = grep { /\.pm$/ } keys %INC;
 
     # add modules that %INC sometimes does not find:
-    @modules = (@modules, qw/strict PerlIO encoding/);
+    @modules = (@modules, qw/strict PerlIO encoding Digest::Perl::MD5/);
 
     # turn :: into /
     map { s^/^::^g }   @modules;
@@ -1002,7 +1002,7 @@ package VC3::Widget;
 use Carp;
 use POSIX ":sys_wait_h";
 use IO::Handle;
-use Digest::MD5 qw(md5_hex);
+use Digest::Perl::MD5 qw(md5_hex);
 
 use JSON::Tiny;
 

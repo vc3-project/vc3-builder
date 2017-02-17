@@ -133,7 +133,7 @@
                         "cctools-6.0.16-source.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_FUSE}",
+                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
                         "make",
                         "make install"
                     ],
@@ -1772,7 +1772,7 @@
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
                         "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_SQLITE3} --without-debug",
+                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug",
                         "make",
                         "make install"
                     ]

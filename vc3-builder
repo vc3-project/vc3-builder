@@ -6201,11 +6201,14 @@ sub usage {
     return <<EOF;
 $script_name [options] --require package[:min_version[:max_version]] --require ... [-- command-and-args]
 
-  --database <catalog>  defaults to <internal> if available, otherwise 
-                        to ./vc3_catalog.json
   command-and-args      defaults to /bin/sh
 
   options are:
+
+  --database <catalog>  defaults to <internal> if available, otherwise 
+                        to ./vc3_catalog.json. May be specified several times,
+                        with latter package recipes overwriting previous ones. 
+
   --install <root>      Install with base <root>. 
                         Default is ${vc3_root}
   --home <home>         Set \${HOME} to <root>/<home>.
@@ -6217,9 +6220,10 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         Default is ${vc3_repository}
 
   --make-jobs <n>       Concurrent make jobs. Default is 2.
+  --sh-on-error         On building error, run /bin/sh on the partially-built
+
   --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.init},
                         but do not execute the payload.
-  --sh-on-error         On building error, run /bin/sh on the partially-built
                         environment.
 
 Examples:
@@ -6248,12 +6252,12 @@ sub main {
 
     my $original_command = join(' ', $script_name, @ARGV);
 
-    my $database = '<internal>';
+    my @database;
 
     GetOptions(
         "help"        => \$print_help,
 
-        "database=s"  => \$database,
+        "database=s"  => \@database,
         "require=s"   => \@requires, 
 
         "install=s"   => \$vc3_root, 
@@ -6272,6 +6276,8 @@ sub main {
         "dot=s"       => \$dot_output,
         "debug-modules-used" => \$debug_modules_used
     );
+
+    unshift @database, '<internal>';
 
     if($print_help) {
         print usage($script_name);
@@ -6301,7 +6307,7 @@ sub main {
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag->new($database, $dry_run);
+    my $bag = VC3::Bag->new($dry_run, @database);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -6352,7 +6358,7 @@ sub print_modules_used {
     my @modules = grep { /\.pm$/ } keys %INC;
 
     # add modules that %INC sometimes does not find:
-    @modules = (@modules, qw/strict PerlIO encoding/);
+    @modules = (@modules, qw/strict PerlIO encoding Digest::Perl::MD5/);
 
     # turn :: into /
     map { s^/^::^g }   @modules;
@@ -6389,7 +6395,7 @@ use POSIX ();
 use JSON::Tiny;
 
 sub new {
-    my ($class, $catalog, $dry_run) = @_;
+    my ($class, $dry_run, @database) = @_;
 
     my $self = bless {}, $class;
 
@@ -6398,7 +6404,7 @@ sub new {
     $self->{environment_variables} = [];
     $self->set_builder_variables();
 
-    $self->{sources} = $self->decode_bag($catalog);
+    $self->{sources} = $self->decode_bags(@database);
 
     # create first environment
     $self->clear_environment();
@@ -6758,16 +6764,28 @@ sub widget {
     return $widget;
 }
 
+sub decode_bags {
+    my ($self, @database) = @_;
+
+    my $sources = {};
+
+    for my $filename (@database) {
+        $self->decode_bag($sources, $filename);
+    }
+
+    return $sources;
+}
+
 sub decode_bag {
-    my ($self, $filename) = @_;
+    my ($self, $sources, $filename) = @_;
 
     {
         no warnings;
         if($filename eq '<internal>' && tell(VC3::Builder::DATA) == -1) {
             $filename = './vc3-catalog.json';
+            return $sources unless -f $filename; 
         }
     }
-
 
     my $catbag_f;
     if($filename eq '<internal>') {
@@ -6782,8 +6800,6 @@ sub decode_bag {
 
     my $bag_raw = JSON::Tiny::decode_json($contents);
 
-    my $sources = {};
-    
     for my $widget_name (keys %{$bag_raw}) {
         my @versions = map { VC3::Widget->new($self, $widget_name, $_) } @{$bag_raw->{$widget_name}};
         $sources->{$widget_name} = \@versions;
@@ -7154,7 +7170,7 @@ package VC3::Widget;
 use Carp;
 use POSIX ":sys_wait_h";
 use IO::Handle;
-use Digest::MD5 qw(md5_hex);
+use Digest::Perl::MD5 qw(md5_hex);
 
 use JSON::Tiny;
 

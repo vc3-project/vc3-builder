@@ -821,7 +821,10 @@ sub set_environment_variables {
     push @{$expansion->{'PATH'}}, qw(/bin /usr/bin);
 
     for my $var_name (keys %{$expansion}) {
-        $expansion->{$var_name} = join(':', @{$expansion->{$var_name}});
+        eval { $expansion->{$var_name} = join(':', @{$expansion->{$var_name}}) };
+        if($@) {
+            carp("Environment variable '$var_name' is not defined.");
+        }
     }
 
     my @ordered = $self->order_variables($expansion);

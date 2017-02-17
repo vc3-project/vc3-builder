@@ -362,7 +362,7 @@ sub set_builder_variables {
     $self->add_builder_variable('HOME',          $home);
     $self->add_builder_variable('TMP',           $tmp_dir);
     $self->add_builder_variable('TERM',          'linux');
-    $self->add_builder_variable('USER',          getlogin());
+    $self->add_builder_variable('USER',          getlogin() || $ENV{'USER'} || 'vc3-user');
 }
 
 sub environment_variables {

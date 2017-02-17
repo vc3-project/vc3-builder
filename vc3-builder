@@ -6666,7 +6666,7 @@ my $pwd            = getcwd();
 my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
 my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
-my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository";
+my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository/builder-files";
 my $vc3_env_output = ".vc3_sh";
 
 my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;

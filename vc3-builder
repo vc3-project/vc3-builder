@@ -8673,6 +8673,41 @@ __DATA__
         }
     ],
 
+    "gcc":[
+        {
+            "version":"v4.6.1",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "gcc-4.6.1-2.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=2 -xpf gcc-4.6.1-2.tar.gz"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
     "patch":[
         {
             "version":"v2.7.5",

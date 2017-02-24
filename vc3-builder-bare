@@ -51,6 +51,9 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --repository <url>    Site to fetch packages if needed.
                         Default is ${vc3_repository}
 
+  --no-dependencies     Install only packages named explicitely with --require. 
+                        Fail if their dependencies are not installed.
+
   --make-jobs <n>       Concurrent make jobs. Default is 2.
   --sh-on-error         On building error, run /bin/sh on the partially-built
 
@@ -70,6 +73,7 @@ sub main {
 
     my $print_help   = 0;
     my $make_jobs    = 2;
+    my $no_depend    = 0;
     my $sh_on_error  = 0;
     my $env_to       = 0;
 
@@ -99,7 +103,9 @@ sub main {
         "repository=s" => \$vc3_repository, 
 
         "make-jobs=n" => \$make_jobs,
-        "sh-on-error" => \$sh_on_error,
+
+        "sh-on-error"     => \$sh_on_error,
+        "no-dependencies" => \$no_depend,
 
         "env-to=s"    => \$env_to,
         "dry-run"     => \$dry_run,
@@ -153,7 +159,7 @@ sub main {
         $bag->add_requirement($req);
     }
 
-    $bag->build_requirements($sh_on_error);
+    $bag->build_requirements($sh_on_error, $no_depend);
 
     if($bag->dry_run) {
         exit 0;
@@ -432,7 +438,7 @@ sub add_requirement {
 }
 
 sub build_requirements {
-    my ($self, $sh_on_error) = @_;
+    my ($self, $sh_on_error, $no_depend) = @_;
 
     $self->check_manual_requirements();
 
@@ -440,7 +446,7 @@ sub build_requirements {
 
     for my $req (@{$self->requirements}) {
         $self->clear_environment();
-        $self->build_requirement($req->{name}, $sh_on_error, $req->{min}, $req->{max});
+        $self->build_requirement($req->{name}, $sh_on_error, $no_depend, $req->{min}, $req->{max});
     }
 
     $self->clear_environment();
@@ -641,17 +647,20 @@ sub decode_bag {
 }
 
 sub build_requirement {
-    my ($self, $widget_name, $sh_on_error, $min_version, $max_version) = @_;
+    my ($self, $widget_name, $sh_on_error, $no_depend, $min_version, $max_version) = @_;
 
     my $widget = $self->select_version($widget_name, $min_version, $max_version);
 
     $self->say("processing for $widget_name-" . $widget->version);
 
+    my $no_depend_step = $no_depend;
+    $no_depend_step    = 'dependency' if $no_depend eq '1'; # e.g., if widget is a root
+
     if($widget->active_source && $widget->active_source->dependencies) {
-        $self->set_dependencies($widget, $sh_on_error, $widget->active_source->dependencies);
+        $self->set_dependencies($widget, $sh_on_error, $no_depend_step, $widget->active_source->dependencies);
     }
 
-    $self->set_dependencies($widget, $sh_on_error, $widget->dependencies);
+    $self->set_dependencies($widget, $sh_on_error, $no_depend_step, $widget->dependencies);
 
     # check here missing, we are not checking anything here, only below at
     # sources!
@@ -665,8 +674,9 @@ sub build_requirement {
             $self->push_environment();
 
             # set dependencies particular to this source
-            $self->set_dependencies($widget, $sh_on_error, $source->dependencies);
-            eval {$exit_status = -1; $exit_status = $widget->execute_recipe($source);};
+            $self->set_dependencies($widget, $sh_on_error, $no_depend_step, $source->dependencies);
+
+            eval {$exit_status = -1; $exit_status = $widget->execute_recipe($source, $no_depend);};
 
             if($exit_status) {
                 # on error, reestablish old environment, and show last lines of log
@@ -692,7 +702,7 @@ sub build_requirement {
 }
 
 sub set_dependencies {
-    my ($self, $widget, $sh_on_error, $dependencies) = @_;
+    my ($self, $widget, $sh_on_error, $no_depend, $dependencies) = @_;
 
     # set root of this widget, in case dependencies need to refer to its parent.
     $self->add_builder_variable($widget->var_root_name, $widget->destination_dir);
@@ -706,7 +716,7 @@ sub set_dependencies {
 
             $self->say("$namev needs $dependency");
 
-            $self->build_requirement($dependency, $sh_on_error, $min_dep_ver, $max_dep_ver);
+            $self->build_requirement($dependency, $sh_on_error, $no_depend, $min_dep_ver, $max_dep_ver);
         }
     }
 
@@ -1410,11 +1420,15 @@ sub prepare_recipe_sandbox {
 }
 
 sub execute_recipe {
-    my ($self, $source) = @_;
+    my ($self, $source, $no_depend) = @_;
 
     # if nothing to do, we return no error:
     if(!$self->phony && $self->check_ribbon()) {
         return 0;
+    }
+
+    if(!$self->phony && !$self->check_ribbon && $no_depend eq 'dependency') {
+        carp('Dependency ' . $self->name . ' is not installed.');
     }
 
     $self->bag->say("preparing '" . $self->name . "' for ", $self->bag->target);

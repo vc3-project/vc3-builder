@@ -890,25 +890,7 @@
                 "python":[
                     "v2.6"
                 ]
-            },
-            "environment_variables":[
-                {
-                    "name":"VC3_MODULES_PYTHON",
-                    "value":"${VC3_ROOT_PYTHON}/local_modules",
-                    "clobber":1,
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH",
-                    "value":"${VC3_MODULES_PYTHON}/lib/python2.7/site-packages",
-                    "absolute":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"${VC3_MODULES_PYTHON}/bin",
-                    "absolute":1
-                }
-            ]
+            }
         }
     ],
 
@@ -976,6 +958,28 @@
         }
     ],
 
+    "python-cherrypy":[
+        {
+            "version":"v3.2.2",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "cherrypy-cherrypy-3.2.2.tar.gz"
+                    ],
+                    "recipe":[
+                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ]
+            }
+        }
+    ],
+
     "python":[
         {
             "version":"v2.7.12",
@@ -1013,8 +1017,23 @@
             ],
             "environment_variables":[
                 {
+                    "name":"VC3_MODULES_PYTHON",
+                    "value":"local_modules",
+                    "clobber":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MODULES_PYTHON}/bin",
+                    "absolute":1
+                },
+                {
                     "name":"PATH",
                     "value":"bin"
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${VC3_MODULES_PYTHON}/lib/python2.7/site-packages",
+                    "absolute":1
                 },
                 {
                     "name":"PYTHONPATH",

@@ -7301,7 +7301,7 @@ sub build_requirement {
     $self->say("processing for $widget_name-" . $widget->version);
 
     my $no_depend_step = $no_depend;
-    $no_depend_step    = 'dependency' if $no_depend == 1; # e.g., if widget is a root
+    $no_depend_step    = 'dependency' if $no_depend eq '1'; # e.g., if widget is a root
 
     if($widget->active_source && $widget->active_source->dependencies) {
         $self->set_dependencies($widget, $sh_on_error, $no_depend_step, $widget->active_source->dependencies);
@@ -8077,8 +8077,6 @@ sub execute_recipe {
     if(!$self->phony && !$self->check_ribbon && $no_depend eq 'dependency') {
         carp('Dependency ' . $self->name . ' is not installed.');
     }
-
-    print "$no_depend\n";
 
     $self->bag->say("preparing '" . $self->name . "' for ", $self->bag->target);
 
@@ -9348,25 +9346,7 @@ __DATA__
                 "python":[
                     "v2.6"
                 ]
-            },
-            "environment_variables":[
-                {
-                    "name":"VC3_MODULES_PYTHON",
-                    "value":"${VC3_ROOT_PYTHON}/local_modules",
-                    "clobber":1,
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH",
-                    "value":"${VC3_MODULES_PYTHON}/lib/python2.7/site-packages",
-                    "absolute":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"${VC3_MODULES_PYTHON}/bin",
-                    "absolute":1
-                }
-            ]
+            }
         }
     ],
 
@@ -9434,6 +9414,28 @@ __DATA__
         }
     ],
 
+    "python-cherrypy":[
+        {
+            "version":"v3.2.2",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "cherrypy-cherrypy-3.2.2.tar.gz"
+                    ],
+                    "recipe":[
+                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ]
+            }
+        }
+    ],
+
     "python":[
         {
             "version":"v2.7.12",
@@ -9471,8 +9473,23 @@ __DATA__
             ],
             "environment_variables":[
                 {
+                    "name":"VC3_MODULES_PYTHON",
+                    "value":"local_modules",
+                    "clobber":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MODULES_PYTHON}/bin",
+                    "absolute":1
+                },
+                {
                     "name":"PATH",
                     "value":"bin"
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${VC3_MODULES_PYTHON}/lib/python2.7/site-packages",
+                    "absolute":1
                 },
                 {
                     "name":"PYTHONPATH",

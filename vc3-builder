@@ -9436,6 +9436,29 @@ __DATA__
         }
     ],
 
+    "python-requests":[
+        {
+            "version":"v2.7.0",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "requests-2.7.0.tar.gz"
+                    ],
+                    "recipe":[
+                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.6"
+                ]
+            }
+        }
+    ],
+
+
     "python":[
         {
             "version":"v2.7.12",

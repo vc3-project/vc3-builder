@@ -97,7 +97,7 @@ sub main {
         "require=s"   => \@requires, 
 
         "install=s"   => \$vc3_root, 
-        "home"        => \$vc3_user_home,
+        "home=s"        => \$vc3_user_home,
 
         "distfiles=s"  => \$vc3_distfiles, 
         "repository=s" => \$vc3_repository, 

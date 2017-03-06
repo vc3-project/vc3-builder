@@ -7956,8 +7956,10 @@ sub error_debug_info {
         print $eval_error, "\n";
     }
 
-    print "Last lines of log file:\n";
-    system('tail', $self->build_log);
+    if(-f $self->build_log) {
+        print "Last lines of log file:\n";
+        system('tail', $self->build_log);
+    }
 }
 
 

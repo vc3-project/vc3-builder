@@ -417,7 +417,7 @@
                     ],
                     "recipe":[
                         "export CFLAGS=-fPIC",
-                        "./config --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic",
+                        "./config shared --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
                         "make depend",
                         "make",
                         "make install"
@@ -441,10 +441,213 @@
                 {
                     "name":"CPLUS_INCLUDE_PATH",
                     "value":"include"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
                 }
             ]
         }
     ],
+
+    "libssh2":[
+        {
+            "version":"v1.8.0",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "libssh2-1.8.0.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=\"-fPIC -I${VC3_ROOT_OPENSSL}/include\"",
+                        "export LDFLAGS=\"-L${VC3_ROOT_OPENSSL}/lib\"",
+                        "./configure --prefix=${VC3_PREFIX} --enable-static=yes --enable-shared=yes",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "openssl":[
+                    "v1.0.2"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                }
+            ]
+        }
+    ],
+
+    "gss":[
+        {
+            "version":"v1.0.3",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "gss-1.0.3.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --enable-static=yes --enable-shared=yes",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                }
+            ]
+        }
+    ],
+
+    "curl":[
+        {
+            "version":"v7.53.1",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "curl-7.53.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --enable-static=yes --enable-shared=yes --enable-http --enable-ftp --enable-file --enable-proxy --enable-tftp --with-ssl=${VC3_ROOT_OPENSSL} --with-libssh2=${VC3_ROOT_LIBSSH2} --with-zlib=${VC3_ROOT_ZLIB}  --with-gssapi=${VC3_ROOT_GSS}/bin --with-gssapi-libs=${VC3_ROOT_GSS}/lib",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "zlib":[
+                    "v1.2"
+                ],
+                "openssl":[
+                    "v1.0.2"
+                ],
+                "gss":[
+                    "v1.0.3"
+                ],
+                "libssh2":[
+                    "v1.8.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                }
+            ]
+        }
+    ],
+
+    "git":[
+        {
+            "version":"v2.12.0",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "git-2.12.0.tar.gz"
+                    ],
+                    "recipe":[
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --with-openssl=${VC3_ROOT_OPENSSL} --with-curl=${VC3_ROOT_CURL} --with-zlib=${VC3_ROOT_ZLIB} --with-perl=${VC3_ROOT_PERL} --with-python=${VC3_ROOT_PYTHON} --without-tcltk",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "zlib":[
+                    "v1.2"
+                ],
+                "openssl":[
+                    "v1.0.2"
+                ],
+                "gss":[
+                    "v1.0.3"
+                ],
+                "libssh2":[
+                    "v1.8.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                }
+            ]
+        }
+    ],
+
 
     "berkeley-db":[
         {
@@ -1031,11 +1234,17 @@
                         "Python-2.7.12.tgz"
                     ],
                     "recipe":[
+                        "sed -i Modules/Setup.dist -e \"217s:.*:_ssl _ssl.c -DUSE_SSL -I${VC3_ROOT_OPENSSL}/include -I${VC3_ROOT_OPENSSL}/include/openssl -L${VC3_ROOT_OPENSSL}/lib -lssl -lcrypto:\"",
                         "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib",
                         "make",
                         "make install",
                         "ln -s ${VC3_PREFIX}/bin/pydoc{,2}"
-                    ]
+                    ],
+                    "dependencies":{
+                        "openssl":[
+                            "v1.0"
+                        ]
+                    }
                 }
             ],
             "environment_variables":[

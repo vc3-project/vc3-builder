@@ -1018,6 +1018,7 @@ use Carp;
 use POSIX ":sys_wait_h";
 use IO::Handle;
 use Digest::Perl::MD5 qw(md5_hex);
+use Cwd;
 
 use JSON::Tiny;
 

@@ -603,7 +603,7 @@
                     ],
                     "recipe":[
                         "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --with-openssl=${VC3_ROOT_OPENSSL} --with-curl=${VC3_ROOT_CURL} --with-zlib=${VC3_ROOT_ZLIB} --with-perl=${VC3_ROOT_PERL} --with-python=${VC3_ROOT_PYTHON} --without-tcltk",
+                        "./configure --prefix=${VC3_PREFIX} --with-openssl=${VC3_ROOT_OPENSSL} --with-curl=${VC3_ROOT_CURL} --with-zlib=${VC3_ROOT_ZLIB} --with-perl=${VC3_ROOT_PERL}/bin/perl --with-python=${VC3_ROOT_PYTHON}/bin/python --without-tcltk",
                         "make",
                         "make install"
                     ]
@@ -624,6 +624,12 @@
                 ],
                 "libssh2":[
                     "v1.8.0"
+                ],
+                "perl":[
+                    "v5.24"
+                ],
+                "python":[
+                    "v2.7"
                 ]
             },
             "environment_variables":[

@@ -244,6 +244,7 @@
                         "gcc-4.6.1-2.tar.gz"
                     ],
                     "recipe":[
+                        "mkdir ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=2 -xpf gcc-4.6.1-2.tar.gz"
                     ]
                 }
@@ -657,6 +658,53 @@
         }
     ],
 
+    "condor":[
+        {
+            "version":"v8.6.0",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
+                    ]
+                },
+                {
+                    "type":"generic",
+                    "files":[
+                        "condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATHaaaaaaaaa",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"lib/python"
+                }
+            ]
+        }
+    ],
 
     "berkeley-db":[
         {
@@ -1416,8 +1464,8 @@
                        "crossx86-x86_64-linux-musl-1.1.6.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_ROOT_CXX11}",
-                        "tar -C ${VC3_ROOT_CXX11} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
                         "cd ${VC3_ROOT_CXX11}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
                     ]
                 }
@@ -1453,8 +1501,8 @@
                        "mash-Linux64-v1.1.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_ROOT_MASH}",
-                        "tar -C ${VC3_ROOT_MASH} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
                     ]
                 }
             ],
@@ -2348,8 +2396,8 @@
                         "VC3_RepeatMasker-open-4-0-6.configure"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
-                        "tar -C ${VC3_ROOT_REPEATMASKER} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
                         "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_ROOT_REPEATMASKER}"
                     ]
                 }
@@ -2399,6 +2447,7 @@
                         "augustus.2.4.src.tar.gz"
                     ],
                     "recipe":[
+                        "mkdir ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf augustus.2.4.src.tar.gz",
                         "cd ${VC3_PREFIX}",
                         "make"
@@ -2485,6 +2534,7 @@
                         "maker-2.31.8.tgz"
                     ],
                     "recipe":[
+                        "mkdir ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf maker-2.31.8.tgz",
                         "cd ${VC3_PREFIX}/src",
                         ": y to activate MPI support",

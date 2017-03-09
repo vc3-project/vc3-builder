@@ -7317,6 +7317,13 @@ sub build_requirement {
     my $exit_status = 0;
     if($widget->sources) { 
         for my $source (@{$widget->sources}) {
+
+            eval {$exit_status = -1; $exit_status = $widget->check_prerequisites($source);};
+            if($exit_status) {
+                # on error, prerequisites were not meet.
+                next;
+            }
+
             # save current environment so that we can rollback in case of error.
             $self->push_environment();
 
@@ -8132,6 +8139,45 @@ sub execute_recipe {
     }
 }
 
+sub check_prerequisites {
+    my ($self, $source) = @_;
+
+    # by default return true. Usually packages do not have prerequisites.
+    return 0 unless $source->prerequisites();
+
+    if($self->bag->dry_run) {
+        return 0;
+    }
+
+    unless($source->prerequisites()) {
+        return 0;
+    }
+
+    my @steps = @{$source->prerequisites};
+
+    my ($pid, $pre_in) = $self->bag->shell();
+
+    # add shifting to tmp directory as the first step.
+    unshift @steps, 'cd ' . $self->bag->tmp_dir;
+
+    # add exiting cleanly from shell as a last step.
+    push @steps, 'exit 0';
+
+    for my $step (@steps) {
+        print { $pre_in } "$step\n";
+    }
+
+    my $status = -1;
+    eval { close $pre_in; $status = $? };
+
+    if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+
 sub setup_build_shell {
     my ($self, $source) = @_;
 
@@ -8257,6 +8303,7 @@ sub new {
     $self->files($json_description->{files});
     $self->msg_manual_requirement($json_description->{msg_manual_requirement});
     $self->dependencies($json_description->{dependencies});
+    $self->prerequisites($json_description->{prerequisites});
 
     return $self;
 }
@@ -8323,6 +8370,15 @@ sub dependencies {
     $self->{dependencies} = $new_dependencies if($new_dependencies);
 
     return $self->{dependencies};
+}
+
+sub prerequisites {
+    my ($self, $new_prerequisites) = @_;
+
+    $self->{prerequisites} = $new_prerequisites if($new_prerequisites);
+
+    # by default return true. Usually packages do not have prerequisites.
+    return $self->{prerequisites};
 }
 
 sub get_file {
@@ -8703,6 +8759,7 @@ __DATA__
                         "gcc-4.6.1-2.tar.gz"
                     ],
                     "recipe":[
+                        "mkdir ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=2 -xpf gcc-4.6.1-2.tar.gz"
                     ]
                 }
@@ -9116,6 +9173,53 @@ __DATA__
         }
     ],
 
+    "condor":[
+        {
+            "version":"v8.6.0",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
+                    ]
+                },
+                {
+                    "type":"generic",
+                    "files":[
+                        "condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATHaaaaaaaaa",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"lib/python"
+                }
+            ]
+        }
+    ],
 
     "berkeley-db":[
         {
@@ -9875,8 +9979,8 @@ __DATA__
                        "crossx86-x86_64-linux-musl-1.1.6.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_ROOT_CXX11}",
-                        "tar -C ${VC3_ROOT_CXX11} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
                         "cd ${VC3_ROOT_CXX11}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
                     ]
                 }
@@ -9912,8 +10016,8 @@ __DATA__
                        "mash-Linux64-v1.1.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_ROOT_MASH}",
-                        "tar -C ${VC3_ROOT_MASH} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
                     ]
                 }
             ],
@@ -10807,8 +10911,8 @@ __DATA__
                         "VC3_RepeatMasker-open-4-0-6.configure"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
-                        "tar -C ${VC3_ROOT_REPEATMASKER} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
                         "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_ROOT_REPEATMASKER}"
                     ]
                 }
@@ -10858,6 +10962,7 @@ __DATA__
                         "augustus.2.4.src.tar.gz"
                     ],
                     "recipe":[
+                        "mkdir ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf augustus.2.4.src.tar.gz",
                         "cd ${VC3_PREFIX}",
                         "make"
@@ -10944,6 +11049,7 @@ __DATA__
                         "maker-2.31.8.tgz"
                     ],
                     "recipe":[
+                        "mkdir ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf maker-2.31.8.tgz",
                         "cd ${VC3_PREFIX}/src",
                         ": y to activate MPI support",

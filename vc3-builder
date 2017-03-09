@@ -7124,6 +7124,7 @@ sub collect_environment {
 
     if($widget->active_source && $widget->active_source->dependencies) {
         push @all_dependencies, $widget->active_source->dependencies;
+        carp;
     }
 
     for my $dependencies (@all_dependencies) {

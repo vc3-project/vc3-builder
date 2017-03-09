@@ -1270,22 +1270,6 @@
             "versionreg":"Python ([0-9.]*).*",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "python_name=$(which python2 || which python)",
-                        "[ -z \"$python_name\" ] && exit 1",
-                        "python_root=${python_name%/bin*}",
-                        "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
-                        "cd ${VC3_ROOT_PYTHON}",
-                        "ln -s ${python_root}/lib lib",
-                        "ln -s ${python_root}/include include",
-                        "mkdir bin",
-                        "ln -s ${python_name} bin/python",
-                        "ln -s ${python_name} bin/python2",
-                        "./bin/python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
-                    ]
-                },
-                {
                     "type":"tarball",
                     "files":[
                         "Python-2.7.12.tgz"
@@ -1302,6 +1286,22 @@
                             "v1.0"
                         ]
                     }
+                },
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "python_name=$(which python2 || which python)",
+                        "[ -z \"$python_name\" ] && exit 1",
+                        "python_root=${python_name%/bin*}",
+                        "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
+                        "cd ${VC3_ROOT_PYTHON}",
+                        "ln -s ${python_root}/lib lib",
+                        "ln -s ${python_root}/include include",
+                        "mkdir bin",
+                        "ln -s ${python_name} bin/python",
+                        "ln -s ${python_name} bin/python2",
+                        "./bin/python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
+                    ]
                 }
             ],
             "environment_variables":[

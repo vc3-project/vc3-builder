@@ -40,13 +40,23 @@
             },
             "environment_variables":[
                 {
-                    "name":"PYTHONPATH",
-                    "value":"${HOME}/vc3-services/lib/python",
+                    "name":"APF_HOME",
+                    "value":"${HOME}/apf",
+                    "absolute":1
+                },
+                {
+                    "name":"VC3_SERVICES_HOME",
+                    "value":"${HOME}/vc3-services",
                     "absolute":1
                 },
                 {
                     "name":"PYTHONPATH",
-                    "value":"${HOME}/apf/lib/python",
+                    "value":"${VC3_SERVICES_HOME}/lib/python",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${APF_HOME}/lib/python",
                     "absolute":1
                 }
             ]

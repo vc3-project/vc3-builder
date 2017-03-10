@@ -56,10 +56,11 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --make-jobs <n>       Concurrent make jobs. Default is 2.
   --sh-on-error         On building error, run /bin/sh on the partially-built
+                        environment.
 
+  --no-run              Set up environment, but do not execute any payload.
   --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.init},
                         but do not execute the payload.
-                        environment.
 
 Examples:
     ${script_name} --require cvmfs 'ls /cvmfs/atlas.cern.ch' 
@@ -79,6 +80,7 @@ sub main {
 
     my $debug_modules_used = 0;
     my $dry_run            = 0;
+    my $no_run             = 0;
     my $dot_output;
 
     # if the executable name does looks like "perl", we use $0, as it has the
@@ -107,8 +109,9 @@ sub main {
         "sh-on-error"     => \$sh_on_error,
         "no-dependencies" => \$no_depend,
 
-        "env-to=s"    => \$env_to,
-        "dry-run"     => \$dry_run,
+        "env-to=s" => \$env_to,
+        "dry-run"  => \$dry_run,
+        "no-run"   => \$no_run,
 
         # options for developing, not for runtime:
         "dot=s"       => \$dot_output,
@@ -170,6 +173,7 @@ sub main {
     if($env_to) {
         $bag->set_environment($env_to, @command_and_args);
     } else {
+        exit 0 if $no_run;
         $bag->execute(@command_and_args);
         # we get here only when execute fails.
         exit -1;

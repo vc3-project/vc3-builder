@@ -8517,6 +8517,60 @@ sub check_manual_requirements {
 package VC3::Builder;
 __DATA__
 {
+    "vc3-dev-factory":[
+        {
+            "version":"v0.0.1",
+            "phony":1,
+            "prologue": [
+                "echo to run factory, type:",
+                "echo $HOME/apf/bin/autopyfactory --debug --console --conf=$HOME/apf/Betc/autopyfactory.conf"
+            ],
+            "dependencies":{
+                "vc3-dev":[
+                    "v0.0.1"
+                ]
+            }
+        }
+    ],
+
+    "vc3-dev":[
+        {
+            "version":"v0.0.1",
+            "dependencies":{
+                "condor":[
+                    "v8.6.0"
+                ],
+                "perl":[
+                    "v2.24.0"
+                ],
+                "python":[
+                    "v2.7.12"
+                ],
+                "git":[
+                    "v2.12.0"
+                ],
+                "python-cherrypy":[
+                    "v3.2.2"
+                ],
+                "python-requests":[
+                    "v2.7.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${HOME}/vc3-services/lib/python",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${HOME}/apf/lib/python",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
     "icecube-argonne-demo":[
         {
             "version":"v1.0",
@@ -9788,22 +9842,6 @@ __DATA__
             "versionreg":"Python ([0-9.]*).*",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "python_name=$(which python2 || which python)",
-                        "[ -z \"$python_name\" ] && exit 1",
-                        "python_root=${python_name%/bin*}",
-                        "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
-                        "cd ${VC3_ROOT_PYTHON}",
-                        "ln -s ${python_root}/lib lib",
-                        "ln -s ${python_root}/include include",
-                        "mkdir bin",
-                        "ln -s ${python_name} bin/python",
-                        "ln -s ${python_name} bin/python2",
-                        "./bin/python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
-                    ]
-                },
-                {
                     "type":"tarball",
                     "files":[
                         "Python-2.7.12.tgz"
@@ -9820,6 +9858,22 @@ __DATA__
                             "v1.0"
                         ]
                     }
+                },
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "python_name=$(which python2 || which python)",
+                        "[ -z \"$python_name\" ] && exit 1",
+                        "python_root=${python_name%/bin*}",
+                        "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
+                        "cd ${VC3_ROOT_PYTHON}",
+                        "ln -s ${python_root}/lib lib",
+                        "ln -s ${python_root}/include include",
+                        "mkdir bin",
+                        "ln -s ${python_name} bin/python",
+                        "ln -s ${python_name} bin/python2",
+                        "./bin/python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
+                    ]
                 }
             ],
             "environment_variables":[

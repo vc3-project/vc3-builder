@@ -7124,7 +7124,6 @@ sub collect_environment {
 
     if($widget->active_source && $widget->active_source->dependencies) {
         push @all_dependencies, $widget->active_source->dependencies;
-        carp;
     }
 
     for my $dependencies (@all_dependencies) {
@@ -7891,7 +7890,7 @@ sub consolidate_environment_variables {
     my $vars = $self->environment_variables
     || return;
 
-    for my $var (@{$vars}) {
+    for my $var (reverse @{$vars}) {
 
         my $name = $var->{name}
         || carp "Environment variable does not have a name.";
@@ -7917,13 +7916,16 @@ sub consolidate_environment_variables {
             @paths = split /:/, $value;
         }
 
+        my @current_expansions;
         for my $path (@paths) {
             if(!$absolute) {
                 $path = '${' . $self->var_root_name . '}/' . $path;
             }
 
-            push @{$expansion->{$name}}, $path;
+            push @current_expansions, $path;
         }
+
+        unshift @{$expansion->{$name}}, @current_expansions;
     }
 }
 

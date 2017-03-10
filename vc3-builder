@@ -8564,6 +8564,11 @@ __DATA__
                 },
                 {
                     "name":"VC3_SERVICES_HOME",
+                    "value":"${HOME}/git/vc3-info-service",
+                    "absolute":1
+                },
+                {
+                    "name":"VC3_SERVICES_HOME",
                     "value":"${HOME}/vc3-services",
                     "absolute":1
                 },

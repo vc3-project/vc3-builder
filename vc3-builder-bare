@@ -12,21 +12,23 @@ use Tie::RefHash;
 use Cwd;
 
 use Carp qw( confess );
-$SIG{__DIE__} =  \&confess;
-$SIG{__WARN__} = \&confess;
+$SIG{__DIE__}  =  \&confess;
+
+$SIG{TERM} = \&cleanup_signal_handler;
+$SIG{INT}  = \&cleanup_signal_handler;
 
 my $pwd            = getcwd();
 my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
 my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository/builder-files";
-my $vc3_env_output = ".vc3_sh";
 
 my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;
+my @cleanups;     # functions to call on exit.
+
 
 # call main if running interactively
 VC3::Builder::main();
-
 
 sub usage {
     my ($script_name) = @_;
@@ -59,7 +61,7 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         environment.
 
   --no-run              Set up environment, but do not execute any payload.
-  --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.init},
+  --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.cmd},
                         but do not execute the payload.
 
 Examples:
@@ -67,6 +69,27 @@ Examples:
     ${script_name} --require maker-example-ecoli-01
 EOF
 
+}
+
+sub cleanup_signal_handler {
+    my ($signal) = @_;
+
+    if($signal) {
+        warn("Got signal!: $signal");
+    }
+
+    for my $fn (@cleanups) {
+        eval { $fn->() };
+    }
+
+    if($signal) {
+        $? = 128;
+        exit $?;
+    }
+}
+
+END {
+    cleanup_signal_handler();
 }
 
 sub main {
@@ -170,16 +193,17 @@ sub main {
 
     $bag->prepare_exec_environment();
 
-    if($env_to) {
+    my $exit_code;
+    if($no_run) {
+        $exit_code = 0;
+    } elsif($env_to) {
         $bag->set_environment($env_to, @command_and_args);
+        $exit_code = 0;
     } else {
-        exit 0 if $no_run;
-        $bag->execute(@command_and_args);
-        # we get here only when execute fails.
-        exit -1;
+        $exit_code = $bag->execute(@command_and_args);
     }
 
-    exit 0;
+    exit $exit_code;
 }
 
 sub print_modules_used {
@@ -231,6 +255,7 @@ use Carp qw/carp croak/;
 use English qw/-mo_match_vars/;
 use List::Util qw/max/;
 use File::Spec ();
+use File::Temp qw(tempfile);
 use version ();
 use POSIX ();
 
@@ -367,12 +392,22 @@ sub set_builder_variables {
     File::Path::make_path($home);
     File::Path::make_path($tmp_dir);
 
+    my ($profile_f, $profile_name) = tempfile($self->home_dir . "/.vc3_sh-XXXXXX");
+    close $profile_f;
+    $self->sh_profile($profile_name);
+    push @cleanups, sub { $self->cleanup() };
+
     $self->add_builder_variable('VC3_ROOT',      $vc3_root);
     $self->add_builder_variable('VC3_DISTFILES', $vc3_distfiles);
-    $self->add_builder_variable('HOME',          $home);
-    $self->add_builder_variable('TMP',           $tmp_dir);
+    $self->add_builder_variable('HOME',          $self->home_dir);
+    $self->add_builder_variable('TMP',           $self->tmp_dir);
     $self->add_builder_variable('TERM',          'linux');
     $self->add_builder_variable('USER',          getlogin() || $ENV{'USER'} || 'vc3-user');
+}
+
+sub DESTROY {
+    my ($self) = @_;
+    $self->cleanup();
 }
 
 sub environment_variables {
@@ -516,6 +551,27 @@ sub tmp_dir {
     $self->{tmp_dir} = $tmp if($tmp);
 
     return $self->{tmp_dir};
+}
+
+sub sh_profile {
+    my ($self, $init) = @_;
+
+    $self->{sh_profile} = $init if($init);
+
+    return $self->{sh_profile};
+}
+
+sub cleanup {
+    my ($self) = @_;
+
+    if(-f $self->sh_profile) {
+        unlink $self->sh_profile;
+    }
+
+    my $cmd_file = $self->sh_profile . '.cmd';
+    if(-f $cmd_file) {
+        unlink $cmd_file;
+    }
 }
 
 sub dry_run {
@@ -980,8 +1036,8 @@ sub set_profile {
 sub set_environment {
     my ($self, $wrapper_file, @command_and_args) = @_;
 
-    $wrapper_file = $self->home_dir . "/$wrapper_file";
-    my $profile_file = "$wrapper_file.init";
+    $wrapper_file = $self->sh_profile;
+    my $profile_file = "$wrapper_file.cmd";
 
     $self->set_profile($profile_file, @command_and_args);
     $self->set_wrapper($wrapper_file, $profile_file);
@@ -991,8 +1047,8 @@ sub set_environment {
 sub execute {
     my ($self, @command_and_args) = @_;
 
-    $self->set_environment($vc3_env_output, @command_and_args);
-    exec "/usr/bin/env -i /bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'";
+    $self->set_environment($self->sh_profile, @command_and_args);
+    return system("/usr/bin/env -i /bin/sh -c '. " . $self->sh_profile . "'");
 }
 
 sub shell {
@@ -1000,9 +1056,9 @@ sub shell {
 
     $payload |= '/bin/sh';
 
-    $self->set_environment($vc3_env_output, $payload);
+    $self->set_environment($self->sh_profile, $payload);
 
-    my $pid = open(my $input, '|-', "/usr/bin/env -i /bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
+    my $pid = open(my $input, '|-', "/usr/bin/env -i /bin/sh -c '. " . $self->sh_profile . "'");
 
     return ($pid, $input);
 }
@@ -1012,8 +1068,8 @@ sub shell_user {
 
     $payload |= '/bin/sh';
 
-    $self->set_environment($vc3_env_output, $payload);
-    my $status = system("/usr/bin/env -i /bin/sh -c '. " . $self->home_dir . "/$vc3_env_output'");
+    $self->set_environment($self->sh_profile, $payload);
+    my $status = system("/usr/bin/env -i /bin/sh -c '." . $self->sh_profile . "'");
 
     return $status;
 }

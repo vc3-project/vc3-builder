@@ -7801,6 +7801,16 @@ sub bag {
     return $self->{bag};
 }
 
+sub ribbon {
+    my ($self) = @_;
+
+    unless($self->{ribbon}) {
+        $self->{ribbon} = VC3::Ribbon->new($self->destination_dir, $self->checksum);
+    }
+
+    return $self->{ribbon};
+}
+
 sub name {
     my ($self, $new_name) = @_;
 
@@ -7918,32 +7928,6 @@ sub build_log {
     return $log_name;
 }
 
-sub completion_ribbon {
-    my ($self) = @_;
-    my $ribbon = $self->destination_dir . '/.VC3_DEPENDENCY_BUILD';
-
-    return $ribbon;
-}
-
-sub check_ribbon {
-    my ($self) = @_;
-
-    my $ribbon = $self->completion_ribbon();
-    return 0 unless -f $ribbon;
-
-    open my $ribbon_fh, '<', $ribbon || return 0;
-
-    my $contents = do { local($/); <$ribbon_fh> };
-    close($ribbon_fh);
-
-    my $report = JSON::Tiny::decode_json($contents);
-
-    return 0 unless $report->{checksum};
-    return 0 unless $report->{checksum} eq $self->checksum;
-
-    return 1;
-}
-
 sub consolidate_environment_variables {
     my ($self, $expansion) = @_; 
 
@@ -8053,23 +8037,6 @@ sub process_error {
     }
 }
 
-sub create_ribbon {
-    my ($self) = @_;
-
-    my $ribbon_fh = IO::Handle->new();
-    open ($ribbon_fh, '>', $self->completion_ribbon);
-
-    my $report = {};
-    $report->{'checksum'} = $self->checksum;
-
-    printf { $ribbon_fh } JSON::Tiny::encode_json($report);
-
-    $ribbon_fh->flush();
-    $ribbon_fh->sync();
-
-    $ribbon_fh->close();
-}
-
 sub checksum {
     my ($self, $load) = @_;
 
@@ -8143,12 +8110,12 @@ sub execute_recipe {
     my ($self, $source, $no_depend) = @_;
 
     # if nothing to do, we return no error:
-    if(!$self->phony && $self->check_ribbon()) {
-        return 0;
-    }
-
-    if(!$self->phony && !$self->check_ribbon && $no_depend eq 'dependency') {
-        carp('Dependency ' . $self->name . ' is not installed.');
+    if(!$self->phony) {
+        if($self->ribbon->state eq 'DONE') {
+            return 0;
+        } elsif($no_depend eq 'dependency') {
+            carp('Dependency ' . $self->name . ' is not installed.');
+        }
     }
 
     $self->bag->say("preparing '" . $self->name . "' for ", $self->bag->target);
@@ -8194,7 +8161,7 @@ sub execute_recipe {
     $self->bag->del_builder_variable('VC3_BUILD');
 
     if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
-        $self->create_ribbon();
+        $self->ribbon->commit('DONE');
         File::Path::rmtree($self->build_dir);
         return 0;
     } else {
@@ -8320,6 +8287,139 @@ sub order_dependency {
         }
     }
 }
+
+package VC3::Ribbon;
+
+use Fcntl qw(:flock);
+
+sub new {
+    my ($class, $install_dir, $checksum) = @_;
+
+    my $self = bless {}, $class;
+
+    my $name = $install_dir . '/.VC3_DEPENDENCY_BUILD';
+
+    $self->{filename} = $name;
+    $self->{checksum} = $checksum;
+
+    return $self;
+}
+
+sub commit {
+    my ($self, $state) = @_;
+
+    my $lock_fh = $self->write_lock();
+
+    unless($lock_fh) {
+        die "Could not get lock for file '" . $self->{filename} . "'";
+    }
+
+    my $ribbon_fh = IO::Handle->new();
+    open ($ribbon_fh, '>', $self->{filename});
+
+    my $report = {};
+    $report->{'state'}    = $state;
+    $report->{'checksum'} = $self->{checksum};
+    $report->{'time'}     = time();
+
+    printf { $ribbon_fh } JSON::Tiny::encode_json($report);
+
+    $ribbon_fh->flush();
+    $ribbon_fh->sync();
+
+    $ribbon_fh->close();
+
+    $self->release_lock();
+}
+
+sub write_lock {
+    my ($self) = @_;
+
+    my $lock_name = $self->{filename};
+
+    open(my $lock_fh, '>>', $lock_name) or
+    die "Could create lock for '" . $self->{filename} . "'";
+
+    flock($lock_fh, LOCK_EX);
+
+    truncate($lock_fh, 0);
+    seek($lock_fh, 0, 0);
+
+    $self->{lock_fh} = $lock_fh;
+
+    return $lock_fh;
+}
+
+sub read_lock {
+    my ($self) = @_;
+
+    return undef unless -f $self->{filename};
+
+    open(my $lock_fh, '<', $self->{filename}) or
+    die "Could create lock for '" . $self->{filename} . "'";
+
+    flock($lock_fh, LOCK_SH);
+
+    $self->{lock_fh} = $lock_fh;
+
+    return $lock_fh;
+}
+
+sub release_lock {
+    my ($self) = @_;
+
+    if($self->{lock_fh}) {
+        flock($self->{lock_fh}, LOCK_UN);
+    }
+
+    $self->{lock_fh} = undef;
+}
+
+sub state {
+    my ($self) = @_;
+
+    my $name = $self->{filename};
+    my $state = 'MISSING';
+
+    if(-f $name) {
+        do {
+
+            $self->read_lock();
+            open my $ribbon_fh, '<', $name || warn $!;
+
+            if($ribbon_fh) {
+                my $contents = do { local($/); <$ribbon_fh> };
+                close($ribbon_fh);
+
+                my $report = JSON::Tiny::decode_json($contents);
+
+                if(!$report->{state}) {
+                    $state = 'MISSING';
+                } elsif(!$report->{checksum}) {
+                    $state = 'MISSING';
+                } elsif($report->{checksum} ne $self->{checksum}) {
+                    $state = 'OUT_OF_DATE';
+                } elsif($report->{state} eq 'PROCESSING') {
+
+                    my $start = $report->{time} || 0;
+
+                    if(time() - $start > 60*60) { # if waiting for more than one hour
+                        $state = 'MISSING';
+                    } else {
+                        sleep(10);
+                        $state = 'PROCESSING';
+                    }
+                } else {
+                    $state = $report->{state};
+                }
+            }
+            $self->release_lock();
+        } while($state eq 'PROCESSING');
+    }
+
+    return $state;
+}
+
 
 package VC3::Source;
 use Carp;

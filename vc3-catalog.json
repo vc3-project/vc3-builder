@@ -776,7 +776,7 @@
             ],
             "environment_variables":[
                 {
-                    "name":"PATHaaaaaaaaa",
+                    "name":"PATH",
                     "value":"bin"
                 },
                 {

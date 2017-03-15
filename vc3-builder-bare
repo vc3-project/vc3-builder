@@ -1459,8 +1459,20 @@ sub prepare_recipe_sandbox {
     $source->prepare_files($build);
 }
 
+
 sub execute_recipe {
     my ($self, $source, $no_depend) = @_;
+
+    $self->ribbon->set_lock();
+    my $result = $self->execute_recipe_unlocked($source, $no_depend);
+    $self->ribbon->release_lock();
+
+    return $result;
+}
+
+sub execute_recipe_unlocked {
+    my ($self, $source, $no_depend) = @_;
+
 
     # if nothing to do, we return no error:
     if(!$self->phony) {
@@ -1661,12 +1673,6 @@ sub new {
 sub commit {
     my ($self, $state) = @_;
 
-    my $lock_fh = $self->write_lock();
-
-    unless($lock_fh) {
-        die "Could not get lock for file '" . $self->{filename} . "'";
-    }
-
     my $ribbon_fh = IO::Handle->new();
     open ($ribbon_fh, '>', $self->{filename});
 
@@ -1681,41 +1687,19 @@ sub commit {
     $ribbon_fh->sync();
 
     $ribbon_fh->close();
-
-    $self->release_lock();
 }
 
-sub write_lock {
+sub set_lock {
     my ($self) = @_;
 
-    my $lock_name = $self->{filename};
+    my $lock_name = $self->{filename} . '.lock';
 
     open(my $lock_fh, '>>', $lock_name) or
     die "Could create lock for '" . $self->{filename} . "'";
 
     flock($lock_fh, LOCK_EX);
 
-    truncate($lock_fh, 0);
-    seek($lock_fh, 0, 0);
-
     $self->{lock_fh} = $lock_fh;
-
-    return $lock_fh;
-}
-
-sub read_lock {
-    my ($self) = @_;
-
-    return undef unless -f $self->{filename};
-
-    open(my $lock_fh, '<', $self->{filename}) or
-    die "Could create lock for '" . $self->{filename} . "'";
-
-    flock($lock_fh, LOCK_SH);
-
-    $self->{lock_fh} = $lock_fh;
-
-    return $lock_fh;
 }
 
 sub release_lock {
@@ -1736,8 +1720,6 @@ sub state {
 
     if(-f $name) {
         do {
-
-            $self->read_lock();
             open my $ribbon_fh, '<', $name || warn $!;
 
             if($ribbon_fh) {
@@ -1766,7 +1748,6 @@ sub state {
                     $state = $report->{state};
                 }
             }
-            $self->release_lock();
         } while($state eq 'PROCESSING');
     }
 

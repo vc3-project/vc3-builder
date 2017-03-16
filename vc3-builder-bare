@@ -1440,7 +1440,12 @@ sub prepare_recipe_sandbox {
     # we are running.
     my $destination = $self->destination_dir;
     if( -d $destination ) {
+        # we turn off messages to stderr, as the lock file cannot ever be removed.
+        use vars qw(*OLDSTDERR);
+        open OLDSTDERR, '>&', STDERR;
+        open STDERR,    '>', '/dev/null';
         File::Path::rmtree($destination);
+        open STDERR, '>&', OLDSTDERR;
     }
 
     # create the dirs we cleared above.

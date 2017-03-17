@@ -564,6 +564,11 @@ sub sh_profile {
 sub cleanup {
     my ($self) = @_;
 
+    if($self->{child_pid}) {
+        $self->say('Cleaning payload with pid: ' . $self->{child_pid});
+        kill 'TERM', $self->{child_pid};
+    }
+
     if(-f $self->sh_profile) {
         unlink $self->sh_profile;
     }
@@ -571,6 +576,23 @@ sub cleanup {
     my $cmd_file = $self->sh_profile . '.cmd';
     if(-f $cmd_file) {
         unlink $cmd_file;
+    }
+
+    if($self->{child_pid}) {
+        # give 10 seconds for child to cleanup TERM, then KILL
+        for my $i (1..5) {
+            my $n = kill 0, $self->{child_pid};
+            if($n) {
+                $self->{child_pid} = undef;
+                return;
+            } else {
+                $self->say('Waiting for payload with pid: ' . $self->{child_pid});
+                sleep(2);
+            }
+        }
+        $self->say('Hard terminating for payload with pid: ' . $self->{child_pid});
+        kill 'KILL', $self->{child_pid};
+        $self->{child_pid} = undef;
     }
 }
 
@@ -1060,8 +1082,13 @@ sub execute {
         exec { $args[0] } @args;
         die 'Could not exec payload';
     } elsif($pid > 0) {
+
         $self->{child_pid} = $pid;
         waitpid $pid, 0;
+        my $status = $?;
+        $self->{child_pid} = undef;
+
+        return POSIX::WEXITSTATUS($status);
     } else {
         die 'Could not fork to exec payload: ' . $!;
     }
@@ -1547,6 +1574,7 @@ sub execute_recipe_unlocked {
 
     my $status = -1;
     eval { close $build_in; $status = $? };
+    $self->{child_pid} = undef;
 
     $self->bag->pop_environment();
 

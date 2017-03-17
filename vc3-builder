@@ -7213,7 +7213,7 @@ sub cleanup {
 
     if($self->{child_pid}) {
         $self->say('Cleaning payload with pid: ' . $self->{child_pid});
-        kill 'TERM', $self->{child_pid};
+        kill 'TERM', -$self->{child_pid};
     }
 
     if(-f $self->sh_profile) {
@@ -7228,7 +7228,7 @@ sub cleanup {
     if($self->{child_pid}) {
         # give 10 seconds for child to cleanup TERM, then KILL
         for my $i (1..5) {
-            my $n = kill 0, $self->{child_pid};
+            my $n = kill 0, -$self->{child_pid};
             if($n) {
                 $self->{child_pid} = undef;
                 return;
@@ -7238,7 +7238,7 @@ sub cleanup {
             }
         }
         $self->say('Hard terminating for payload with pid: ' . $self->{child_pid});
-        kill 'KILL', $self->{child_pid};
+        kill 'KILL', -$self->{child_pid};
         $self->{child_pid} = undef;
     }
 }
@@ -7719,6 +7719,7 @@ sub execute {
     $self->set_environment($self->sh_profile, @command_and_args);
 
     my $pid = fork();
+
     if($pid == 0) {
         my @args = (
             '/usr/bin/env',
@@ -7726,6 +7727,8 @@ sub execute {
             '/bin/sh',
             '-c',
             ". " . $self->sh_profile);
+
+        setpgrp;
         exec { $args[0] } @args;
         die 'Could not exec payload';
     } elsif($pid > 0) {
@@ -7755,6 +7758,7 @@ sub shell {
             '/bin/sh',
             '-c',
             ". " . $self->sh_profile);
+        setpgrp;
         exec { $args[0] } @args;
         die 'Could not exec shell';
     } elsif($pid > 0) {
@@ -8136,13 +8140,17 @@ sub prepare_recipe_sandbox {
     # clear destination directory, to make sure we are running what we believe
     # we are running.
     my $destination = $self->destination_dir;
+
     if( -d $destination ) {
         # we turn off messages to stderr, as the lock file cannot ever be removed.
-        use vars qw(*OLDSTDERR);
         open OLDSTDERR, '>&', STDERR;
-        open STDERR,    '>', '/dev/null';
-        File::Path::rmtree($destination);
-        open STDERR, '>&', OLDSTDERR;
+        {
+            local *STDERR;
+            open STDERR, '>', '/dev/null';
+            File::Path::rmtree($destination);
+            close STDERR;
+        }
+        open OLDSTDERR, '>&', STDERR;
     }
 
     # create the dirs we cleared above.

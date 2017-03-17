@@ -45,8 +45,23 @@
                     "absolute":1
                 },
                 {
-                    "name":"VC3_SERVICES_HOME",
-                    "value":"${HOME}/git/vc3-info-service",
+                    "name":"PYTHONPATH",
+                    "value":"${HOME}/git/vc3-info-service/vc3",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${HOME}/git/vc3-master/vc3",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${HOME}/git/vc3-core/vc3",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${APF_HOME}/lib/python",
                     "absolute":1
                 },
                 {
@@ -55,13 +70,13 @@
                     "absolute":1
                 },
                 {
-                    "name":"PYTHONPATH",
-                    "value":"${VC3_SERVICES_HOME}/lib/python",
+                    "name":"VC3_SERVICES_HOME",
+                    "value":"${HOME}/vc3-services",
                     "absolute":1
                 },
                 {
-                    "name":"PYTHONPATH",
-                    "value":"${APF_HOME}/lib/python",
+                    "name":"PYTHONPATH_disable",
+                    "value":"${VC3_SERVICES_HOME}/lib/python",
                     "absolute":1
                 }
             ]

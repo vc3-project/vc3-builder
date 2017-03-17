@@ -1048,30 +1048,54 @@ sub execute {
     my ($self, @command_and_args) = @_;
 
     $self->set_environment($self->sh_profile, @command_and_args);
-    return system("/usr/bin/env -i /bin/sh -c '. " . $self->sh_profile . "'");
+
+    my $pid = fork();
+    if($pid == 0) {
+        my @args = (
+            '/usr/bin/env',
+            '-i',
+            '/bin/sh',
+            '-c',
+            ". " . $self->sh_profile);
+        exec { $args[0] } @args;
+        die 'Could not exec payload';
+    } elsif($pid > 0) {
+        $self->{child_pid} = $pid;
+        waitpid $pid, 0;
+    } else {
+        die 'Could not fork to exec payload: ' . $!;
+    }
 }
 
 sub shell {
     my ($self, $payload) = @_;
 
     $payload |= '/bin/sh';
-
     $self->set_environment($self->sh_profile, $payload);
 
-    my $pid = open(my $input, '|-', "/usr/bin/env -i /bin/sh -c '. " . $self->sh_profile . "'");
+    my $pid = open(my $input, '|-');
+    if($pid == 0) {
+        my @args = (
+            '/usr/bin/env',
+            '-i',
+            '/bin/sh',
+            '-c',
+            ". " . $self->sh_profile);
+        exec { $args[0] } @args;
+        die 'Could not exec shell';
+    } elsif($pid > 0) {
+        $self->{child_pid} = $pid;
+        # wait for this shell later.
+    } else {
+        die 'Could not fork to exec payload: ' . $!;
+    }
 
     return ($pid, $input);
 }
 
 sub shell_user {
-    my ($self, $payload) = @_;
-
-    $payload |= '/bin/sh';
-
-    $self->set_environment($self->sh_profile, $payload);
-    my $status = system("/usr/bin/env -i /bin/sh -c '." . $self->sh_profile . "'");
-
-    return $status;
+    my ($self) = @_;
+    return $self->execute('/bin/sh');
 }
 
 sub say {
@@ -1382,7 +1406,6 @@ sub process_error {
 
             my $cwd = getcwd();
 
-            chdir $self->build_dir;
             $self->bag->shell_user();
 
             chdir $cwd;
@@ -1660,6 +1683,7 @@ sub order_dependency {
 
 package VC3::Ribbon;
 
+use File::Basename; 
 use Fcntl qw(:flock);
 
 sub new {
@@ -1699,8 +1723,11 @@ sub set_lock {
 
     my $lock_name = $self->{filename} . '.lock';
 
+    # make sure parent directory exists
+    File::Path::make_path( dirname($lock_name) );
+
     open(my $lock_fh, '>>', $lock_name) or
-    die "Could create lock for '" . $self->{filename} . "'";
+    die "Could not create lock for '" . $self->{filename} . "'";
 
     flock($lock_fh, LOCK_EX);
 

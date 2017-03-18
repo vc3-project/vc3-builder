@@ -579,15 +579,15 @@ sub cleanup {
     }
 
     if($self->{child_pid}) {
-        # give 10 seconds for child to cleanup TERM, then KILL
+        # give 10 seconds for child to cleanup TERM, then REDRUM
         for my $i (1..5) {
             my $n = kill 0, -$self->{child_pid};
             if($n) {
+                $self->say('Waiting for payload with pid: ' . $self->{child_pid} . "  $n");
+                sleep(2);
+            } else {
                 $self->{child_pid} = undef;
                 return;
-            } else {
-                $self->say('Waiting for payload with pid: ' . $self->{child_pid});
-                sleep(2);
             }
         }
         $self->say('Hard terminating for payload with pid: ' . $self->{child_pid});
@@ -1081,10 +1081,14 @@ sub execute {
             '-c',
             ". " . $self->sh_profile);
 
-        setpgrp;
+        setpgrp($$, $$);
+
         exec { $args[0] } @args;
         die 'Could not exec payload';
     } elsif($pid > 0) {
+
+        setpgrp($pid, $pid);
+        $self->bring_to_foreground($pid);
 
         $self->{child_pid} = $pid;
         waitpid $pid, 0;
@@ -1095,6 +1099,17 @@ sub execute {
     } else {
         die 'Could not fork to exec payload: ' . $!;
     }
+}
+
+sub bring_to_foreground {
+    my ($self, $groupid) = @_;
+
+    open my $term, '+<', '/dev/tty';
+    return unless $term;
+
+    POSIX::tcsetpgrp(fileno($term), $groupid) or die "Could not bring child to foreground: $!";
+
+    close $term;
 }
 
 sub shell {

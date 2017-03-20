@@ -228,6 +228,45 @@
             "versionreg":"^parrot_run version ([0-9.]*)",
             "sources":[
                 {
+                    "type":"generic",
+                    "files":[
+                        "cctools-6.0.16-x86_64-redhat7.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.0.16-x86_64-redhat7.tar.gz"
+                    ]
+                },
+                {
+                    "type":"generic",
+                    "files":[
+                        "cctools-6.0.16-x86_64-redhat6.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.0.16-x86_64-redhat6.tar.gz"
+                    ]
+                },
+                {
+                    "type":"generic",
+                    "files":[
+                        "cctools-6.0.16-x86_64-redhat5.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat5\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.0.16-x86_64-redhat5.tar.gz"
+                    ]
+                },
+                {
                     "type":"tarball",
                     "files":[
                         "cctools-6.0.16-source.tar.gz"

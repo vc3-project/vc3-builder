@@ -60,6 +60,9 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --sh-on-error         On building error, run /bin/sh on the partially-built
                         environment.
 
+  --var NAME=VALUE      Add environment variable NAME with VALUE. 
+                        May be specified several times.
+
   --no-run              Set up environment, but do not execute any payload.
   --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.cmd},
                         but do not execute the payload.
@@ -106,6 +109,9 @@ sub main {
     my $no_run             = 0;
     my $dot_output;
 
+    my @database;
+    my @extra_vars;
+
     # if the executable name does looks like "perl", we use $0, as it has the
     # name of the script. Otherwise, this is a static run, and we use the given
     # executable name.
@@ -113,7 +119,6 @@ sub main {
 
     my $original_command = join(' ', $script_name, @ARGV);
 
-    my @database;
 
     GetOptions(
         "help"        => \$print_help,
@@ -121,8 +126,8 @@ sub main {
         "database=s"  => \@database,
         "require=s"   => \@requires, 
 
-        "install=s"   => \$vc3_root, 
-        "home=s"        => \$vc3_user_home,
+        "install=s" => \$vc3_root,
+        "home=s"    => \$vc3_user_home,
 
         "distfiles=s"  => \$vc3_distfiles, 
         "repository=s" => \$vc3_repository, 
@@ -135,6 +140,8 @@ sub main {
         "env-to=s" => \$env_to,
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
+
+        "var=s"    => \@extra_vars,
 
         # options for developing, not for runtime:
         "dot=s"       => \$dot_output,
@@ -180,6 +187,11 @@ sub main {
 
     $bag->add_builder_variable('MAKEFLAGS',        "-j${make_jobs}");
     $bag->add_builder_variable('VC3_COMMAND_LINE', File::Spec->rel2abs(join(" ", $original_command)));
+
+    for my $var (@extra_vars) {
+        $var =~ m/^(?<name>[A-Za-z_][A-Z-a-z_0-9]*)=(?<value>.*)$/ or die "Malformed variable specification: '$var'";
+        $bag->add_builder_variable($+{name}, $+{value});
+    }
 
     for my $req (@requires) {
         $bag->add_requirement($req);

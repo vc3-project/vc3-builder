@@ -6710,6 +6710,8 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --var NAME=VALUE      Add environment variable NAME with VALUE. 
                         May be specified several times.
 
+  --interactive         Treat command-and-args as an interactive terminal.
+
   --no-run              Set up environment, but do not execute any payload.
   --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.cmd},
                         but do not execute the payload.
@@ -6754,6 +6756,7 @@ sub main {
     my $debug_modules_used = 0;
     my $dry_run            = 0;
     my $no_run             = 0;
+    my $interactive_run    = 0;
     my $dot_output;
 
     my @database;
@@ -6788,6 +6791,8 @@ sub main {
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
 
+        "interactive" => \$interactive_run,
+
         "var=s"    => \@extra_vars,
 
         # options for developing, not for runtime:
@@ -6820,12 +6825,13 @@ sub main {
     my @command_and_args = @ARGV;
     if(!@command_and_args) {
         @command_and_args = ('/bin/sh',);
+        $interactive_run = 1;
     }
 
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag->new($dry_run, @database);
+    my $bag = VC3::Bag->new($dry_run, $interactive_run, @database);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -6921,11 +6927,12 @@ use POSIX ();
 use JSON::Tiny;
 
 sub new {
-    my ($class, $dry_run, @database) = @_;
+    my ($class, $dry_run, $interactive_run, @database) = @_;
 
     my $self = bless {}, $class;
 
-    $self->{dry_run} = $dry_run;
+    $self->{dry_run}         = $dry_run;
+    $self->{interactive_run} = $interactive_run;
 
     $self->{environment_variables} = [];
     $self->set_builder_variables();
@@ -7747,7 +7754,9 @@ sub execute {
     } elsif($pid > 0) {
 
         setpgrp($pid, $pid);
-        $self->bring_to_foreground($pid);
+        if($self->{interactive_run}) {
+            $self->bring_to_foreground($pid);
+        }
 
         $self->{child_pid} = $pid;
         waitpid $pid, 0;
@@ -8962,10 +8971,6 @@ __DATA__
     "work-queue-catalog":[
         {
             "version":"v6.0.16",
-            "prologue":[
-                "catalog_server -dall -o:stderr",
-                "exit 0"
-            ],
             "dependencies":{
                 "cctools":[
                     "v6.0.16"

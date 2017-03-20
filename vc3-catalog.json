@@ -208,10 +208,6 @@
     "work-queue-catalog":[
         {
             "version":"v6.0.16",
-            "prologue":[
-                "catalog_server -dall -o:stderr",
-                "exit 0"
-            ],
             "dependencies":{
                 "cctools":[
                     "v6.0.16"

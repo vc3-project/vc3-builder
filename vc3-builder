@@ -8762,7 +8762,7 @@ sub check_manual_requirements {
 package VC3::Builder;
 __DATA__
 {
-    "vc3-dev-factory":[
+    "vc3-factory":[
         {
             "version":"v0.0.1",
             "phony":1,

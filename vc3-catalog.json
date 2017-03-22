@@ -52,22 +52,27 @@
             },
             "environment_variables":[
                 {
-                    "name":"APF_HOME",
-                    "value":"${HOME}/apf",
+                    "name":"VC3_SERVICES_HOME",
+                    "value":"${HOME}/vc3-services",
                     "absolute":1
                 },
                 {
-                    "name":"PYTHONPATH",
+                    "name":"APF_HOME",
+                    "value":"${VC3_SERVICES_HOME}/apf",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH_disable",
                     "value":"${HOME}/git/vc3-info-service/vc3",
                     "absolute":1
                 },
                 {
-                    "name":"PYTHONPATH",
+                    "name":"PYTHONPATH_disable",
                     "value":"${HOME}/git/vc3-master/vc3",
                     "absolute":1
                 },
                 {
-                    "name":"PYTHONPATH",
+                    "name":"PYTHONPATH_disable",
                     "value":"${HOME}/git/vc3-core/vc3",
                     "absolute":1
                 },
@@ -77,18 +82,13 @@
                     "absolute":1
                 },
                 {
-                    "name":"VC3_SERVICES_HOME",
-                    "value":"${HOME}/vc3-services",
-                    "absolute":1
-                },
-                {
-                    "name":"VC3_SERVICES_HOME",
-                    "value":"${HOME}/vc3-services",
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH_disable",
+                    "name":"PYTHONPATH",
                     "value":"${VC3_SERVICES_HOME}/lib/python",
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_SERVICES_HOME}/apf/bin",
                     "absolute":1
                 }
             ]

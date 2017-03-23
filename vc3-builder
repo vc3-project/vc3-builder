@@ -8926,7 +8926,7 @@ __DATA__
                     ],
                     "recipe":[
                         "chmod 755 htcondor-glidein-wrapper",
-                        "mkdir ${VC3_PREFIX}/bin",
+                        "mkdir -p ${VC3_PREFIX}/bin",
                         "cp htcondor-glidein-wrapper ${VC3_PREFIX}/bin"
                     ],
                     "dependencies":{
@@ -9159,7 +9159,7 @@ __DATA__
                         "gcc-4.6.1-2.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir ${VC3_PREFIX}",
+                        "mkdir -p ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=2 -xpf gcc-4.6.1-2.tar.gz"
                     ]
                 }
@@ -11450,7 +11450,7 @@ __DATA__
                         "maker-2.31.8.tgz"
                     ],
                     "recipe":[
-                        "mkdir ${VC3_PREFIX}",
+                        "mkdir -p ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf maker-2.31.8.tgz",
                         "cd ${VC3_PREFIX}/src",
                         ": y to activate MPI support",

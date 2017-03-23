@@ -11311,13 +11311,14 @@ __DATA__
                         "VC3_RepeatMasker-open-4-0-6.configure"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
-                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_ROOT_REPEATMASKER}"
+                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
+                        "tar -C ${VC3_ROOT_REPEATMASKER} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_ROOT_REPEATMASKER}/"
                     ]
                 }
             ],
-            "dependencies":{
+            "dependencies":
+            {
                 "perl":[
                     "v5.8"
                 ],

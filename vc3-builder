@@ -11363,7 +11363,7 @@ __DATA__
                         "augustus.2.4.src.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir ${VC3_PREFIX}",
+                        "mkdir -p ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf augustus.2.4.src.tar.gz",
                         "cd ${VC3_PREFIX}",
                         "make"

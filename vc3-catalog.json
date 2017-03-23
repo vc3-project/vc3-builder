@@ -222,7 +222,7 @@
         }
     ],
 
-    "work-queue-catalog":[
+    "cctools-catalog-server":[
         {
             "version":"v6.0.16",
             "dependencies":{

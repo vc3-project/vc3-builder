@@ -90,6 +90,11 @@
                     "name":"PATH",
                     "value":"${VC3_SERVICES_HOME}/apf/bin",
                     "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_SERVICES_HOME}/bin",
+                    "absolute":1
                 }
             ]
         }

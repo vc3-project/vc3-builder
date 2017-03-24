@@ -27,6 +27,53 @@
         }
     ],
 
+    "vc3-services":[
+        {
+            "version":"v0.0.1",
+            "phony":1,
+            "dependencies":{
+                "vc3-factory":[
+                    "v0.0.1"
+                ],
+                "vc3-info-service":[
+                    "v0.0.1"
+                ]
+            }
+        }
+    ],
+
+    "vc3-services-common-requirements":[
+        {
+            "version":"v0.0.1",
+            "phony":1,
+            "dependencies":{
+                "python":[
+                    "v2.7.12"
+                ],
+                "git":[
+                    "v2.12.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"VC3_SERVICES_HOME",
+                    "value":"${HOME}/vc3-services",
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_SERVICES_HOME}/bin",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${VC3_SERVICES_HOME}/lib/python",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
     "vc3-dev":[
         {
             "version":"v0.0.1",
@@ -37,11 +84,54 @@
                 "perl":[
                     "v2.24.0"
                 ],
-                "python":[
-                    "v2.7.12"
+                "python-cherrypy":[
+                    "v3.2.2"
                 ],
-                "git":[
-                    "v2.12.0"
+                "python-requests":[
+                    "v2.7.0"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"APF_HOME",
+                    "value":"${VC3_SERVICES_HOME}/apf",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${APF_HOME}/lib/python",
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_SERVICES_HOME}/apf/bin",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "vc3-info-service":[
+        {
+            "version":"v0.1",
+            "phony":1,
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${HOME}/git && cd ${HOME}/git",
+                        "[ -d ${HOME}/git/vc3-info-service ] || git clone https://github.com/vc3-project/vc3-info-service.git",
+                        "cd ${HOME}/git/vc3-info-service",
+                        "python setup.py install --home=${VC3_SERVICES_HOME}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "vc3-pluginmanager":[
+                    "v0.0.1"
+                ],
+                "vc3-certificates":[
+                    "v0.0.1"
                 ],
                 "python-cherrypy":[
                     "v3.2.2"
@@ -52,51 +142,111 @@
             },
             "environment_variables":[
                 {
-                    "name":"VC3_SERVICES_HOME",
-                    "value":"${HOME}/vc3-services",
+                    "name":"VC3_SERVICES_INFOSERVICE_INFOHOST",
+                    "value":"localhost",
                     "absolute":1
                 },
                 {
-                    "name":"APF_HOME",
-                    "value":"${VC3_SERVICES_HOME}/apf",
+                    "name":"VC3_SERVICES_INFOSERVICE_HTTP_PORT",
+                    "value":"20333",
                     "absolute":1
                 },
                 {
-                    "name":"PYTHONPATH_disable",
-                    "value":"${HOME}/git/vc3-info-service/vc3",
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH_disable",
-                    "value":"${HOME}/git/vc3-master/vc3",
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH_disable",
-                    "value":"${HOME}/git/vc3-core/vc3",
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH",
-                    "value":"${APF_HOME}/lib/python",
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH",
-                    "value":"${VC3_SERVICES_HOME}/lib/python",
-                    "absolute":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"${VC3_SERVICES_HOME}/apf/bin",
-                    "absolute":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"${VC3_SERVICES_HOME}/bin",
+                    "name":"VC3_SERVICES_INFOSERVICE_HTTPS_PORT",
+                    "value":"20334",
                     "absolute":1
                 }
             ]
+        }
+    ],
+
+    "vc3-certificates":[
+        {
+            "version":"v0.1",
+            "phony":1,
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${HOME}/git && cd ${HOME}/git",
+                        "[ -d certify ] || git clone https://github.com/vc3-project/certify.git",
+                        "cd $HOME/git/certify/misc/ssca",
+                        "missing=0",
+                        "[ -f intermediate/certs/localhost.cert.pem ]            || missing=1",
+                        "[ -f intermediate/certs/VC3Admin.cert.pem ]             || missing=1",
+                        "[ -f intermediate/certs/ca-chain.cert.pem ]             || missing=1",
+                        "[ -f intermediate/certs/private/localhost.keynopw.pem ] || missing=1",
+                        "[ -f intermediate/certs/private/VC3Admin.keynopw.pem ]  || missing=1",
+                        "[ \"$missing\" = 0 ] || ./ssca.sh createroot",
+                        "[ \"$missing\" = 0 ] || ./ssca.sh createintermediate",
+                        "[ \"$missing\" = 0 ] || ./ssca.sh certchain",
+                        "[ \"$missing\" = 0 ] || ./ssca.sh hostcert localhost",
+                        "[ \"$missing\" = 0 ] || ./ssca.sh usercert VC3Admin",
+                        "mkdir -p ${VC3_SERVICES_HOME}/etc/certs/private",
+                        "cp -f intermediate/certs/localhost.cert.pem ${VC3_SERVICES_HOME}/etc/certs/",
+                        "cp -f intermediate/certs/VC3Admin.cert.pem ${VC3_SERVICES_HOME}/etc/certs/",
+                        "cp -f intermediate/certs/ca-chain.cert.pem ${VC3_SERVICES_HOME}/etc/certs/",
+                        "cp -f intermediate/private/localhost.keynopw.pem ${VC3_SERVICES_HOME}/etc/certs/private/",
+                        "cp -f intermediate/private/VC3Admin.keynopw.pem ${VC3_SERVICES_HOME}/etc/certs/private/"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "vc3-services-common-requirements":[
+                    "v0.0.1"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"VC3_SERVICES_CERTS_HOME",
+                    "value":"${VC3_SERVICES_HOME}/etc/ssca/certs",
+                    "absolute":1
+                },
+                {
+                    "name":"VC3_SERVICES_CERTS_CHAINFILE",
+                    "value":"${VC3_SERVICES_CERTS_HOME}/ca-chain.cert.pem",
+                    "absolute":1
+                },
+                {
+                    "name":"VC3_SERVICES_CERTS_CERTFILE",
+                    "value":"${VC3_SERVICES_CERTS_HOME}/VC3Admin.cert.pem",
+                    "absolute":1
+                },
+                {
+                    "name":"VC3_SERVICES_CERTS_KEYFILE",
+                    "value":"${VC3_SERVICES_CERTS_HOME}/private/VC3Admin.keynopw.pem",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "vc3-pluginmanager":[
+        {
+            "version":"v0.1",
+            "phony":1,
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${HOME}/git && cd $HOME/git",
+                        "[ -d pluginmanager ] || git clone https://github.com/vc3-project/pluginmanager.git",
+                        "cd ${HOME}/git/pluginmanager",
+                        "python setup.py install --home=${VC3_SERVICES_HOME}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "vc3-services-common-requirements":[
+                    "v0.0.1"
+                ],
+                "python-cherrypy":[
+                    "v3.2.2"
+                ],
+                "python-requests":[
+                    "v2.7.0"
+                ]
+            }
         }
     ],
 

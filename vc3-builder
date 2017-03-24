@@ -6712,6 +6712,8 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --interactive         Treat command-and-args as an interactive terminal.
 
+  --silent              Do not print dependency information.
+
   --no-run              Set up environment, but do not execute any payload.
   --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.cmd},
                         but do not execute the payload.
@@ -6758,6 +6760,7 @@ sub main {
     my $no_run             = 0;
     my $interactive_run    = 0;
     my $dot_output;
+    my $silent             = 0;
 
     my @database;
     my @extra_vars;
@@ -6790,6 +6793,7 @@ sub main {
         "env-to=s" => \$env_to,
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
+        "silent"   => \$silent,
 
         "interactive" => \$interactive_run,
 
@@ -6831,7 +6835,7 @@ sub main {
     # disable stdout buffering
     select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
-    my $bag = VC3::Bag->new($dry_run, $interactive_run, @database);
+    my $bag = VC3::Bag->new($dry_run, $interactive_run, $silent, @database);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -6928,12 +6932,13 @@ use POSIX ();
 use JSON::Tiny;
 
 sub new {
-    my ($class, $dry_run, $interactive_run, @database) = @_;
+    my ($class, $dry_run, $interactive_run, $silent, @database) = @_;
 
     my $self = bless {}, $class;
 
     $self->{dry_run}         = $dry_run;
     $self->{interactive_run} = $interactive_run;
+    $self->{silent_run}      = $silent;
 
     $self->{environment_variables} = [];
     $self->set_builder_variables();
@@ -7816,6 +7821,9 @@ sub shell_user {
 
 sub say {
     my ($self, @rest) = @_;
+
+    return if($self->{silent_run});
+
     print(('.' x $self->{indent_level}), @rest, "\n");
 }
 
@@ -8039,7 +8047,12 @@ sub consolidate_environment_variables {
         my $absolute = $var->{absolute};
 
         if($expansion->{$name} && $clobber) {
-            carp("Asked to clobber variable '%s', but it already had a value.", $name);
+            my @old_value = @{$expansion->{$name}};
+            my $n = @old_value;
+            if($n > 1) {
+                carp("Asked to clobber variable '$name', but it already had a value.\n"
+                    . "'$value' <> '" . join(',', @old_value) . "'\n");
+            }
         }
 
         $expansion->{$name} ||= [];

@@ -23,8 +23,8 @@
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
-                        "cd ${HOME}/git/autopyfactory",
+                        "[ -d autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
+                        "cd autopyfactory",
                         "python setup.py install --home=${VC3_SERVICES_HOME}/apf"
                     ]
                 }
@@ -145,8 +145,8 @@
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/vc3-master ] || git clone https://github.com/vc3-project/vc3-master.git",
-                        "cd ${HOME}/git/vc3-master",
+                        "[ -d vc3-master ] || git clone https://github.com/vc3-project/vc3-master.git",
+                        "cd vc3-master",
                         "python setup.py install --home=${VC3_SERVICES_HOME}"
                     ]
                 }
@@ -168,8 +168,8 @@
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/vc3-core ] || git clone https://github.com/vc3-project/vc3-core.git",
-                        "cd ${HOME}/git/vc3-core",
+                        "[ -d vc3-core ] || git clone https://github.com/vc3-project/vc3-core.git",
+                        "cd vc3-core",
                         "python setup.py install --home=${VC3_SERVICES_HOME}"
                     ]
                 }
@@ -197,8 +197,8 @@
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/vc3-wrappers ] || git clone https://github.com/vc3-project/vc3-wrappers.git",
-                        "cd ${HOME}/git/vc3-wrappers",
+                        "[ -d vc3-wrappers ] || git clone https://github.com/vc3-project/vc3-wrappers.git",
+                        "cd vc3-wrappers",
                         "python setup.py install --home=${VC3_SERVICES_HOME}"
                     ]
                 }
@@ -220,8 +220,8 @@
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/vc3-info-service ] || git clone https://github.com/vc3-project/vc3-info-service.git",
-                        "cd ${HOME}/git/vc3-info-service",
+                        "[ -d vc3-info-service ] || git clone https://github.com/vc3-project/vc3-info-service.git",
+                        "cd vc3-info-service",
                         "python setup.py install --home=${VC3_SERVICES_HOME}",
                         "ln -sf ${VC3_SERVICES_HOME}/lib/python/vc3/infoclient.py ${VC3_SERVICES_HOME}/lib/python"
 
@@ -272,7 +272,7 @@
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d certify ] || git clone https://github.com/vc3-project/certify.git",
-                        "cd $HOME/git/certify/misc/ssca",
+                        "cd certify/misc/ssca",
                         "missing=0",
                         "[ -f intermediate/certs/localhost.cert.pem ]            || missing=1",
                         "[ -f intermediate/certs/VC3Admin.cert.pem ]             || missing=1",

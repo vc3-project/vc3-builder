@@ -422,13 +422,13 @@ sub set_builder_variables {
     $self->sh_profile($profile_name);
     push @cleanups, sub { $self->cleanup() };
 
-    $self->add_builder_variable('VC3_ROOT',      $vc3_root);
-    $self->add_builder_variable('VC3_DISTFILES', $vc3_distfiles);
-    $self->add_builder_variable('VC3_BUILDER',   "$RealBin/$RealScript");
-    $self->add_builder_variable('HOME',          $self->home_dir);
-    $self->add_builder_variable('TMP',           $self->tmp_dir);
-    $self->add_builder_variable('TERM',          'linux');
-    $self->add_builder_variable('USER',          getlogin() || $ENV{'USER'} || 'vc3-user');
+    $self->add_builder_variable('VC3_ROOT',         $vc3_root);
+    $self->add_builder_variable('VC3_DISTFILES',    $vc3_distfiles);
+    $self->add_builder_variable('VC3_BUILDER_PATH', "$RealBin/$RealScript");
+    $self->add_builder_variable('HOME',             $self->home_dir);
+    $self->add_builder_variable('TMP',              $self->tmp_dir);
+    $self->add_builder_variable('TERM',             'linux');
+    $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
 }
 
 sub DESTROY {

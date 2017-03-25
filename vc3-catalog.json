@@ -65,6 +65,9 @@
             "version":"v0.0.1",
             "phony":1,
             "dependencies":{
+                "vc3-builder":[
+                    "v0.0.1"
+                ],
                 "vc3-pluginmanager":[
                     "v0.0.1"
                 ],
@@ -131,6 +134,27 @@
                 ],
                 "perl":[
                     "v2.24.0"
+                ]
+            }
+        }
+    ],
+
+    "vc3-builder":[
+        {
+            "version":"v0.1",
+            "phony":1,
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${VC3_SERVICES_HOME}/bin",
+                        "cp $VC3_BUILDER_PATH ${VC3_SERVICES_HOME}/bin"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "vc3-services-common-requirements":[
+                    "v0.0.1"
                 ]
             }
         }

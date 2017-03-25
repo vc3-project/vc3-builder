@@ -7069,13 +7069,13 @@ sub set_builder_variables {
     $self->sh_profile($profile_name);
     push @cleanups, sub { $self->cleanup() };
 
-    $self->add_builder_variable('VC3_ROOT',      $vc3_root);
-    $self->add_builder_variable('VC3_DISTFILES', $vc3_distfiles);
-    $self->add_builder_variable('VC3_BUILDER',   "$RealBin/$RealScript");
-    $self->add_builder_variable('HOME',          $self->home_dir);
-    $self->add_builder_variable('TMP',           $self->tmp_dir);
-    $self->add_builder_variable('TERM',          'linux');
-    $self->add_builder_variable('USER',          getlogin() || $ENV{'USER'} || 'vc3-user');
+    $self->add_builder_variable('VC3_ROOT',         $vc3_root);
+    $self->add_builder_variable('VC3_DISTFILES',    $vc3_distfiles);
+    $self->add_builder_variable('VC3_BUILDER_PATH', "$RealBin/$RealScript");
+    $self->add_builder_variable('HOME',             $self->home_dir);
+    $self->add_builder_variable('TMP',              $self->tmp_dir);
+    $self->add_builder_variable('TERM',             'linux');
+    $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
 }
 
 sub DESTROY {
@@ -8801,8 +8801,8 @@ __DATA__
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
-                        "cd ${HOME}/git/autopyfactory",
+                        "[ -d autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
+                        "cd autopyfactory",
                         "python setup.py install --home=${VC3_SERVICES_HOME}/apf"
                     ]
                 }
@@ -8843,6 +8843,9 @@ __DATA__
             "version":"v0.0.1",
             "phony":1,
             "dependencies":{
+                "vc3-builder":[
+                    "v0.0.1"
+                ],
                 "vc3-pluginmanager":[
                     "v0.0.1"
                 ],
@@ -8914,6 +8917,27 @@ __DATA__
         }
     ],
 
+    "vc3-builder":[
+        {
+            "version":"v0.1",
+            "phony":1,
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${VC3_SERVICES_HOME}/bin",
+                        "cp $VC3_BUILDER_PATH ${VC3_SERVICES_HOME}/bin"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "vc3-services-common-requirements":[
+                    "v0.0.1"
+                ]
+            }
+        }
+    ],
+
     "vc3-master":[
         {
             "version":"v0.1",
@@ -8923,8 +8947,8 @@ __DATA__
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/vc3-master ] || git clone https://github.com/vc3-project/vc3-master.git",
-                        "cd ${HOME}/git/vc3-master",
+                        "[ -d vc3-master ] || git clone https://github.com/vc3-project/vc3-master.git",
+                        "cd vc3-master",
                         "python setup.py install --home=${VC3_SERVICES_HOME}"
                     ]
                 }
@@ -8946,8 +8970,8 @@ __DATA__
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/vc3-core ] || git clone https://github.com/vc3-project/vc3-core.git",
-                        "cd ${HOME}/git/vc3-core",
+                        "[ -d vc3-core ] || git clone https://github.com/vc3-project/vc3-core.git",
+                        "cd vc3-core",
                         "python setup.py install --home=${VC3_SERVICES_HOME}"
                     ]
                 }
@@ -8975,8 +8999,8 @@ __DATA__
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/vc3-wrappers ] || git clone https://github.com/vc3-project/vc3-wrappers.git",
-                        "cd ${HOME}/git/vc3-wrappers",
+                        "[ -d vc3-wrappers ] || git clone https://github.com/vc3-project/vc3-wrappers.git",
+                        "cd vc3-wrappers",
                         "python setup.py install --home=${VC3_SERVICES_HOME}"
                     ]
                 }
@@ -8998,8 +9022,8 @@ __DATA__
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d ${HOME}/git/vc3-info-service ] || git clone https://github.com/vc3-project/vc3-info-service.git",
-                        "cd ${HOME}/git/vc3-info-service",
+                        "[ -d vc3-info-service ] || git clone https://github.com/vc3-project/vc3-info-service.git",
+                        "cd vc3-info-service",
                         "python setup.py install --home=${VC3_SERVICES_HOME}",
                         "ln -sf ${VC3_SERVICES_HOME}/lib/python/vc3/infoclient.py ${VC3_SERVICES_HOME}/lib/python"
 
@@ -9050,7 +9074,7 @@ __DATA__
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d certify ] || git clone https://github.com/vc3-project/certify.git",
-                        "cd $HOME/git/certify/misc/ssca",
+                        "cd certify/misc/ssca",
                         "missing=0",
                         "[ -f intermediate/certs/localhost.cert.pem ]            || missing=1",
                         "[ -f intermediate/certs/VC3Admin.cert.pem ]             || missing=1",

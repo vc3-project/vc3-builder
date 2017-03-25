@@ -6692,7 +6692,8 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --install <root>      Install with base <root>. 
                         Default is ${vc3_root}
-  --home <home>         Set \${HOME} to <root>/<home>.
+  --home <home>         Set \${HOME} to <root>/<home> if <home> is a relative
+                        path, otherwise to <home> if it is an absolute path.
                         Default is ${vc3_user_home}
 
   --distfiles <dir>     Directory to cache unbuilt packages locally.
@@ -7048,23 +7049,27 @@ sub set_builder_variables {
 
     $self->set_machine_vars();
 
-    $vc3_root      = File::Spec->rel2abs("${vc3_root}");
-    $vc3_distfiles = File::Spec->rel2abs("${vc3_distfiles}");
+    $vc3_root      = File::Spec->rel2abs(${vc3_root});
+    $vc3_distfiles = File::Spec->rel2abs(${vc3_distfiles});
 
-    my $home    = "$vc3_root/$vc3_user_home";
     my $tmp_dir = "$vc3_root/tmp";
+
+    my $home    = $vc3_user_home;
+    unless(File::Spec->file_name_is_absolute($home)) {
+        $home = File::Spec->join($vc3_root, $vc3_user_home);
+    }
 
     $self->root_dir($vc3_root);
     $self->home_dir($home);
     $self->tmp_dir($tmp_dir);
 
-    File::Path::make_path($vc3_root);
+    File::Path::make_path($self->root_dir);
     File::Path::make_path($vc3_distfiles);
-    File::Path::make_path("$vc3_distfiles/manual-distribution");
-    File::Path::make_path($home);
-    File::Path::make_path($tmp_dir);
+    File::Path::make_path(File::Spec->join($vc3_distfiles, 'manual-distribution'));
+    File::Path::make_path($self->home_dir);
+    File::Path::make_path($self->tmp_dir);
 
-    my ($profile_f, $profile_name) = tempfile($self->home_dir . "/.vc3_sh-XXXXXX");
+    my ($profile_f, $profile_name) = tempfile(File::Spec->join($self->home_dir, '.vc3_sh-XXXXXX'));
     close $profile_f;
     $self->sh_profile($profile_name);
     push @cleanups, sub { $self->cleanup() };
@@ -7684,7 +7689,7 @@ sub set_wrapper {
 
     $self->set_environment_variables($sh_f);
 
-    print { $sh_f } "\ncd $vc3_root/$vc3_user_home\n";
+    print { $sh_f } "\ncd '" . $self->home_dir . "'\n";
     print { $sh_f } "exec $payload\n\n";
     return $payload;
 }
@@ -7694,7 +7699,7 @@ sub consolidate_prologue {
 
     my $env = $self->peak_environment;
 
-    my @progs = ("cd $vc3_root/$vc3_user_home");
+    my @progs = ("cd '" . $self->home_dir . "'");
 
     for my $w (@{$self->{order}}) {
         next unless $env->{$w};

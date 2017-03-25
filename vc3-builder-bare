@@ -402,18 +402,22 @@ sub set_builder_variables {
 
     $self->set_machine_vars();
 
+    # expand ~
+    $vc3_root      = glob $vc3_root;
+    $vc3_distfiles = glob $vc3_distfiles;
+    $vc3_user_home = glob $vc3_user_home;
+
+    # to absolute paths
     $vc3_root      = File::Spec->rel2abs(${vc3_root});
     $vc3_distfiles = File::Spec->rel2abs(${vc3_distfiles});
+    unless(File::Spec->file_name_is_absolute($vc3_user_home)) {
+        $vc3_user_home = File::Spec->join($vc3_root, $vc3_user_home);
+    }
 
     my $tmp_dir = "$vc3_root/tmp";
 
-    my $home    = $vc3_user_home;
-    unless(File::Spec->file_name_is_absolute($home)) {
-        $home = File::Spec->join($vc3_root, $vc3_user_home);
-    }
-
     $self->root_dir($vc3_root);
-    $self->home_dir($home);
+    $self->home_dir($vc3_user_home);
     $self->tmp_dir($tmp_dir);
 
     File::Path::make_path($self->root_dir);

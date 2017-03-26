@@ -44,7 +44,8 @@
                 {
                     "name":"APF_HOME",
                     "value":"${VC3_SERVICES_HOME}/apf",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 },
                 {
                     "name":"PYTHONPATH",
@@ -212,6 +213,18 @@
         }
     ],
 
+    "vc3-test-service":[
+        {
+            "version":"v0.1",
+            "phony":1,
+            "dependencies":{
+                "vc3-wrappers":[
+                    "v0.0.1"
+                ]
+            }
+        }
+    ],
+
     "vc3-wrappers":[
         {
             "version":"v0.1",
@@ -326,7 +339,8 @@
                 {
                     "name":"VC3_SERVICES_CERTS_HOME",
                     "value":"${VC3_SERVICES_HOME}/etc/ssca/certs",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 },
                 {
                     "name":"VC3_SERVICES_CERTS_CHAINFILE",

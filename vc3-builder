@@ -6704,7 +6704,7 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --no-dependencies     Install only packages named explicitely with --require. 
                         Fail if their dependencies are not installed.
 
-  --make-jobs <n>       Concurrent make jobs. Default is 2.
+  --make-jobs <n>       Concurrent make jobs. Default is 4.
   --sh-on-error         On building error, run /bin/sh on the partially-built
                         environment.
 
@@ -6751,7 +6751,7 @@ sub main {
     my @requires     = ();
 
     my $print_help   = 0;
-    my $make_jobs    = 2;
+    my $make_jobs    = 4;
     my $no_depend    = 0;
     my $sh_on_error  = 0;
     my $env_to       = 0;

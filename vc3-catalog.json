@@ -150,7 +150,8 @@
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${VC3_SERVICES_HOME}/bin",
-                        "cp $VC3_BUILDER_PATH ${VC3_SERVICES_HOME}/bin"
+                        "name=$(basename $VC3_BUILDER_PATH)",
+                        "cmp $VC3_BUILDER_PATH ${VC3_SERVICES_HOME}/bin/$name || cp $VC3_BUILDER_PATH ${VC3_SERVICES_HOME}/bin"
                     ]
                 }
             ],

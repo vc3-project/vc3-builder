@@ -1421,8 +1421,9 @@ sub consolidate_environment_variables {
 
         my @paths;
         if($clobber) {
-            # when clobber, we use the value as is.
+            # when clobber, we use the value as is, and remove previous expansions.
             @paths = ($value);
+            $expansion->{$name} = [];
         } else {
             # otherwise, split paths on :
             @paths = split /:/, $value;

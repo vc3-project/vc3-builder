@@ -110,7 +110,8 @@
                 {
                     "name":"VC3_SERVICES_HOME",
                     "value":"${HOME}/vc3-services",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 },
                 {
                     "name":"PATH",
@@ -283,17 +284,20 @@
                 {
                     "name":"VC3_SERVICES_INFOSERVICE_INFOHOST",
                     "value":"localhost",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 },
                 {
                     "name":"VC3_SERVICES_INFOSERVICE_HTTP_PORT",
                     "value":"20333",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 },
                 {
                     "name":"VC3_SERVICES_INFOSERVICE_HTTPS_PORT",
                     "value":"20334",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 }
             ]
         }
@@ -345,17 +349,20 @@
                 {
                     "name":"VC3_SERVICES_CERTS_CHAINFILE",
                     "value":"${VC3_SERVICES_CERTS_HOME}/ca-chain.cert.pem",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 },
                 {
                     "name":"VC3_SERVICES_CERTS_CERTFILE",
                     "value":"${VC3_SERVICES_CERTS_HOME}/VC3Admin.cert.pem",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 },
                 {
                     "name":"VC3_SERVICES_CERTS_KEYFILE",
                     "value":"${VC3_SERVICES_CERTS_HOME}/private/VC3Admin.keynopw.pem",
-                    "absolute":1
+                    "absolute":1,
+                    "clobber":1
                 }
             ]
         }

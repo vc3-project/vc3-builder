@@ -7763,13 +7763,11 @@ sub execute {
             '-c',
             ". " . $self->sh_profile);
 
-        setpgrp($$, $$);
-
         exec { $args[0] } @args;
         die 'Could not exec payload';
     } elsif($pid > 0) {
+        POSIX::setpgid($pid, 0);
 
-        setpgrp($pid, $pid);
         if($self->{interactive_run}) {
             $self->bring_to_foreground($pid);
         }

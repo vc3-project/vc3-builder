@@ -1621,10 +1621,11 @@ sub execute_recipe_unlocked {
     }
 
     $self->bag->say("preparing '" . $self->name . "' for ", $self->bag->target);
-
     if($self->bag->dry_run) {
         return 0;
     }
+
+    $self->ribbon->commit('PROCESSING');
 
     $self->prepare_recipe_sandbox($source);
 
@@ -1664,8 +1665,8 @@ sub execute_recipe_unlocked {
     $self->bag->del_builder_variable('VC3_BUILD');
 
     if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
-        $self->ribbon->commit('DONE');
         File::Path::rmtree($self->build_dir);
+        $self->ribbon->commit('DONE');
         return 0;
     } else {
         return -1;
@@ -1852,6 +1853,10 @@ sub release_lock {
     }
 
     $self->{lock_fh} = undef;
+
+    unless($self->state eq 'DONE') {
+        $self->commit('FAILED');
+    }
 }
 
 sub state {

@@ -1804,7 +1804,8 @@ sub new {
 
     my $name = $install_dir . '/.VC3_DEPENDENCY_BUILD';
 
-    $self->{filename} = $name;
+    $self->{filename}      = $name;
+    $self->{lock_filename} = $name . '.lock';
     $self->{checksum} = $checksum;
 
     return $self;
@@ -1832,16 +1833,13 @@ sub commit {
 sub set_lock {
     my ($self) = @_;
 
-    my $lock_name = $self->{filename} . '.lock';
-
     # make sure parent directory exists
-    File::Path::make_path( dirname($lock_name) );
+    File::Path::make_path( dirname($self->{lock_filename}) );
 
-    open(my $lock_fh, '>>', $lock_name) or
+    open(my $lock_fh, '>>', $self->{lock_filename}) or
     die "Could not create lock for '" . $self->{filename} . "'";
-
+    
     flock($lock_fh, LOCK_EX);
-
     $self->{lock_fh} = $lock_fh;
 }
 

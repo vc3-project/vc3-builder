@@ -1384,7 +1384,14 @@ sub build_dir {
     my ($self) = @_;
 
     unless($self->{build_dir}) {
-        my $template = File::Spec->rel2abs($vc3_root) . '/builds/' . $self->name . '.XXXXXX';
+        my $root     = File::Spec->rel2abs($vc3_root) . '/builds';
+
+        unless(-d $root) {
+            File::Path::make_path($vc3_distfiles);
+        }
+
+        my $template = $root . '/' . $self->name . '.XXXXXX';
+
         my $tmpdir   = File::Temp::tempdir($template, CLEANUP => 1);
         $self->{build_dir} = $tmpdir;
     }

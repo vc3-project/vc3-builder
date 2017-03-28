@@ -90,8 +90,6 @@ sub cleanup_signal_handler {
         eval { $fn->() };
     }
 
-    kill -$signal;
-
     if($signal) {
         $? = 128;
         exit $?;
@@ -1163,10 +1161,10 @@ sub shell {
             '/bin/sh',
             '-c',
             ". " . $self->sh_profile);
-        setpgrp;
         exec { $args[0] } @args;
         die 'Could not exec shell';
     } elsif($pid > 0) {
+        POSIX::setpgid($pid, 0);
         $self->{child_pid} = $pid;
         # wait for this shell later.
     } else {

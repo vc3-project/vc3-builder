@@ -539,6 +539,40 @@
             "versionreg":"^parrot_run version ([0-9.]*)",
             "sources":[
                 {
+                    "type":"tarball",
+                    "files":[
+                        "cctools-6.0.16-source.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
+                        "make",
+                        "make install"
+                    ],
+                    "dependencies":{
+                        "swig":[
+                            "v3.0"
+                        ],
+                        "python":[
+                            "v2.7"
+                        ],
+                        "perl":[
+                            "v5.10"
+                        ],
+                        "libcvmfs":[
+                            "v2.2"
+                        ],
+                        "fuse":[
+                            "v2.9"
+                        ],
+                        "openssl":[
+                            "v1.0"
+                        ],
+                        "uuid":[
+                            "v1.0"
+                        ]
+                    }
+                },
+                {
                     "type":"generic",
                     "files":[
                         "cctools-6.0.16-x86_64-redhat7.tar.gz"

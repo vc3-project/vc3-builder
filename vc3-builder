@@ -7843,6 +7843,7 @@ use POSIX ":sys_wait_h";
 use IO::Handle;
 use Digest::Perl::MD5 qw(md5_hex);
 use Cwd;
+use File::Temp qw/tempdir/;
 
 use JSON::Tiny;
 
@@ -8028,7 +8029,14 @@ sub destination_dir {
 
 sub build_dir {
     my ($self) = @_;
-    return File::Spec->rel2abs($vc3_root) . '/builds/' . $self->name;
+
+    unless($self->{build_dir}) {
+        my $template = File::Spec->rel2abs($vc3_root) . '/builds/' . $self->name . '.XXXXXX';
+        my $tmpdir   = File::Temp::tempdir($template, CLEANUP => 1);
+        $self->{build_dir} = $tmpdir;
+    }
+
+    return $self->{build_dir};
 }
 
 sub build_log {

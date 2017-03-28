@@ -6737,6 +6737,8 @@ sub cleanup_signal_handler {
         eval { $fn->() };
     }
 
+    kill -$signal;
+
     if($signal) {
         $? = 128;
         exit $?;

@@ -191,11 +191,6 @@ sub main {
 
     my $bag = VC3::Bag->new($dry_run, $interactive_run, $silent, @database);
 
-    if(defined $dot_output) {
-        $bag->dot_graph($dot_output);
-        exit 0;
-    }
-
     $bag->add_builder_variable('MAKEFLAGS',        "-j${make_jobs}");
     $bag->add_builder_variable('VC3_COMMAND_LINE', File::Spec->rel2abs(join(" ", $original_command)));
 
@@ -209,6 +204,11 @@ sub main {
     }
 
     $bag->build_requirements($sh_on_error, $no_depend);
+
+    if(defined $dot_output) {
+        $bag->dot_graph($dot_output);
+        exit 0;
+    }
 
     if($bag->dry_run) {
         exit 0;
@@ -297,6 +297,8 @@ sub new {
     $self->{environment_variables} = [];
     $self->set_builder_variables();
 
+    $self->{dependency_graph} = {};
+
     $self->{sources} = $self->decode_bags(@database);
 
     # create first environment
@@ -350,7 +352,7 @@ sub check_manual_requirements() {
         print { $build_in } "EOF\n";
         print { $build_in } "exit 0\n";
 
-        exit 1;
+        die;
     }
 
     $self->clear_environment();
@@ -514,7 +516,12 @@ sub add_requirement {
 sub build_requirements {
     my ($self, $sh_on_error, $no_depend) = @_;
 
-    $self->check_manual_requirements();
+    eval { $self->check_manual_requirements() };
+    if($@) {
+        unless($self->dry_run) {
+            exit 1;
+        }
+    }
 
     $self->{indent_level} = 0;
 
@@ -833,12 +840,16 @@ sub set_dependencies {
 
     my $namev = $widget->name . '-' . $widget->version; 
     $self->{indent_level}++;
+
+    $self->{dependency_graph}{$widget->name} ||= {};
     
     if($dependencies) {
         for my $dependency (keys %{$dependencies}) {
             my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
 
             $self->say("$namev needs $dependency");
+            
+            $self->{dependency_graph}{$dependency}{$widget->name} = 1;
 
             $self->build_requirement($dependency, $sh_on_error, $no_depend, $min_dep_ver, $max_dep_ver);
         }
@@ -910,8 +921,8 @@ sub dot_graph {
     #$self->{dependencies}{vc3_builder} = {};
     #$self->{dependencies}{vc3_builder}{$_} = 1 for @external_dependencies;
 
-    for my $pkg (keys %{$self->{dependencies}}) {
-        my @deps = keys %{$self->{dependencies}{$pkg}};
+    for my $pkg (keys %{$self->{dependency_graph}}) {
+        my @deps = keys %{$self->{dependency_graph}{$pkg}};
 
         if(@deps) {
             for my $dep (@deps) {

@@ -1267,7 +1267,7 @@ sub ribbon {
     my ($self) = @_;
 
     unless($self->{ribbon}) {
-        $self->{ribbon} = VC3::Ribbon->new($self->destination_dir, $self->checksum);
+        $self->{ribbon} = VC3::Ribbon->new($self->name, $self->destination_dir, $self->bag->tmp_dir, $self->checksum);
     }
 
     return $self->{ribbon};
@@ -1385,7 +1385,7 @@ sub build_dir {
         my $root     = File::Spec->rel2abs($vc3_root) . '/builds';
 
         unless(-d $root) {
-            File::Path::make_path($vc3_distfiles);
+            File::Path::make_path($root);
         }
 
         my $template = $root . '/' . $self->name . '.XXXXXX';
@@ -1626,7 +1626,6 @@ sub execute_recipe_unlocked {
     }
 
     $self->ribbon->commit('PROCESSING');
-
     $self->prepare_recipe_sandbox($source);
 
     # set the destination directory as an environment variable before
@@ -1795,18 +1794,18 @@ sub order_dependency {
 package VC3::Ribbon;
 
 use File::Basename; 
-use Fcntl qw(:flock);
+use LockFile::Simple qw(lock unlock);
 
 sub new {
-    my ($class, $install_dir, $checksum) = @_;
+    my ($class, $name, $install_dir, $tmpdir, $checksum) = @_;
 
     my $self = bless {}, $class;
 
-    my $name = $install_dir . '/.VC3_DEPENDENCY_BUILD';
-
-    $self->{filename}      = $name;
-    $self->{lock_filename} = $name . '.lock';
+    $self->{filename} = $install_dir . '/.VC3_DEPENDENCY_BUILD';
+    $self->{lockname} = $tmpdir . '/' . $name . '.lock';
     $self->{checksum} = $checksum;
+
+    $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -nfs => 1);
 
     return $self;
 }
@@ -1834,27 +1833,19 @@ sub set_lock {
     my ($self) = @_;
 
     # make sure parent directory exists
-    File::Path::make_path( dirname($self->{lock_filename}) );
+    File::Path::make_path( dirname($self->{filename}) );
 
-    open(my $lock_fh, '>>', $self->{lock_filename}) or
-    die "Could not create lock for '" . $self->{filename} . "'";
-    
-    flock($lock_fh, LOCK_EX);
-    $self->{lock_fh} = $lock_fh;
+    $self->{lock} = $self->{lockmgr}->lock($self->{filename}, $self->{lockname});
 }
 
 sub release_lock {
     my ($self) = @_;
 
-    if($self->{lock_fh}) {
-        flock($self->{lock_fh}, LOCK_UN);
-    }
-
-    $self->{lock_fh} = undef;
-
     unless($self->state eq 'DONE') {
         $self->commit('FAILED');
     }
+
+    $self->{lock}->release();
 }
 
 sub state {
@@ -1871,7 +1862,11 @@ sub state {
                 my $contents = do { local($/); <$ribbon_fh> };
                 close($ribbon_fh);
 
-                my $report = JSON::Tiny::decode_json($contents);
+                my $report;
+                eval { $report = JSON::Tiny::decode_json($contents) };
+                if($@) {
+                    $state = 'MISSING';
+                }
 
                 if(!$report->{state}) {
                     $state = 'MISSING';

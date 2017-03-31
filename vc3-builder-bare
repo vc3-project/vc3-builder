@@ -807,7 +807,7 @@ sub build_requirement {
             # set dependencies particular to this source
             $self->set_dependencies($widget, $sh_on_error, $no_depend_step, $source->dependencies);
 
-            eval {$exit_status = -1; $exit_status = $widget->execute_recipe($source, $no_depend);};
+            eval {$exit_status = -1; $exit_status = $source->execute_recipe($no_depend);};
 
             if($exit_status) {
                 # on error, reestablish old environment, and show last lines of log
@@ -1415,6 +1415,12 @@ sub build_log {
     return $log_name;
 }
 
+sub say {
+    my $self = shift @_;
+
+    return $self->bag->say(@_);
+}
+
 sub consolidate_environment_variables {
     my ($self, $expansion) = @_; 
 
@@ -1566,123 +1572,6 @@ sub hash_to_canonical_str {
     return $str;
 }
 
-sub prepare_recipe_sandbox {
-    my ($self, $source) = @_;
-
-    # clear build directory, to avoid bugs from uncleaned sources.
-    my $build = $self->build_dir;
-    if( -d $build ) {
-        File::Path::rmtree($build);
-    }
-
-    # clear destination directory, to make sure we are running what we believe
-    # we are running.
-    my $destination = $self->destination_dir;
-
-    if( -d $destination ) {
-        # we turn off messages to stderr, as the lock file cannot ever be removed.
-        open OLDSTDERR, '>&', STDERR;
-        {
-            local *STDERR;
-            open STDERR, '>', '/dev/null';
-            File::Path::rmtree($destination);
-            close STDERR;
-        }
-        open OLDSTDERR, '>&', STDERR;
-    }
-
-    # create the dirs we cleared above.
-    File::Path::make_path($self->build_dir);
-    File::Path::make_path($self->destination_dir);
-
-    # make sure tmp dir exists
-    File::Path::make_path($self->bag->tmp_dir);
-
-    # download to $vc3_distfiles the ingredient (i.e., input files) if missing.
-    $source->get_files();
-
-    # if generic, copy all files to build directory.
-    # if tarball, expand first file to build directory, and copy the rest of
-    # the files to build directory.
-    $source->prepare_files($build);
-}
-
-
-sub execute_recipe {
-    my ($self, $source, $no_depend) = @_;
-
-    $self->ribbon->set_lock();
-    my $result = $self->execute_recipe_unlocked($source, $no_depend);
-    $self->ribbon->release_lock();
-
-    return $result;
-}
-
-sub execute_recipe_unlocked {
-    my ($self, $source, $no_depend) = @_;
-
-
-    # if nothing to do, we return no error:
-    if(!$self->phony) {
-        if($self->ribbon->state eq 'DONE') {
-            return 0;
-        } elsif($no_depend eq 'dependency') {
-            carp('Dependency ' . $self->name . ' is not installed.');
-        }
-    }
-
-    $self->bag->say("preparing '" . $self->name . "' for ", $self->bag->target);
-    if($self->bag->dry_run) {
-        return 0;
-    }
-
-    $self->ribbon->commit('PROCESSING');
-    $self->prepare_recipe_sandbox($source);
-
-    # set the destination directory as an environment variable before
-    # setting up the shell, so that the child created inherets it.
-    $self->bag->push_environment();
-
-    $self->bag->add_builder_variable('VC3_PREFIX', $self->destination_dir);
-    $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
-
-    my ($pid, $build_in) = $self->setup_build_shell($source);
-
-    my @steps = @{$source->recipe};
-
-    # add shifting to build directory as the first step.
-    unshift @steps, 'cd ' . $self->build_dir;
-
-    # add exiting cleanly from shell as a last step.
-    push @steps, 'exit 0';
-
-    $self->bag->say("building '" . $self->name . "' for ", $self->bag->target);
-    $self->bag->say("details: " . $self->build_log);
-
-    for my $step (@steps) {
-        my $date = gmtime();
-        print { $build_in } ": $date\n";
-        print { $build_in } "$step\n";
-    }
-
-    my $status = -1;
-    eval { close $build_in; $status = $? };
-    $self->{child_pid} = undef;
-
-    $self->bag->pop_environment();
-
-    $self->bag->del_builder_variable('VC3_PREFIX');
-    $self->bag->del_builder_variable('VC3_BUILD');
-
-    if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
-        File::Path::rmtree($self->build_dir);
-        $self->ribbon->commit('DONE');
-        return 0;
-    } else {
-        return -1;
-    }
-}
-
 sub check_prerequisites {
     my ($self, $source) = @_;
 
@@ -1721,31 +1610,6 @@ sub check_prerequisites {
     }
 }
 
-
-sub setup_build_shell {
-    my ($self, $source) = @_;
-
-    # log the recipe used. Since we are opening sh with -e, the recipe executes
-    # as if all steps were &&-ed together.
-    open(my $build_log, '>', $self->build_log);
-    print { $build_log } join("\n && ", @{$source->recipe}) . "\n";
-    close $build_log;
-
-    # open sh with -e. This terminates the shell at the first step that returns
-    # a non-zero status.
-    my ($pid, $build_in) = $self->bag->shell();
-
-    croak 'Could not open /bin/sh for building.'
-    unless $build_in;
-
-    # redirect all output to our log file.
-    print { $build_in } 'exec 1>> ' . $self->build_log . "\n";
-    print { $build_in } "exec 2>&1\n";
-    print { $build_in } "set -ex\n";
-
-    # return the stdin of the shell, and the pid so we can wait for it.
-    return ($pid, $build_in);
-}
 
 sub msgs_manual_requirements {
     my ($self) = @_;
@@ -1800,6 +1664,99 @@ sub order_dependency {
             $next->order_dependencies($order);
         }
     }
+}
+
+sub prepare_recipe_sandbox {
+    my ($self, $no_depend) = @_;
+
+    # if nothing to do, we return:
+    if(!$self->phony) {
+        if($self->ribbon->state eq 'DONE') {
+            return 0;
+        } elsif($no_depend eq 'dependency') {
+            carp('Dependency ' . $self->name . ' is not installed.');
+        }
+    }
+
+    $self->say("preparing '" . $self->name . "' for ", $self->bag->target);
+    if($self->bag->dry_run) {
+        return 0;
+    }
+
+    $self->ribbon->commit('PROCESSING');
+
+    # clear build directory, to avoid bugs from uncleaned sources.
+    my $build = $self->build_dir;
+    if( -d $build ) {
+        File::Path::rmtree($build);
+    }
+
+    # clear destination directory, to make sure we are running what we believe
+    # we are running.
+    my $destination = $self->destination_dir;
+    if( -d $destination ) {
+        File::Path::rmtree($destination);
+    }
+
+    # create the dirs we removed above.
+    File::Path::make_path($self->build_dir);
+    File::Path::make_path($self->destination_dir);
+
+    # make sure tmp dir exists
+    File::Path::make_path($self->bag->tmp_dir);
+
+    # set the destination directory as an environment variable before
+    # setting up the shell, so that the child created inherets it.
+    $self->bag->push_environment();
+    $self->bag->add_builder_variable('VC3_PREFIX', $self->destination_dir);
+    $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
+
+    return 1;
+}
+
+sub cleanup_recipe_sandbox {
+    my ($self, $result) = @_;
+
+    $self->bag->pop_environment();
+    $self->bag->del_builder_variable('VC3_PREFIX');
+    $self->bag->del_builder_variable('VC3_BUILD');
+
+    if($result == 0) {
+        File::Path::rmtree($self->build_dir);
+        $self->ribbon->commit('DONE');
+    }
+
+    # we do not delete the buildir in case of error, to ease debugging.
+}
+
+sub setup_build_shell {
+    my ($self, @log_messages) = @_;
+
+    # log the recipe used. Since we are opening sh with -e, the recipe executes
+    # as if all steps were &&-ed together.
+    open(my $build_log, '>', $self->build_log);
+    print { $build_log } join("\n && ", @log_messages . "\n");
+    close $build_log;
+
+    # open sh with -e. This terminates the shell at the first step that returns
+    # a non-zero status.
+    my ($pid, $build_in) = $self->bag->shell();
+
+    croak 'Could not open /bin/sh for building.'
+    unless $build_in;
+
+    # redirect all output to our log file.
+    print { $build_in } 'exec 1>> ' . $self->build_log . "\n";
+    print { $build_in } "exec 2>&1\n";
+    print { $build_in } "set -ex\n";
+
+    # return the stdin of the shell, and the pid so we can wait for it.
+    return ($pid, $build_in);
+}
+
+sub shell {
+    my ($self) = @_;
+    return $self->bag->shell();
 }
 
 package VC3::Ribbon;
@@ -1905,7 +1862,6 @@ sub state {
     return $state;
 }
 
-
 package VC3::Source;
 use Carp;
 
@@ -1939,6 +1895,7 @@ use File::Copy;
 use File::Path;
 use File::Spec;
 use HTTP::Tiny;
+use POSIX ":sys_wait_h";
 use parent;
 
 sub new {
@@ -2029,11 +1986,17 @@ sub prerequisites {
     return $self->{prerequisites};
 }
 
+sub say {
+    my $self = shift @_;
+
+    return $self->widget->say(@_);
+}
+
 sub get_file {
     my ($self, $file) = @_;
 
     unless(-f $self->file_absolute($file)) {
-        $self->widget->bag->say("Downloading '" . $file . "' from $vc3_repository");
+        $self->say("Downloading '" . $file . "' from $vc3_repository");
 
         #if make sure the destination directory exists
         File::Path::make_path($vc3_distfiles);
@@ -2094,6 +2057,89 @@ sub prepare_files {
         symlink($self->file_absolute($file), $build_dir . '/' . $file)
         || die "Could not link '" . $file . "' to build directory.\n";
     }
+}
+
+
+sub prepare_recipe_sandbox {
+    my ($self, $no_depend) = @_;
+
+    my $result = $self->widget->prepare_recipe_sandbox($no_depend);
+
+    if($result == 0) {
+        return 0;
+    }
+
+    #carp $result;
+
+    # download to $vc3_distfiles the ingredient (i.e., input files) if missing.
+    $self->get_files();
+
+    # if generic, copy all files to build directory.
+    # if tarball, expand first file to build directory, and copy the rest of
+    # the files to build directory.
+    $self->prepare_files($self->widget->build_dir);
+
+    return 1;
+}
+
+sub cleanup_recipe_sandbox {
+    my ($self, $result) = @_;
+    return $self->widget->cleanup_recipe_sandbox($result);
+}
+
+
+sub execute_recipe {
+    my ($self, $no_depend) = @_;
+
+    $self->widget->ribbon->set_lock();
+    my $result = $self->execute_recipe_unlocked($no_depend);
+    $self->widget->ribbon->release_lock();
+
+    return $result;
+}
+
+sub execute_recipe_unlocked {
+    my ($self, $no_depend) = @_;
+
+    my $result = 0;
+    if($self->prepare_recipe_sandbox($no_depend)) {
+        my ($pid, $build_in) = $self->setup_build_shell();
+
+        my @steps = @{$self->recipe};
+
+        # add shifting to build directory as the first step.
+        unshift @steps, 'cd ' . $self->widget->build_dir;
+
+        # add exiting cleanly from shell as a last step.
+        push @steps, 'exit 0';
+
+        $self->say("building '" . $self->widget->name . "' for ", $self->widget->bag->target);
+        $self->say("details: " .  $self->widget->build_log);
+
+        for my $step (@steps) {
+            my $date = gmtime();
+            print { $build_in } ": $date\n";
+            print { $build_in } "$step\n";
+        }
+
+        my $status = -1;
+        eval { close $build_in; $status = $? };
+        $self->widget->{child_pid} = undef;
+
+        $result = -1;
+        if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
+            $result = 0;
+        }
+    }
+
+    $self->cleanup_recipe_sandbox($result);
+
+    return $result;
+}
+
+sub setup_build_shell {
+    my ($self) = @_;
+    return $self->widget->setup_build_shell(@{$self->recipe});
 }
 
 package VC3::Source::Tarball;

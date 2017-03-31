@@ -3100,6 +3100,40 @@
         }
     ],
 
+    "findutils":[
+        {
+            "version":"v4.1.20",
+            "sources":[
+                {
+                    "type":"system",
+                    "recipe": [
+                        "cmd=$(which find)",
+                        "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/find$:\\1:p')",
+                        "[ -n \"$base\" ] || exit 1",
+                        "echo \"VC3_ROOT_SYSTEM: $base\""
+                    ]
+                },
+                {
+                    "type":"tarball",
+                    "files":[
+                        "findutils-4.6.0.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix ${VC3_PREFIX}",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
     "maker-example-ecoli-01":[
         {
             "version":"v1",

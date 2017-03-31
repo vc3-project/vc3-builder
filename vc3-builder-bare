@@ -419,6 +419,7 @@ sub set_builder_variables {
     my $tmp_dir = "$vc3_root/tmp";
 
     $self->root_dir($vc3_root);
+
     $self->home_dir($vc3_user_home);
     $self->tmp_dir($tmp_dir);
 
@@ -836,7 +837,7 @@ sub set_dependencies {
     my ($self, $widget, $sh_on_error, $no_depend, $dependencies) = @_;
 
     # set root of this widget, in case dependencies need to refer to its parent.
-    $self->add_builder_variable($widget->var_root_name, $widget->destination_dir);
+    $self->add_builder_variable($widget->var_root_name, $widget->root_dir);
 
     my $namev = $widget->name . '-' . $widget->version; 
     $self->{indent_level}++;
@@ -1245,7 +1246,7 @@ sub add_root_variable {
 
     my $root_var = {
         name     => $root_name,
-        value    => '${VC3_ROOT}/' . $self->destination_dir(1),
+        value    => $self->root_dir,
         clobber  => 1,
         absolute => 1
     };
@@ -1278,7 +1279,7 @@ sub ribbon {
     my ($self) = @_;
 
     unless($self->{ribbon}) {
-        $self->{ribbon} = VC3::Ribbon->new($self->name, $self->destination_dir, $self->bag->tmp_dir, $self->checksum);
+        $self->{ribbon} = VC3::Ribbon->new($self->name, $self->bookeeping_dir, $self->bag->tmp_dir, $self->checksum);
     }
 
     return $self->{ribbon};
@@ -1377,7 +1378,23 @@ sub phony {
     return $self->{phony};
 }
 
-sub destination_dir {
+sub root_dir {
+    my ($self, $new) = @_;
+
+    if($new) {
+        $self->{root_dir} = $new;
+    }
+
+    unless($self->{root_dir}) {
+        my $rel = $self->bag->target . '/' . $self->name . '-' . $self->version;
+
+        $self->{root_dir} = File::Spec->rel2abs($vc3_root) . '/' . $rel;
+    }
+
+    return $self->{root_dir};
+}
+
+sub bookeeping_dir {
     my ($self, $relative) = @_;
 
     my $rel = $self->bag->target . '/' . $self->name . '-' . $self->version;
@@ -1410,7 +1427,7 @@ sub build_dir {
 
 sub build_log {
     my ($self) = @_;
-    my $log_name = $self->destination_dir . '/' . $self->name . '-build-log';
+    my $log_name = $self->bookeeping_dir . '/' . $self->name . '-build-log';
 
     return $log_name;
 }
@@ -1462,7 +1479,11 @@ sub consolidate_environment_variables {
         my @current_expansions;
         for my $path (@paths) {
             if(!$absolute) {
-                $path = '${' . $self->var_root_name . '}/' . $path;
+                if($self->root_dir eq $self->bookeeping_dir) {
+                    $path = '${' . $self->var_root_name . '}/' . $path;
+                } else {
+                    $path = $self->root_dir . '/' . $path;
+                }
             }
 
             push @current_expansions, $path;
@@ -1669,15 +1690,6 @@ sub order_dependency {
 sub prepare_recipe_sandbox {
     my ($self, $no_depend) = @_;
 
-    # if nothing to do, we return:
-    if(!$self->phony) {
-        if($self->ribbon->state eq 'DONE') {
-            return 0;
-        } elsif($no_depend eq 'dependency') {
-            carp('Dependency ' . $self->name . ' is not installed.');
-        }
-    }
-
     $self->say("preparing '" . $self->name . "' for ", $self->bag->target);
     if($self->bag->dry_run) {
         return 0;
@@ -1693,14 +1705,22 @@ sub prepare_recipe_sandbox {
 
     # clear destination directory, to make sure we are running what we believe
     # we are running.
-    my $destination = $self->destination_dir;
-    if( -d $destination ) {
-        File::Path::rmtree($destination);
+    my $dir = $self->root_dir;
+    if( -d $dir ) {
+        File::Path::rmtree($dir);
+    }
+
+    if($self->root_dir ne $self->bookeeping_dir) {
+        my $dir = $self->bookeeping_dir;
+        if( -d $dir ) {
+            File::Path::rmtree($dir);
+        }
     }
 
     # create the dirs we removed above.
     File::Path::make_path($self->build_dir);
-    File::Path::make_path($self->destination_dir);
+    File::Path::make_path($self->root_dir);
+    File::Path::make_path($self->bookeeping_dir);
 
     # make sure tmp dir exists
     File::Path::make_path($self->bag->tmp_dir);
@@ -1708,7 +1728,7 @@ sub prepare_recipe_sandbox {
     # set the destination directory as an environment variable before
     # setting up the shell, so that the child created inherets it.
     $self->bag->push_environment();
-    $self->bag->add_builder_variable('VC3_PREFIX', $self->destination_dir);
+    $self->bag->add_builder_variable('VC3_PREFIX', $self->root_dir);
     $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
 
     return 1;
@@ -1721,7 +1741,7 @@ sub cleanup_recipe_sandbox {
     $self->bag->del_builder_variable('VC3_PREFIX');
     $self->bag->del_builder_variable('VC3_BUILD');
 
-    if($result == 0) {
+    if($result eq '0') {
         File::Path::rmtree($self->build_dir);
         $self->ribbon->commit('DONE');
     }
@@ -1803,7 +1823,7 @@ sub set_lock {
     # make sure parent directory exists
     File::Path::make_path( dirname($self->{filename}) );
 
-    $self->{lock} = $self->{lockmgr}->lock($self->{filename}, $self->{lockname});
+    $self->{lockobj} = $self->{lockmgr}->lock($self->{filename}, $self->{lockname});
 }
 
 sub release_lock {
@@ -1813,7 +1833,7 @@ sub release_lock {
         $self->commit('FAILED');
     }
 
-    $self->{lock}->release();
+    $self->{lockobj}->release();
 }
 
 sub state {
@@ -1879,8 +1899,8 @@ sub new {
     elsif($source_raw->{type} eq 'manual-distribution') {
         $source = VC3::Source::ManualDist->new($widget, $source_raw);
     }
-    elsif($source_raw->{type} eq 'service') {
-        croak "Not implemented";
+    elsif($source_raw->{type} eq 'system') {
+        $source = VC3::Source::System->new($widget, $source_raw);
     }
     else {
         croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
@@ -1911,6 +1931,12 @@ sub new {
     $self->prerequisites($json_description->{prerequisites});
 
     return $self;
+}
+
+sub phony {
+    my ($self) = @_;
+
+    return 0;
 }
 
 sub widget {
@@ -2069,8 +2095,6 @@ sub prepare_recipe_sandbox {
         return 0;
     }
 
-    #carp $result;
-
     # download to $vc3_distfiles the ingredient (i.e., input files) if missing.
     $self->get_files();
 
@@ -2091,8 +2115,29 @@ sub cleanup_recipe_sandbox {
 sub execute_recipe {
     my ($self, $no_depend) = @_;
 
+    my $result = 0;
+
     $self->widget->ribbon->set_lock();
-    my $result = $self->execute_recipe_unlocked($no_depend);
+
+    # if nothing to do, we return:
+    if(!$self->phony && !$self->widget->phony) {
+        if($self->widget->ribbon->state eq 'DONE') {
+            $result = 0;
+        } elsif($no_depend eq 'dependency') {
+            carp('Dependency ' . $self->name . ' is not installed.');
+            $result = 1;
+        }
+    } else {
+        if($self->prepare_recipe_sandbox($no_depend)) {
+            eval { $result = $self->execute_recipe_unlocked($no_depend); };
+            if($@) {
+                $self->say($@);
+                $result = 1;
+            }
+        }
+    }
+
+    $self->cleanup_recipe_sandbox($result);
     $self->widget->ribbon->release_lock();
 
     return $result;
@@ -2102,37 +2147,37 @@ sub execute_recipe_unlocked {
     my ($self, $no_depend) = @_;
 
     my $result = 0;
-    if($self->prepare_recipe_sandbox($no_depend)) {
-        my ($pid, $build_in) = $self->setup_build_shell();
+    my ($pid, $build_in) = $self->setup_build_shell();
 
-        my @steps = @{$self->recipe};
+    my @steps = @{$self->recipe};
 
-        # add shifting to build directory as the first step.
-        unshift @steps, 'cd ' . $self->widget->build_dir;
+    # add shifting to build directory as the first step.
+    unshift @steps, 'cd ' . $self->widget->build_dir;
 
-        # add exiting cleanly from shell as a last step.
-        push @steps, 'exit 0';
+    # add exiting cleanly from shell as a last step.
+    push @steps, 'exit 0';
 
-        $self->say("building '" . $self->widget->name . "' for ", $self->widget->bag->target);
-        $self->say("details: " .  $self->widget->build_log);
+    $self->say("building '" . $self->widget->name . "' for ", $self->widget->bag->target);
+    $self->say("details: " .  $self->widget->build_log);
 
-        for my $step (@steps) {
-            my $date = gmtime();
-            print { $build_in } ": $date\n";
-            print { $build_in } "$step\n";
-        }
-
-        my $status = -1;
-        eval { close $build_in; $status = $? };
-        $self->widget->{child_pid} = undef;
-
-        $result = -1;
-        if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
-            $result = 0;
-        }
+    for my $step (@steps) {
+        my $date = gmtime();
+        print { $build_in } ": $date\n";
+        print { $build_in } "$step\n";
     }
 
-    $self->cleanup_recipe_sandbox($result);
+    my $status = -1;
+    eval { close $build_in; $status = $? };
+    if($@) {
+        carp $@;
+    }
+
+    $self->widget->{child_pid} = undef;
+
+    $result = -1;
+    if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
+        $result = 0;
+    }
 
     return $result;
 }
@@ -2202,5 +2247,47 @@ sub check_manual_requirements {
     }
 
     return 1;
+}
+
+package VC3::Source::System;
+use base 'VC3::Source::Generic';
+use Carp;
+
+sub phony {
+    my ($self) = @_;
+
+    return 1;
+}
+
+sub execute_recipe_unlocked {
+    my ($self, $no_depend) = @_;
+
+    my $output_filename = $self->widget->build_log;
+
+    my $result;
+    eval { $result = $self->SUPER::execute_recipe_unlocked($no_depend); };
+
+    if($@) {
+        $self->say($@);
+    } else {
+        open(my $f, '<', $output_filename) || die 'Did not produce root directory file';
+        my $root;
+        while( my $line = <$f>) {
+            if($line =~ m/^VC3_ROOT_SYSTEM:\s+(?<root>.*)$/) {
+                $root = $+{root};
+                chomp($root);
+                # update root from widget with the new information:
+                $self->widget->root_dir($root);
+                last;
+            }
+        }
+        close $f;
+        if(!$root) {
+            die 'Did not produce root directory information.';
+        }
+        $root = '' if $root == '/';
+    }
+
+    return $result;
 }
 

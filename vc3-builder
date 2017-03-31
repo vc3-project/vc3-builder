@@ -11561,33 +11561,6 @@ __DATA__
     "perl":[
         {
             "version":"v5.24.0",
-            "sources": [
-                {
-                    "type":"generic",
-                    "recipe":[
-                        "mkdir -p ${VC3_PREFIX}",
-                        "cd ${VC3_PREFIX}",
-                        "ln -sf ${VC3_ROOT_PERL_CORE}/bin",
-                        "ln -sf ${VC3_ROOT_PERL_CORE}/lib",
-                        "ln -sf ${VC3_ROOT_PERL_CORE}/local_modules",
-                        "ln -sf ${VC3_ROOT_PERL_CORE}/man"
-                    ]
-                }
-            ],
-            "dependencies":{
-                "perl-local-lib":[
-                    "v2.000019"
-                ],
-                "perl-cpanminus":[
-                    "v1.7"
-                ]
-            }
-        }
-    ],
-
-    "perl-core":[
-        {
-            "version":"v5.24.0",
             "versioncmd":"perl -e 'print qq($^V)'",
             "versionreg":"(v[0-9.]*)",
             "sources":[
@@ -11610,7 +11583,7 @@ __DATA__
                 },
                 {
                     "name":"VC3_MODULES_PERL", 
-                    "value":"${VC3_ROOT_PERL_CORE}/local_modules",
+                    "value":"${VC3_ROOT}/perl_local_modules",
                     "clobber":1,
                     "absolute":1
                 },
@@ -11660,7 +11633,7 @@ __DATA__
                 }
             ],
             "dependencies":{
-                "perl-core":[
+                "perl":[
                     "v5.10"
                 ]
             }
@@ -12264,8 +12237,8 @@ __DATA__
                 }
             ],
             "dependencies":{
-                "perl":[
-                    "v5.10"
+                "perl-cpanminus":[
+                    "v1.7"
                 ],
                 "berkeley-db":[
                     "v6.0"

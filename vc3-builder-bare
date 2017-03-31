@@ -1176,7 +1176,6 @@ sub shell {
         exec { $args[0] } @args;
         die 'Could not exec shell';
     } elsif($pid > 0) {
-        POSIX::setpgid($pid, 0);
         $self->{child_pid} = $pid;
         # wait for this shell later.
     } else {
@@ -1690,11 +1689,6 @@ sub order_dependency {
 sub prepare_recipe_sandbox {
     my ($self, $no_depend) = @_;
 
-    $self->say("preparing '" . $self->name . "' for ", $self->bag->target);
-    if($self->bag->dry_run) {
-        return 0;
-    }
-
     $self->ribbon->commit('PROCESSING');
 
     # clear build directory, to avoid bugs from uncleaned sources.
@@ -1730,8 +1724,6 @@ sub prepare_recipe_sandbox {
     $self->bag->push_environment();
     $self->bag->add_builder_variable('VC3_PREFIX', $self->root_dir);
     $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
-
-    return 1;
 }
 
 sub cleanup_recipe_sandbox {
@@ -2115,26 +2107,35 @@ sub cleanup_recipe_sandbox {
 sub execute_recipe {
     my ($self, $no_depend) = @_;
 
-    my $result = 0;
+    my $result = 1;
 
     $self->widget->ribbon->set_lock();
+    eval {
+        my $state = $self->widget->ribbon->state;
 
-    # if nothing to do, we return:
-    if(!$self->phony && !$self->widget->phony) {
-        if($self->widget->ribbon->state eq 'DONE') {
-            $result = 0;
-        } elsif($no_depend eq 'dependency') {
-            carp('Dependency ' . $self->name . ' is not installed.');
+        if($state ne 'DONE' && $no_depend eq 'dependency') {
+            $self->widget->ribbon->release_lock();
             $result = 1;
-        }
-    } else {
-        if($self->prepare_recipe_sandbox($no_depend)) {
-            eval { $result = $self->execute_recipe_unlocked($no_depend); };
-            if($@) {
-                $self->say($@);
-                $result = 1;
+            die('Dependency ' . $self->widget->name . ' is not installed.');
+        } elsif($state eq 'DONE' && !$self->widget->phony && !$self->phony) {
+            $result = 0;
+        } else {
+            $self->say("preparing '" . $self->widget->name . "' for ", $self->widget->bag->target);
+            if($self->widget->bag->dry_run) {
+                $result = 0;
+            } else {
+                $self->prepare_recipe_sandbox($no_depend);
+                eval { $result = $self->execute_recipe_unlocked($no_depend); };
+                if($@) {
+                    $result = 1;
+                    die $@;
+                }
             }
         }
+    };
+
+    if($@) {
+        $self->say($@);
     }
 
     $self->cleanup_recipe_sandbox($result);
@@ -2146,7 +2147,7 @@ sub execute_recipe {
 sub execute_recipe_unlocked {
     my ($self, $no_depend) = @_;
 
-    my $result = 0;
+    my $result = -1;
     my ($pid, $build_in) = $self->setup_build_shell();
 
     my @steps = @{$self->recipe};
@@ -2174,7 +2175,6 @@ sub execute_recipe_unlocked {
 
     $self->widget->{child_pid} = undef;
 
-    $result = -1;
     if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
         $result = 0;
     }
@@ -2285,7 +2285,7 @@ sub execute_recipe_unlocked {
         if(!$root) {
             die 'Did not produce root directory information.';
         }
-        $root = '' if $root == '/';
+        $root = '' if $root eq '/';
     }
 
     return $result;

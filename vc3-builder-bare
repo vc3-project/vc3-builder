@@ -1687,9 +1687,7 @@ sub order_dependency {
 }
 
 sub prepare_recipe_sandbox {
-    my ($self, $no_depend) = @_;
-
-    $self->ribbon->commit('PROCESSING');
+    my ($self, $no_erase, $no_depend) = @_;
 
     # clear build directory, to avoid bugs from uncleaned sources.
     my $build = $self->build_dir;
@@ -1699,15 +1697,17 @@ sub prepare_recipe_sandbox {
 
     # clear destination directory, to make sure we are running what we believe
     # we are running.
-    my $dir = $self->root_dir;
-    if( -d $dir ) {
-        File::Path::rmtree($dir);
-    }
-
-    if($self->root_dir ne $self->bookeeping_dir) {
-        my $dir = $self->bookeeping_dir;
+    unless($no_erase) {
+        my $dir = $self->root_dir;
         if( -d $dir ) {
             File::Path::rmtree($dir);
+        }
+
+        if($self->root_dir ne $self->bookeeping_dir) {
+            my $dir = $self->bookeeping_dir;
+            if( -d $dir ) {
+                File::Path::rmtree($dir);
+            }
         }
     }
 
@@ -1820,11 +1820,6 @@ sub set_lock {
 
 sub release_lock {
     my ($self) = @_;
-
-    unless($self->state eq 'DONE') {
-        $self->commit('FAILED');
-    }
-
     $self->{lockobj}->release();
 }
 
@@ -1835,40 +1830,30 @@ sub state {
     my $state = 'MISSING';
 
     if(-f $name) {
-        do {
-            open my $ribbon_fh, '<', $name || warn $!;
+        open my $ribbon_fh, '<', $name || warn $!;
 
-            if($ribbon_fh) {
-                my $contents = do { local($/); <$ribbon_fh> };
-                close($ribbon_fh);
+        if($ribbon_fh) {
+            my $contents = do { local($/); <$ribbon_fh> };
+            close($ribbon_fh);
 
-                my $report;
-                eval { $report = JSON::Tiny::decode_json($contents) };
-                if($@) {
-                    $state = 'MISSING';
-                }
-
-                if(!$report->{state}) {
-                    $state = 'MISSING';
-                } elsif(!$report->{checksum}) {
-                    $state = 'MISSING';
-                } elsif($report->{checksum} ne $self->{checksum}) {
-                    $state = 'OUT_OF_DATE';
-                } elsif($report->{state} eq 'PROCESSING') {
-
-                    my $start = $report->{time} || 0;
-
-                    if(time() - $start > 60*60) { # if waiting for more than one hour
-                        $state = 'MISSING';
-                    } else {
-                        sleep(10);
-                        $state = 'PROCESSING';
-                    }
-                } else {
-                    $state = $report->{state};
-                }
+            my $report;
+            eval { $report = JSON::Tiny::decode_json($contents) };
+            if($@) {
+                $state = 'MISSING';
             }
-        } while($state eq 'PROCESSING');
+
+            if(!$report->{state}) {
+                $state = 'MISSING';
+            } elsif(!$report->{checksum}) {
+                $state = 'MISSING';
+            } elsif($report->{checksum} ne $self->{checksum}) {
+                $state = 'OUT_OF_DATE';
+            } elsif($report->{state} eq 'PROCESSING') {
+                $state = 'PROCESSING';
+            } else {
+                $state = $report->{state};
+            }
+        }
     }
 
     return $state;
@@ -2081,7 +2066,10 @@ sub prepare_files {
 sub prepare_recipe_sandbox {
     my ($self, $no_depend) = @_;
 
-    my $result = $self->widget->prepare_recipe_sandbox($no_depend);
+
+    my $no_erase = $self->isa('VC3::Source::System');
+
+    my $result = $self->widget->prepare_recipe_sandbox($no_erase, $no_depend);
 
     if($result == 0) {
         return 0;
@@ -2141,11 +2129,14 @@ sub execute_recipe {
     $self->cleanup_recipe_sandbox($result);
     $self->widget->ribbon->release_lock();
 
+
     return $result;
 }
 
 sub execute_recipe_unlocked {
     my ($self, $no_depend) = @_;
+
+    $self->widget->ribbon->commit('PROCESSING');
 
     my $result = -1;
     my ($pid, $build_in) = $self->setup_build_shell();
@@ -2158,7 +2149,6 @@ sub execute_recipe_unlocked {
     # add exiting cleanly from shell as a last step.
     push @steps, 'exit 0';
 
-    $self->say("building '" . $self->widget->name . "' for ", $self->widget->bag->target);
     $self->say("details: " .  $self->widget->build_log);
 
     for my $step (@steps) {
@@ -2264,8 +2254,13 @@ sub execute_recipe_unlocked {
 
     my $output_filename = $self->widget->build_log;
 
+    my $state = $self->widget->ribbon->state;
+    
     my $result;
     eval { $result = $self->SUPER::execute_recipe_unlocked($no_depend); };
+
+    # re-establish state, as system is tried every time:
+    $self->widget->ribbon->commit($state);
 
     if($@) {
         $self->say($@);

@@ -1486,9 +1486,13 @@
     "perl":[
         {
             "version":"v5.24.0",
-            "versioncmd":"perl -e 'print qq($^V)'",
-            "versionreg":"(v[0-9.]*)",
             "sources":[
+                {
+                    "type":"system",
+                    "recipe":[
+                        "perl -MConfig -e 'if($] >= 5.024000) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                    ]
+                },
                 {
                     "type":"tarball",
                     "files":[
@@ -1508,7 +1512,7 @@
                 },
                 {
                     "name":"VC3_MODULES_PERL", 
-                    "value":"${VC3_ROOT}/perl_local_modules",
+                    "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
                     "clobber":1,
                     "absolute":1
                 },

@@ -539,51 +539,26 @@
             "versionreg":"^parrot_run version ([0-9.]*)",
             "sources":[
                 {
-                    "type":"tarball",
-                    "files":[
-                        "cctools-6.0.16-source.tar.gz"
-                    ],
-                    "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
-                        "make",
-                        "make install"
-                    ],
-                    "dependencies":{
-                        "swig":[
-                            "v3.0"
-                        ],
-                        "python":[
-                            "v2.7"
-                        ],
-                        "perl":[
-                            "v5.10"
-                        ],
-                        "libcvmfs":[
-                            "v2.2"
-                        ],
-                        "fuse":[
-                            "v2.9"
-                        ],
-                        "openssl":[
-                            "v1.0"
-                        ],
-                        "uuid":[
-                            "v1.0"
-                        ]
-                    }
-                },
-                {
                     "type":"generic",
                     "files":[
                         "cctools-6.0.16-x86_64-redhat7.tar.gz"
                     ],
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1",
+                        "perl -e '$] >= 5.016 && $] < 5.017 && exit 0 || exit 1;'"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.0.16-x86_64-redhat7.tar.gz"
-                    ]
+                    ],
+                    "dependencies":{
+                        "perl":[
+                            "v5.16", "v5.16"
+                        ],
+                        "python":[
+                            "v2.7", "v2.7"
+                        ]
+                    }
                 },
                 {
                     "type":"generic",
@@ -591,25 +566,21 @@
                         "cctools-6.0.16-x86_64-redhat6.tar.gz"
                     ],
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1",
+                        "perl -e '$] >= 5.010 && $] < 5.011 && exit 0 || exit 1;'"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.0.16-x86_64-redhat6.tar.gz"
-                    ]
-                },
-                {
-                    "type":"generic",
-                    "files":[
-                        "cctools-6.0.16-x86_64-redhat5.tar.gz"
                     ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat5\" ] || exit 1"
-                    ],
-                    "recipe":[
-                        "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.0.16-x86_64-redhat5.tar.gz"
-                    ]
+                    "dependencies":{
+                        "perl":[
+                            "v5.10", "v5.10"
+                        ],
+                        "python":[
+                            "v2.6", "v2.6"
+                        ]
+                    }
                 },
                 {
                     "type":"tarball",
@@ -626,7 +597,7 @@
                             "v3.0"
                         ],
                         "python":[
-                            "v2.7"
+                            "v2.6"
                         ],
                         "perl":[
                             "v5.10"
@@ -647,12 +618,6 @@
                 }
             ],
             "dependencies":{
-                "python":[
-                    "v2.6"
-                ],
-                "perl":[
-                    "v5.8"
-                ],
                 "zlib":[
                     "v1.2"
                 ]
@@ -1484,6 +1449,28 @@
     ],
 
     "perl":[
+        {
+            "version":"v5.10.0",
+            "sources":[
+                {
+                    "type":"system",
+                    "recipe":[
+                        "perl -MConfig -e 'if($] >= 5.010 && $] < 5.011) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                    ]
+                }
+                ]
+        },
+        {
+            "version":"v5.16.0",
+            "sources":[
+                {
+                    "type":"system",
+                    "recipe":[
+                        "perl -MConfig -e 'if($] >= 5.016000) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                    ]
+                }
+                ]
+        },
         {
             "version":"v5.24.0",
             "sources":[

@@ -7791,8 +7791,6 @@ use Tie::RefHash;
 use Cwd;
 
 use Carp qw( confess );
-$SIG{__DIE__}  =  \&confess;
-
 $SIG{TERM} = \&cleanup_signal_handler;
 $SIG{INT}  = \&cleanup_signal_handler;
 
@@ -7846,10 +7844,15 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --interactive         Treat command-and-args as an interactive terminal.
 
   --silent              Do not print dependency information.
-
   --no-run              Set up environment, but do not execute any payload.
+
   --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.cmd},
                         but do not execute the payload.
+
+  --dot <file>          Write a dependency graph of the requirements to <file>.
+
+  Developers options:
+  --debug               On a builder error, print the full back-trace. 
 
 Examples:
     ${script_name} --require cvmfs 'ls /cvmfs/atlas.cern.ch' 
@@ -7891,6 +7894,7 @@ sub main {
     my $debug_modules_used = 0;
     my $dry_run            = 0;
     my $no_run             = 0;
+    my $debug_run          = 0;
     my $interactive_run    = 0;
     my $dot_output;
     my $silent             = 0;
@@ -7909,6 +7913,9 @@ sub main {
     my $opt_result = GetOptions(
         "help"        => \$print_help,
 
+        "debug"    => \$debug_run,
+        "silent"   => \$silent,
+
         "database=s"  => \@database,
         "require=s"   => \@requires, 
 
@@ -7924,17 +7931,18 @@ sub main {
         "no-dependencies" => \$no_depend,
 
         "env-to=s" => \$env_to,
+
+        "dot=s"    => \$dot_output,
+
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
-        "silent"   => \$silent,
 
         "interactive" => \$interactive_run,
 
         "var=s"    => \@extra_vars,
 
         # options for developing, not for runtime:
-        "dot=s"       => \$dot_output,
-        "debug-modules-used" => \$debug_modules_used
+        "debug-modules-used" => \$debug_modules_used,
     );
 
     unless($opt_result) {
@@ -7942,6 +7950,9 @@ sub main {
         exit 1;
     }
 
+    if($debug_run) {
+        $SIG{__DIE__}  =  \&confess;
+    }
 
     unshift @database, '<internal>';
 

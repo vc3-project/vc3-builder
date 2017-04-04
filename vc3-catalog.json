@@ -544,8 +544,7 @@
                         "cctools-6.0.16-x86_64-redhat7.tar.gz"
                     ],
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1",
-                        "perl -e '$] >= 5.016 && $] < 5.017 && exit 0 || exit 1;'"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -553,10 +552,10 @@
                     ],
                     "dependencies":{
                         "perl":[
-                            "v5.16", "v5.16"
+                            "v5.16.0", "v5.16.999"
                         ],
                         "python":[
-                            "v2.7", "v2.7"
+                            "v2.7.0", "v2.7.999"
                         ]
                     }
                 },
@@ -566,8 +565,7 @@
                         "cctools-6.0.16-x86_64-redhat6.tar.gz"
                     ],
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1",
-                        "perl -e '$] >= 5.010 && $] < 5.011 && exit 0 || exit 1;'"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -575,10 +573,10 @@
                     ],
                     "dependencies":{
                         "perl":[
-                            "v5.10", "v5.10"
+                            "v5.10.0", "v5.10.999"
                         ],
                         "python":[
-                            "v2.6", "v2.6"
+                            "v2.6.0", "v2.6.999"
                         ]
                     }
                 },
@@ -1450,23 +1448,25 @@
 
     "perl":[
         {
-            "version":"v5.10.0",
+            "version":"v5.10",
             "sources":[
                 {
                     "type":"system",
                     "recipe":[
-                        "perl -MConfig -e 'if($] >= 5.010 && $] < 5.011) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                        "perl -e 'exit($] < 5.010 || $] >= 5.011)'",
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
                     ]
                 }
                 ]
         },
         {
-            "version":"v5.16.0",
+            "version":"v5.16",
             "sources":[
                 {
                     "type":"system",
                     "recipe":[
-                        "perl -MConfig -e 'if($] >= 5.016000) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                        "perl -e 'exit($] < 5.016 || $] >= 5.017)'",
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
                     ]
                 }
                 ]
@@ -1477,7 +1477,8 @@
                 {
                     "type":"system",
                     "recipe":[
-                        "perl -MConfig -e 'if($] >= 5.024000) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                        "perl -e 'exit($] < 5.024 || $] >= 5.025)'",
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
                     ]
                 },
                 {
@@ -1635,7 +1636,7 @@
 
     "python-virtualenv":[
         {
-            "version":"v0",
+            "version":"v1.0.0",
             "sources":[
                 {
                     "type":"generic",
@@ -1712,10 +1713,33 @@
 
     "python":[
         {
-            "version":"v2.7.12",
-            "versioncmd":"python --version",
-            "versionreg":"Python ([0-9.]*).*",
+            "version":"v2.6",
             "sources":[
+                {
+                    "type":"system",
+                    "recipe":[
+                        "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] == 6) or sys.exit(1)'",
+                        "cmd=$(which python)",
+                        "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
+                        "[ -n \"$base\" ] || exit 1",
+                        "echo \"VC3_ROOT_SYSTEM: $base\""
+                    ]
+                }
+            ]
+        },
+        {
+            "version":"v2.7.12",
+            "sources":[
+                {
+                    "type":"system",
+                    "recipe":[
+                        "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] == 7) or sys.exit(1)'",
+                        "cmd=$(which python)",
+                        "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
+                        "[ -n \"$base\" ] || exit 1",
+                        "echo \"VC3_ROOT_SYSTEM: $base\""
+                    ]
+                },
                 {
                     "type":"tarball",
                     "files":[
@@ -1737,22 +1761,6 @@
                             "v1.0"
                         ]
                     }
-                },
-                {
-                    "type":"generic",
-                    "recipe":[
-                        "python_name=$(which python2 || which python)",
-                        "[ -z \"$python_name\" ] && exit 1",
-                        "python_root=${python_name%/bin*}",
-                        "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
-                        "cd ${VC3_ROOT_PYTHON}",
-                        "ln -s ${python_root}/lib lib",
-                        "ln -s ${python_root}/include include",
-                        "mkdir bin",
-                        "ln -s ${python_name} bin/python",
-                        "ln -s ${python_name} bin/python2",
-                        "./bin/python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
-                    ]
                 }
             ],
             "environment_variables":[

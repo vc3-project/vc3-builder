@@ -8286,8 +8286,8 @@ sub add_requirement {
     my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
 
     # turn into version strings
-    $min = "v$min" if($min);
-    $max = "v$max" if($max);
+    $min = version->parse("$min") if($min);
+    $max = version->parse("$max") if($max);
 
     push @{$self->requirements}, { 'name' => $name, 'min' => $min, 'max' => $max };
     $self->order_widgets(@{$self->requirements});
@@ -8575,7 +8575,11 @@ sub build_requirement {
     if($widget->sources) { 
         for my $source (@{$widget->sources}) {
 
-            eval {$exit_status = -1; $exit_status = $widget->check_prerequisites($source);};
+            $exit_status = -1;
+            eval { $exit_status = $widget->check_prerequisites($source) };
+            if($@) {
+                $self->say($@);
+            }
             if($exit_status) {
                 # on error, prerequisites were not meet.
                 next;
@@ -8644,47 +8648,29 @@ sub set_dependencies {
 sub select_version {
     my ($self, $widget_name, $min_version, $max_version) = @_;
 
-    if($min_version) {
-        $min_version = version->parse($min_version);
+    if($min_version && $max_version && $min_version gt $max_version) {
+        die "minimum version '$min_version' is greater than maximum version '$max_version' for '$widget_name'";
     }
 
-    if($max_version) {
-        $max_version = version->parse($max_version);
-    }
-
-    my $min_found;
-    my $max_found;
+    my @found;
 
     my $versions = $self->widget($widget_name);
 
     for my $widget (@{$versions}) {
-        if(!$min_version) {
-            return $widget;
-        }
+        my $version = $widget->version;
+        
+        push @found, $version->normal;
 
-        my $version = version->parse($widget->{version});
+        next if $min_version && $min_version gt $version;
+        next if $max_version && $max_version lt $version;
 
-        $min_found = $version unless $min_found;
-        $max_found = $version unless $max_found;
-
-        $min_found = $min_found lt $version ? $version : $min_found;
-        $max_found = $max_found gt $version ? $version : $max_found;
-
-        next if $min_version gt $version;
-
-        if(!$max_version) {
-            return $widget;
-        }
-
-        next if $max_version lt $version;
         return $widget;
     }
 
     $max_version = $min_version unless $max_version;
-    die "I did not find a suitable version for '$widget_name'.\n Found: ["
-    . version::normal($min_found)
-    . ',' . version::normal($max_found)
-    . ']. Wanted ['
+    die "I did not find a suitable version for '$widget_name'.\n Found: {"
+    . join(', ', @found)
+    . '}. Wanted ['
     . $min_version->normal
     . ',' . $max_version->normal
     . "]\n";
@@ -9086,10 +9072,13 @@ sub name {
 sub version {
     my ($self, $new_version) = @_;
 
-    $self->{version} = $new_version if($new_version);
+    if($new_version) {
+        $self->{version} = version->parse($new_version);
+    }
 
-    croak 'No version given'
-    unless($self->{version}); 
+    unless($self->{version}) {
+        croak 'No version given';
+    }
 
     return $self->{version};
 }
@@ -9270,35 +9259,6 @@ sub consolidate_environment_variables {
         unshift @{$expansion->{$name}}, @current_expansions;
     }
 }
-
-# range is: [min_version, max_version];
-# max_version is the prefered version. 
-# [version] is considered as [min_version]
-# sub check_version {
-#     my ($self, @range) = @_;
-# 
-#     return 1 unless $self->versioncmd;
-#     return 1 unless $self->version || @range > 0;
-# 
-#     if(@range == 0) {
-#         @range = (version->parse($self->{version}));
-#     }
-# 
-#     my $reg = $self->{versionreg} ? $self->{versionreg} : qr/(.*)/;
-# 
-#     my $version_output = qx/$self->{versioncmd}/;
-# 
-#     return 0 unless $version_output =~ $reg;
-# 
-#     my ($observed_version) = version->parse("$1");
-# 
-#     print $observed_version . "\n";
-# 
-#     return 0 if $observed_version < $range[0];
-#     return 0 if $observed_version > $range[$#range];
-# 
-#     return $observed_version;
-# }
 
 sub error_debug_info {
     my ($self, $eval_error) = @_;
@@ -9754,7 +9714,24 @@ sub file_absolute {
 sub dependencies {
     my ($self, $new_dependencies) = @_;
 
-    $self->{dependencies} = $new_dependencies if($new_dependencies);
+    if($new_dependencies) {
+        $self->{dependencies} = {};
+
+        for my $name (keys %{$new_dependencies}) {
+            my $versions = $new_dependencies->{$name};
+            my ($min_version, $max_version) = @{$versions};
+
+            if($min_version) {
+                $min_version = version->parse($min_version);
+            }
+
+            if($max_version) {
+                $max_version = version->parse($max_version);
+            }
+
+            $self->{dependencies}{$name} = [$min_version, $max_version];
+        }
+    }
 
     return $self->{dependencies};
 }
@@ -10614,8 +10591,7 @@ __DATA__
                         "cctools-6.0.16-x86_64-redhat7.tar.gz"
                     ],
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1",
-                        "perl -e '$] >= 5.016 && $] < 5.017 && exit 0 || exit 1;'"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -10623,10 +10599,10 @@ __DATA__
                     ],
                     "dependencies":{
                         "perl":[
-                            "v5.16", "v5.16"
+                            "v5.16.0", "v5.16.999"
                         ],
                         "python":[
-                            "v2.7", "v2.7"
+                            "v2.7.0", "v2.7.999"
                         ]
                     }
                 },
@@ -10636,8 +10612,7 @@ __DATA__
                         "cctools-6.0.16-x86_64-redhat6.tar.gz"
                     ],
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1",
-                        "perl -e '$] >= 5.010 && $] < 5.011 && exit 0 || exit 1;'"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -10645,10 +10620,10 @@ __DATA__
                     ],
                     "dependencies":{
                         "perl":[
-                            "v5.10", "v5.10"
+                            "v5.10.0", "v5.10.999"
                         ],
                         "python":[
-                            "v2.6", "v2.6"
+                            "v2.6.0", "v2.6.999"
                         ]
                     }
                 },
@@ -11520,23 +11495,25 @@ __DATA__
 
     "perl":[
         {
-            "version":"v5.10.0",
+            "version":"v5.10",
             "sources":[
                 {
                     "type":"system",
                     "recipe":[
-                        "perl -MConfig -e 'if($] >= 5.010 && $] < 5.011) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                        "perl -e 'exit($] < 5.010 || $] >= 5.011)'",
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
                     ]
                 }
                 ]
         },
         {
-            "version":"v5.16.0",
+            "version":"v5.16",
             "sources":[
                 {
                     "type":"system",
                     "recipe":[
-                        "perl -MConfig -e 'if($] >= 5.016000) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                        "perl -e 'exit($] < 5.016 || $] >= 5.017)'",
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
                     ]
                 }
                 ]
@@ -11547,7 +11524,8 @@ __DATA__
                 {
                     "type":"system",
                     "recipe":[
-                        "perl -MConfig -e 'if($] >= 5.024000) {$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd; print $]\"} else {exit 1;}'"
+                        "perl -e 'exit($] < 5.024 || $] >= 5.025)'",
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
                     ]
                 },
                 {
@@ -11705,7 +11683,7 @@ __DATA__
 
     "python-virtualenv":[
         {
-            "version":"v0",
+            "version":"v1.0.0",
             "sources":[
                 {
                     "type":"generic",
@@ -11782,10 +11760,33 @@ __DATA__
 
     "python":[
         {
-            "version":"v2.7.12",
-            "versioncmd":"python --version",
-            "versionreg":"Python ([0-9.]*).*",
+            "version":"v2.6",
             "sources":[
+                {
+                    "type":"system",
+                    "recipe":[
+                        "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] == 6) or sys.exit(1)'",
+                        "cmd=$(which python)",
+                        "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
+                        "[ -n \"$base\" ] || exit 1",
+                        "echo \"VC3_ROOT_SYSTEM: $base\""
+                    ]
+                }
+            ]
+        },
+        {
+            "version":"v2.7.12",
+            "sources":[
+                {
+                    "type":"system",
+                    "recipe":[
+                        "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] == 7) or sys.exit(1)'",
+                        "cmd=$(which python)",
+                        "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
+                        "[ -n \"$base\" ] || exit 1",
+                        "echo \"VC3_ROOT_SYSTEM: $base\""
+                    ]
+                },
                 {
                     "type":"tarball",
                     "files":[
@@ -11807,22 +11808,6 @@ __DATA__
                             "v1.0"
                         ]
                     }
-                },
-                {
-                    "type":"generic",
-                    "recipe":[
-                        "python_name=$(which python2 || which python)",
-                        "[ -z \"$python_name\" ] && exit 1",
-                        "python_root=${python_name%/bin*}",
-                        "[ -f \"$python_root\"/include/python2.7/Python.h ] || exit 1",
-                        "cd ${VC3_ROOT_PYTHON}",
-                        "ln -s ${python_root}/lib lib",
-                        "ln -s ${python_root}/include include",
-                        "mkdir bin",
-                        "ln -s ${python_name} bin/python",
-                        "ln -s ${python_name} bin/python2",
-                        "./bin/python2 -c 'import sys; sys.version_info >= (2,6) and sys.version_info < (3,) or sys.exit(1)'"
-                    ]
                 }
             ],
             "environment_variables":[

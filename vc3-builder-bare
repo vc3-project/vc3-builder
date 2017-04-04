@@ -507,8 +507,8 @@ sub add_requirement {
     my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
 
     # turn into version strings
-    $min = "v$min" if($min);
-    $max = "v$max" if($max);
+    $min = version->parse("$min") if($min);
+    $max = version->parse("$max") if($max);
 
     push @{$self->requirements}, { 'name' => $name, 'min' => $min, 'max' => $max };
     $self->order_widgets(@{$self->requirements});
@@ -796,7 +796,11 @@ sub build_requirement {
     if($widget->sources) { 
         for my $source (@{$widget->sources}) {
 
-            eval {$exit_status = -1; $exit_status = $widget->check_prerequisites($source);};
+            $exit_status = -1;
+            eval { $exit_status = $widget->check_prerequisites($source) };
+            if($@) {
+                $self->say($@);
+            }
             if($exit_status) {
                 # on error, prerequisites were not meet.
                 next;
@@ -865,47 +869,29 @@ sub set_dependencies {
 sub select_version {
     my ($self, $widget_name, $min_version, $max_version) = @_;
 
-    if($min_version) {
-        $min_version = version->parse($min_version);
+    if($min_version && $max_version && $min_version gt $max_version) {
+        die "minimum version '$min_version' is greater than maximum version '$max_version' for '$widget_name'";
     }
 
-    if($max_version) {
-        $max_version = version->parse($max_version);
-    }
-
-    my $min_found;
-    my $max_found;
+    my @found;
 
     my $versions = $self->widget($widget_name);
 
     for my $widget (@{$versions}) {
-        if(!$min_version) {
-            return $widget;
-        }
+        my $version = $widget->version;
+        
+        push @found, $version->normal;
 
-        my $version = version->parse($widget->{version});
+        next if $min_version && $min_version gt $version;
+        next if $max_version && $max_version lt $version;
 
-        $min_found = $version unless $min_found;
-        $max_found = $version unless $max_found;
-
-        $min_found = $min_found lt $version ? $version : $min_found;
-        $max_found = $max_found gt $version ? $version : $max_found;
-
-        next if $min_version gt $version;
-
-        if(!$max_version) {
-            return $widget;
-        }
-
-        next if $max_version lt $version;
         return $widget;
     }
 
     $max_version = $min_version unless $max_version;
-    die "I did not find a suitable version for '$widget_name'.\n Found: ["
-    . version::normal($min_found)
-    . ',' . version::normal($max_found)
-    . ']. Wanted ['
+    die "I did not find a suitable version for '$widget_name'.\n Found: {"
+    . join(', ', @found)
+    . '}. Wanted ['
     . $min_version->normal
     . ',' . $max_version->normal
     . "]\n";
@@ -1307,10 +1293,13 @@ sub name {
 sub version {
     my ($self, $new_version) = @_;
 
-    $self->{version} = $new_version if($new_version);
+    if($new_version) {
+        $self->{version} = version->parse($new_version);
+    }
 
-    croak 'No version given'
-    unless($self->{version}); 
+    unless($self->{version}) {
+        croak 'No version given';
+    }
 
     return $self->{version};
 }
@@ -1491,35 +1480,6 @@ sub consolidate_environment_variables {
         unshift @{$expansion->{$name}}, @current_expansions;
     }
 }
-
-# range is: [min_version, max_version];
-# max_version is the prefered version. 
-# [version] is considered as [min_version]
-# sub check_version {
-#     my ($self, @range) = @_;
-# 
-#     return 1 unless $self->versioncmd;
-#     return 1 unless $self->version || @range > 0;
-# 
-#     if(@range == 0) {
-#         @range = (version->parse($self->{version}));
-#     }
-# 
-#     my $reg = $self->{versionreg} ? $self->{versionreg} : qr/(.*)/;
-# 
-#     my $version_output = qx/$self->{versioncmd}/;
-# 
-#     return 0 unless $version_output =~ $reg;
-# 
-#     my ($observed_version) = version->parse("$1");
-# 
-#     print $observed_version . "\n";
-# 
-#     return 0 if $observed_version < $range[0];
-#     return 0 if $observed_version > $range[$#range];
-# 
-#     return $observed_version;
-# }
 
 sub error_debug_info {
     my ($self, $eval_error) = @_;
@@ -1975,7 +1935,24 @@ sub file_absolute {
 sub dependencies {
     my ($self, $new_dependencies) = @_;
 
-    $self->{dependencies} = $new_dependencies if($new_dependencies);
+    if($new_dependencies) {
+        $self->{dependencies} = {};
+
+        for my $name (keys %{$new_dependencies}) {
+            my $versions = $new_dependencies->{$name};
+            my ($min_version, $max_version) = @{$versions};
+
+            if($min_version) {
+                $min_version = version->parse($min_version);
+            }
+
+            if($max_version) {
+                $max_version = version->parse($max_version);
+            }
+
+            $self->{dependencies}{$name} = [$min_version, $max_version];
+        }
+    }
 
     return $self->{dependencies};
 }

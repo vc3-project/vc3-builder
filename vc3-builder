@@ -7906,7 +7906,7 @@ sub main {
     my $original_command = join(' ', $script_name, @ARGV);
 
 
-    GetOptions(
+    my $opt_result = GetOptions(
         "help"        => \$print_help,
 
         "database=s"  => \@database,
@@ -7936,6 +7936,12 @@ sub main {
         "dot=s"       => \$dot_output,
         "debug-modules-used" => \$debug_modules_used
     );
+
+    unless($opt_result) {
+        print usage($script_name);
+        exit 1;
+    }
+
 
     unshift @database, '<internal>';
 

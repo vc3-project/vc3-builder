@@ -565,7 +565,7 @@
                         "cctools-6.0.16-x86_64-redhat6.tar.gz"
                     ],
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
+                        "[ ${VC3_MACHINE_TARGET} = \"x8664/redhat6\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -1454,7 +1454,7 @@
                     "type":"system",
                     "recipe":[
                         "perl -e 'exit($] < 5.010 || $] >= 5.011)'",
-                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                 }
                 ]
@@ -1466,7 +1466,7 @@
                     "type":"system",
                     "recipe":[
                         "perl -e 'exit($] < 5.016 || $] >= 5.017)'",
-                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                 }
                 ]
@@ -1478,7 +1478,7 @@
                     "type":"system",
                     "recipe":[
                         "perl -e 'exit($] < 5.024 || $] >= 5.025)'",
-                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\"'"
+                        "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                 },
                 {

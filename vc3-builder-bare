@@ -887,6 +887,7 @@ sub build_requirement {
 
             $exit_status = -1;
             eval { $exit_status = $widget->check_prerequisites($source) };
+
             if($@) {
                 $self->say($@);
             }
@@ -1303,7 +1304,7 @@ sub new {
 
     $self->checksum($json_description);
 
-    add_root_variable($self);
+    $self->add_root_variable();
 
     return $self;
 }
@@ -1458,14 +1459,19 @@ sub phony {
 sub root_dir {
     my ($self, $new) = @_;
 
+    my $old = $self->{root_dir};
+
     if($new) {
         $self->{root_dir} = $new;
     }
 
     unless($self->{root_dir}) {
         my $rel = $self->bag->target . '/' . $self->name . '-' . $self->version;
-
         $self->{root_dir} = File::Spec->rel2abs($vc3_root) . '/' . $rel;
+    }
+
+    if(!$old || $old ne $self->{root_dir}) {
+        $self->add_root_variable();
     }
 
     return $self->{root_dir};
@@ -1646,11 +1652,11 @@ sub check_prerequisites {
 
     # by default return true. Usually packages do not have prerequisites.
     unless($source->prerequisites()) {
-        return 'unchanged';
+        return 0;
     }
 
     if($self->bag->dry_run) {
-        return 'unchanged';
+        return 0;
     }
 
     my @steps = @{$source->prerequisites};

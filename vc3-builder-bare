@@ -901,7 +901,7 @@ sub build_requirement {
             # set dependencies particular to this source
             $self->set_dependencies($widget, $sh_on_error, $force_rebuild, $depend_step_next, $source->dependencies);
 
-            eval {$exit_status = -1; $exit_status = $source->execute_recipe($no_depend);};
+            eval { $exit_status = -1; $exit_status = $source->execute_recipe($force_rebuild, $depend_step_now) };
 
             if($exit_status) {
                 # on error, reestablish old environment, and show last lines of log
@@ -1832,7 +1832,9 @@ sub new {
     $self->{lockname} = $tmpdir . '/' . $name . '.lock';
     $self->{checksum} = $checksum;
 
-    $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -nfs => 1);
+    $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -nfs => 1, stale => 1, wmin => 5,
+        wfunc => sub { LockFile::Simple::core_warn("Waiting for a lock for '$name'. If you think this lock is stale, please remove the file:\n'" . $self->{lockname} . "'\n") }
+    );
 
     return $self;
 }

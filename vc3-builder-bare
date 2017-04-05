@@ -398,7 +398,7 @@ sub push_environment {
 
     $self->{environment_stack} ||= [];
 
-    my $current = $self->peak_environment || {};
+    my $current = $self->peek_environment || {};
 
     my %next;
     tie %next, 'Tie::RefHash';
@@ -418,7 +418,7 @@ sub pop_environment {
     return $top;
 }
 
-sub peak_environment {
+sub peek_environment {
     my ($self) = @_;
     return @{$self->{environment_stack}}[-1];
 }
@@ -1018,7 +1018,7 @@ sub dot_graph {
 sub add_to_environment {
     my ($self, $widget) = @_;
 
-    my $env = $self->peak_environment;
+    my $env = $self->peek_environment;
 
     $env->{$widget} = 1;
 }
@@ -1026,7 +1026,7 @@ sub add_to_environment {
 sub set_environment_variables {
     my ($self, $sh_f) = @_;
 
-    my $env = $self->peak_environment();
+    my $env = $self->peek_environment();
 
     my $expansion = {};
 
@@ -1107,7 +1107,7 @@ sub order_variables {
 sub set_wrapper {
     my ($self, $wrapper_file, $profile_file) = @_;
 
-    my $env = $self->peak_environment;
+    my $env = $self->peek_environment;
 
     my $payload = "/bin/sh -c '. $profile_file'";
     for my $w (@{$self->{order}}) {
@@ -1142,7 +1142,7 @@ sub set_wrapper {
 sub consolidate_prologue {
     my ($self) = @_;
 
-    my $env = $self->peak_environment;
+    my $env = $self->peek_environment;
 
     my @progs = ("cd '" . $self->home_dir . "'");
 
@@ -1673,10 +1673,10 @@ sub check_prerequisites {
         print { $pre_in } "$step\n";
     }
 
-    my $status = -1;
-    eval { close $pre_in; $status = $? };
+    my $exit_status = -1;
+    eval { close $pre_in; $exit_status = $? };
 
-    if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
+    if(!$@ && WIFEXITED($exit_status) && (WEXITSTATUS($exit_status) == 0)) {
         return 0;
     } else {
         return -1;
@@ -2172,7 +2172,6 @@ sub execute_recipe {
     $self->widget->ribbon->set_lock();
     eval {
         my $state = $self->widget->ribbon->state;
-
         if($state ne 'DONE' && $depend_step eq 'check') {
             $self->widget->ribbon->release_lock();
             $result = 1;
@@ -2332,7 +2331,7 @@ sub execute_recipe_unlocked {
     $self->widget->ribbon->commit($state);
 
     if($@) {
-        $self->say($@);
+        die $@;
     } else {
         open(my $f, '<', $output_filename) || die 'Did not produce root directory file';
         my $root;

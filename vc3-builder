@@ -7794,6 +7794,9 @@ use Carp qw( confess );
 $SIG{TERM} = \&cleanup_signal_handler;
 $SIG{INT}  = \&cleanup_signal_handler;
 
+# disable stdout buffering
+select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
+
 my $pwd            = getcwd();
 my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
@@ -7803,9 +7806,9 @@ my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.or
 my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;
 my @cleanups;     # functions to call on exit.
 
-
 # call main if running interactively
 VC3::Builder::main();
+
 
 sub usage {
     my ($script_name) = @_;
@@ -7837,6 +7840,11 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --make-jobs <n>       Concurrent make jobs. Default is 4.
   --sh-on-error         On building error, run /bin/sh on the partially-built
                         environment.
+
+  --sys package:version=<dir>
+                        Assume <dir> to be the installation location of
+                        package:version in the system.
+                        (e.g. --sys python:2.7=/opt/local/)
 
   --var NAME=VALUE      Add environment variable NAME with VALUE. 
                         May be specified several times.
@@ -7899,8 +7907,9 @@ sub main {
     my $dot_output;
     my $silent             = 0;
 
-    my @database;
-    my @extra_vars;
+    my @databases  = ();
+    my @extra_vars = ();
+    my @sys_locs   = ();
 
     # if the executable name does looks like "perl", we use $0, as it has the
     # name of the script. Otherwise, this is a static run, and we use the given
@@ -7916,7 +7925,7 @@ sub main {
         "debug"    => \$debug_run,
         "silent"   => \$silent,
 
-        "database=s"  => \@database,
+        "database=s"  => \@databases,
         "require=s"   => \@requires, 
 
         "install=s" => \$vc3_root,
@@ -7939,6 +7948,7 @@ sub main {
 
         "interactive" => \$interactive_run,
 
+        "sys=s"    => \@sys_locs,
         "var=s"    => \@extra_vars,
 
         # options for developing, not for runtime:
@@ -7954,7 +7964,7 @@ sub main {
         $SIG{__DIE__}  =  \&confess;
     }
 
-    unshift @database, '<internal>';
+    unshift @databases, '<internal>';
 
     if($print_help) {
         print usage($script_name);
@@ -7982,24 +7992,14 @@ sub main {
         $interactive_run = 1;
     }
 
-    # disable stdout buffering
-    select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
+    push @extra_vars, "MAKEFLAGS=-j${make_jobs}";
+    push @extra_vars, "VC3_COMMAND_LINE=" . File::Spec->rel2abs(join(" ", $original_command));
 
-    my $bag = VC3::Bag->new($dry_run, $interactive_run, $silent, @database);
+    my $bag = VC3::Bag->new($dry_run, $interactive_run, $silent, \@databases, \@sys_locs, \@extra_vars);
 
-    $bag->add_builder_variable('MAKEFLAGS',        "-j${make_jobs}");
-    $bag->add_builder_variable('VC3_COMMAND_LINE', File::Spec->rel2abs(join(" ", $original_command)));
-
-    for my $var (@extra_vars) {
-        $var =~ m/^(?<name>[A-Za-z_][A-Z-a-z_0-9]*)=(?<value>.*)$/ or die "Malformed variable specification: '$var'";
-        $bag->add_builder_variable($+{name}, $+{value});
-    }
-
-    for my $req (@requires) {
-        $bag->add_requirement($req);
-    }
-
+    $bag->add_requirements(\@requires);
     $bag->build_requirements($sh_on_error, $no_depend);
+
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -8082,7 +8082,7 @@ use POSIX ();
 use JSON::Tiny;
 
 sub new {
-    my ($class, $dry_run, $interactive_run, $silent, @database) = @_;
+    my ($class, $dry_run, $interactive_run, $silent, $databases, $sys_locs, $extra_vars) = @_;
 
     my $self = bless {}, $class;
 
@@ -8095,13 +8095,15 @@ sub new {
 
     $self->{dependency_graph} = {};
 
-    $self->{sources} = $self->decode_bags(@database);
+    $self->{sources} = $self->decode_bags($databases);
 
     # create first environment
     $self->clear_environment();
-
     my %environment;
     tie %environment, 'Tie::RefHash';
+
+    $self->add_manual_variables($extra_vars);
+    $self->add_manual_packages($sys_locs);
 
     return $self;
 }
@@ -8268,6 +8270,60 @@ sub add_builder_variable {
     return $var;
 }
 
+sub add_manual_variables {
+    my ($self, $extra_vars) = @_;
+
+    for my $var (@{$extra_vars}) {
+        $var =~ m/
+        ^
+        (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
+        =
+        (?<value>.*)
+        $
+        /x or die "Malformed variable specification: '$var'";
+
+        $self->add_builder_variable($+{name}, $+{value});
+    }
+}
+
+sub add_manual_packages {
+    my ($self, $specs) = @_;
+
+    for my $spec (@{$specs}) {
+        $spec =~ m/
+        ^
+        (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
+        :
+        (?<version>([0-9]+(\.?[0-9]){0,2}))
+        =
+        (?<dir>.*)
+        $
+        /x or die "Malformed manual specification: '$spec'\n";
+
+        my ($name, $version, $dir) = @+{qw(name version dir)};
+
+        my $s = {};
+        $s->{version} = $version;
+        $s->{sources} = [
+            {
+                type => 'system',
+                'recipe' => [
+                    "echo VC3_ROOT_SYSTEM: $dir"
+                ]
+            }
+        ];
+
+        my $widgets;
+        eval { $widgets = $self->widgets_of($name) };
+        if($@) {
+            die "Could not find specification to overwrite for '$name'\n";
+        }
+
+        unshift @{$widgets}, VC3::Widget->new($self, $name, $s);
+    }
+}
+
+
 sub del_builder_variable {
     my ($self, $name) = @_;
 
@@ -8308,6 +8364,14 @@ sub add_requirement {
 
     push @{$self->requirements}, { 'name' => $name, 'min' => $min, 'max' => $max };
     $self->order_widgets(@{$self->requirements});
+}
+
+sub add_requirements {
+    my ($self, $requires) = @_;
+
+    for my $req (@{$requires}) {
+        $self->add_requirement($req);
+    }
 }
 
 sub build_requirements {
@@ -8514,21 +8578,21 @@ sub distribution {
     return $distribution;
 }
 
-sub widget {
-    my ($self, $widget_name) = @_;
+sub widgets_of {
+    my ($self, $name) = @_;
 
-    my $widget = $self->{sources}{$widget_name}
-    || die "I do not know anything about '$widget_name' . \n";
+    my $widgets = $self->{sources}{$name}
+    || die "I do not know anything about '$name' . \n";
 
-    return $widget;
+    return $widgets;
 }
 
 sub decode_bags {
-    my ($self, @database) = @_;
+    my ($self, $databases) = @_;
 
     my $sources = {};
 
-    for my $filename (@database) {
+    for my $filename (@{$databases}) {
         $self->decode_bag($sources, $filename);
     }
 
@@ -8671,7 +8735,7 @@ sub select_version {
 
     my @found;
 
-    my $versions = $self->widget($widget_name);
+    my $versions = $self->widgets_of($widget_name);
 
     for my $widget (@{$versions}) {
         my $version = $widget->version;
@@ -9677,7 +9741,7 @@ sub widget {
 
     $self->{widget} = $new_widget if($new_widget);
 
-    croak 'No environment argument given'
+    croak 'No argument given'
     unless($self->{widget}); 
 
     return $self->{widget};

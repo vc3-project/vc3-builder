@@ -57,6 +57,8 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --no-dependencies     Install only packages named explicitely with --require. 
                         Fail if their dependencies are not installed.
+  --force               Reinstall the packages named with --require and the
+                        packages they depend on.
 
   --make-jobs <n>       Concurrent make jobs. Default is 4.
   --sh-on-error         On building error, run /bin/sh on the partially-built
@@ -125,8 +127,10 @@ sub main {
     my $no_run             = 0;
     my $debug_run          = 0;
     my $interactive_run    = 0;
-    my $dot_output;
     my $silent             = 0;
+    my $force_rebuild      = 0;
+
+    my $dot_output;
 
     my @databases  = ();
     my @extra_vars = ();
@@ -158,7 +162,9 @@ sub main {
         "make-jobs=n" => \$make_jobs,
 
         "sh-on-error"     => \$sh_on_error,
+
         "no-dependencies" => \$no_depend,
+        "force"           => \$force_rebuild,
 
         "env-to=s" => \$env_to,
 
@@ -219,8 +225,7 @@ sub main {
     my $bag = VC3::Bag->new($dry_run, $interactive_run, $silent, \@databases, \@sys_locs, \@extra_vars);
 
     $bag->add_requirements(\@requires);
-    $bag->build_requirements($sh_on_error, $no_depend);
-
+    $bag->build_requirements($sh_on_error, $force_rebuild, $no_depend);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -596,7 +601,7 @@ sub add_requirements {
 }
 
 sub build_requirements {
-    my ($self, $sh_on_error, $no_depend) = @_;
+    my ($self, $sh_on_error, $force_rebuild, $no_depend) = @_;
 
     eval { $self->check_manual_requirements() };
     if($@) {
@@ -607,9 +612,12 @@ sub build_requirements {
 
     $self->{indent_level} = 0;
 
+    my $depend_step = 'build_all';
+    $depend_step    = 'build_one' if $no_depend;
+
     for my $req (@{$self->requirements}) {
         $self->clear_environment();
-        $self->build_requirement($req->{name}, $sh_on_error, $no_depend, $req->{min}, $req->{max});
+        $self->build_requirement($req->{name}, $sh_on_error, $force_rebuild, $depend_step, $req->{min}, $req->{max});
     }
 
     $self->clear_environment();
@@ -853,20 +861,20 @@ sub decode_bag {
 }
 
 sub build_requirement {
-    my ($self, $widget_name, $sh_on_error, $no_depend, $min_version, $max_version) = @_;
+    my ($self, $widget_name, $sh_on_error, $force_rebuild, $depend_step_now, $min_version, $max_version) = @_;
 
     my $widget = $self->select_version($widget_name, $min_version, $max_version);
 
     $self->say("processing for $widget_name-" . $widget->version);
 
-    my $no_depend_step = $no_depend;
-    $no_depend_step    = 'dependency' if $no_depend eq '1'; # e.g., if widget is a root
+    my $depend_step_next = $depend_step_now;
+    $depend_step_next    = 'check' if $depend_step_now eq 'build_one';
 
     if($widget->active_source && $widget->active_source->dependencies) {
-        $self->set_dependencies($widget, $sh_on_error, $no_depend_step, $widget->active_source->dependencies);
+        $self->set_dependencies($widget, $sh_on_error, $force_rebuild, $depend_step_next, $widget->active_source->dependencies);
     }
 
-    $self->set_dependencies($widget, $sh_on_error, $no_depend_step, $widget->dependencies);
+    $self->set_dependencies($widget, $sh_on_error, $force_rebuild, $depend_step_next, $widget->dependencies);
 
     # check here missing, we are not checking anything here, only below at
     # sources!
@@ -891,7 +899,7 @@ sub build_requirement {
             $self->push_environment();
 
             # set dependencies particular to this source
-            $self->set_dependencies($widget, $sh_on_error, $no_depend_step, $source->dependencies);
+            $self->set_dependencies($widget, $sh_on_error, $force_rebuild, $depend_step_next, $source->dependencies);
 
             eval {$exit_status = -1; $exit_status = $source->execute_recipe($no_depend);};
 
@@ -919,7 +927,7 @@ sub build_requirement {
 }
 
 sub set_dependencies {
-    my ($self, $widget, $sh_on_error, $no_depend, $dependencies) = @_;
+    my ($self, $widget, $sh_on_error, $force_rebuild, $depend_step, $dependencies) = @_;
 
     # set root of this widget, in case dependencies need to refer to its parent.
     $self->add_builder_variable($widget->var_root_name, $widget->root_dir);
@@ -937,7 +945,7 @@ sub set_dependencies {
             
             $self->{dependency_graph}{$dependency}{$widget->name} = 1;
 
-            $self->build_requirement($dependency, $sh_on_error, $no_depend, $min_dep_ver, $max_dep_ver);
+            $self->build_requirement($dependency, $sh_on_error, $force_rebuild, $depend_step, $min_dep_ver, $max_dep_ver);
         }
     }
 
@@ -1637,14 +1645,12 @@ sub check_prerequisites {
     my ($self, $source) = @_;
 
     # by default return true. Usually packages do not have prerequisites.
-    return 0 unless $source->prerequisites();
-
-    if($self->bag->dry_run) {
-        return 0;
+    unless($source->prerequisites()) {
+        return 'unchanged';
     }
 
-    unless($source->prerequisites()) {
-        return 0;
+    if($self->bag->dry_run) {
+        return 'unchanged';
     }
 
     my @steps = @{$source->prerequisites};
@@ -2151,7 +2157,7 @@ sub cleanup_recipe_sandbox {
 
 
 sub execute_recipe {
-    my ($self, $no_depend) = @_;
+    my ($self, $force_rebuild, $depend_step) = @_;
 
     my $result = 1;
 
@@ -2159,34 +2165,31 @@ sub execute_recipe {
     eval {
         my $state = $self->widget->ribbon->state;
 
-        if($state ne 'DONE' && $no_depend eq 'dependency') {
+        if($state ne 'DONE' && $depend_step eq 'check') {
             $self->widget->ribbon->release_lock();
             $result = 1;
             die('Dependency ' . $self->widget->name . ' is not installed.');
-        } elsif($state eq 'DONE' && !$self->widget->phony && !$self->phony) {
+        } elsif($state eq 'DONE' && !$force_rebuild && !$self->widget->phony && !$self->phony) {
             $result = 0;
         } else {
             $self->say("preparing '" . $self->widget->name . "' for ", $self->widget->bag->target);
             if($self->widget->bag->dry_run) {
                 $result = 0;
             } else {
-                $self->prepare_recipe_sandbox($no_depend);
-                eval { $result = $self->execute_recipe_unlocked($no_depend); };
-                if($@) {
-                    $result = 1;
-                    die $@;
-                }
+                $self->prepare_recipe_sandbox($depend_step);
+                $result = $self->execute_recipe_unlocked($depend_step);
             }
         }
     };
 
-    if($@) {
-        $self->say($@);
-    }
+    my $error_msg = $@;
 
     $self->cleanup_recipe_sandbox($result);
     $self->widget->ribbon->release_lock();
 
+    if($error_msg) {
+        die $error_msg;
+    }
 
     return $result;
 }

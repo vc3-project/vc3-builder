@@ -8116,19 +8116,51 @@ sub new {
 sub order_widgets {
     my ($self, @requires) = @_;
 
-    my (%order, %dependencies);
+    # order: widget -> integer. If n =< m, n can be installed before m.
+    my (%order, %range);
 
     tie %order, 'Tie::RefHash';
-    tie %dependencies, 'Tie::RefHash';
+
+    # range: widget -> [min, max]. Range of version allowed for widget.
+    $self->{range} = {};
 
     for my $req (@requires) {
         my $widget = $self->select_version($req->{name}, $req->{min}, $req->{max});
-        $widget->order_dependencies(\%order, \%dependencies);
+        $widget->order_dependencies(\%order);
     }
-
+        
     # list of all packages needed, from inner to outter.
     my @ordered_widgets = sort { $order{$b} <=> $order{$a} || $a->name cmp $b->name } keys %order;
+
     $self->{order} = \@ordered_widgets;
+}
+
+sub update_range {
+    my ($self, $name, $new_min, $new_max) = @_;
+
+    $self->{range}{$name} ||= [];
+    my ($min, $max)     = @{$self->{range}{$name}};
+
+    $min ||= $new_min;
+    $max ||= $new_max;
+
+    if($new_min) {
+        if($max && $new_min gt $max) {
+            die "Incompatible versions for '$name' requested: $new_min > $max";
+        } elsif($new_min ge $min) {
+            $min = $new_min;
+        }
+    }
+
+    if($new_max) {
+        if($min && $new_max lt $min) {
+            die "Incompatible versions for '$name' requested: $new_max < $min";
+        } elsif($new_max le $max) {
+            $max = $new_max;
+        }
+    }
+
+    $self->{range}{$name} = [$min, $max];
 }
 
 sub check_manual_requirements() {
@@ -8177,7 +8209,7 @@ sub push_environment {
 
     $self->{environment_stack} ||= [];
 
-    my $current = $self->peak_environment || {};
+    my $current = $self->peek_environment || {};
 
     my %next;
     tie %next, 'Tie::RefHash';
@@ -8197,7 +8229,7 @@ sub pop_environment {
     return $top;
 }
 
-sub peak_environment {
+sub peek_environment {
     my ($self) = @_;
     return @{$self->{environment_stack}}[-1];
 }
@@ -8704,6 +8736,8 @@ sub build_requirement {
     }
     
     $self->add_to_environment($widget);
+
+    $self->update_range($widget->name, $min_version, $max_version);
 }
 
 sub set_dependencies {
@@ -8797,7 +8831,7 @@ sub dot_graph {
 sub add_to_environment {
     my ($self, $widget) = @_;
 
-    my $env = $self->peak_environment;
+    my $env = $self->peek_environment;
 
     $env->{$widget} = 1;
 }
@@ -8805,7 +8839,7 @@ sub add_to_environment {
 sub set_environment_variables {
     my ($self, $sh_f) = @_;
 
-    my $env = $self->peak_environment();
+    my $env = $self->peek_environment();
 
     my $expansion = {};
 
@@ -8886,7 +8920,7 @@ sub order_variables {
 sub set_wrapper {
     my ($self, $wrapper_file, $profile_file) = @_;
 
-    my $env = $self->peak_environment;
+    my $env = $self->peek_environment;
 
     my $payload = "/bin/sh -c '. $profile_file'";
     for my $w (@{$self->{order}}) {
@@ -8921,7 +8955,7 @@ sub set_wrapper {
 sub consolidate_prologue {
     my ($self) = @_;
 
-    my $env = $self->peak_environment;
+    my $env = $self->peek_environment;
 
     my @progs = ("cd '" . $self->home_dir . "'");
 
@@ -9452,10 +9486,10 @@ sub check_prerequisites {
         print { $pre_in } "$step\n";
     }
 
-    my $status = -1;
-    eval { close $pre_in; $status = $? };
+    my $exit_status = -1;
+    eval { close $pre_in; $exit_status = $? };
 
-    if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
+    if(!$@ && WIFEXITED($exit_status) && (WEXITSTATUS($exit_status) == 0)) {
         return 0;
     } else {
         return -1;
@@ -9507,7 +9541,6 @@ sub order_dependency {
     for my $dependency (keys %{$wdeps}) {
         my ($min_ver, $max_ver) = @{$wdeps->{$dependency}};
         my $next = $self->bag->select_version($dependency, $min_ver, $max_ver);
-
 
         my $next_level = $order->{$next} || 0;
 
@@ -9951,7 +9984,6 @@ sub execute_recipe {
     $self->widget->ribbon->set_lock();
     eval {
         my $state = $self->widget->ribbon->state;
-
         if($state ne 'DONE' && $depend_step eq 'check') {
             $self->widget->ribbon->release_lock();
             $result = 1;
@@ -10111,7 +10143,7 @@ sub execute_recipe_unlocked {
     $self->widget->ribbon->commit($state);
 
     if($@) {
-        $self->say($@);
+        die $@;
     } else {
         open(my $f, '<', $output_filename) || die 'Did not produce root directory file';
         my $root;

@@ -337,19 +337,51 @@ sub new {
 sub order_widgets {
     my ($self, @requires) = @_;
 
-    my (%order, %dependencies);
+    # order: widget -> integer. If n =< m, n can be installed before m.
+    my (%order, %range);
 
     tie %order, 'Tie::RefHash';
-    tie %dependencies, 'Tie::RefHash';
+
+    # range: widget -> [min, max]. Range of version allowed for widget.
+    $self->{range} = {};
 
     for my $req (@requires) {
         my $widget = $self->select_version($req->{name}, $req->{min}, $req->{max});
-        $widget->order_dependencies(\%order, \%dependencies);
+        $widget->order_dependencies(\%order);
     }
-
+        
     # list of all packages needed, from inner to outter.
     my @ordered_widgets = sort { $order{$b} <=> $order{$a} || $a->name cmp $b->name } keys %order;
+
     $self->{order} = \@ordered_widgets;
+}
+
+sub update_range {
+    my ($self, $name, $new_min, $new_max) = @_;
+
+    $self->{range}{$name} ||= [];
+    my ($min, $max)     = @{$self->{range}{$name}};
+
+    $min ||= $new_min;
+    $max ||= $new_max;
+
+    if($new_min) {
+        if($max && $new_min gt $max) {
+            die "Incompatible versions for '$name' requested: $new_min > $max";
+        } elsif($new_min ge $min) {
+            $min = $new_min;
+        }
+    }
+
+    if($new_max) {
+        if($min && $new_max lt $min) {
+            die "Incompatible versions for '$name' requested: $new_max < $min";
+        } elsif($new_max le $max) {
+            $max = $new_max;
+        }
+    }
+
+    $self->{range}{$name} = [$min, $max];
 }
 
 sub check_manual_requirements() {
@@ -925,6 +957,8 @@ sub build_requirement {
     }
     
     $self->add_to_environment($widget);
+
+    $self->update_range($widget->name, $min_version, $max_version);
 }
 
 sub set_dependencies {
@@ -1728,7 +1762,6 @@ sub order_dependency {
     for my $dependency (keys %{$wdeps}) {
         my ($min_ver, $max_ver) = @{$wdeps->{$dependency}};
         my $next = $self->bag->select_version($dependency, $min_ver, $max_ver);
-
 
         my $next_level = $order->{$next} || 0;
 

@@ -7847,6 +7847,9 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         Assume <dir> to be the installation location of
                         package:version in the system.
                         (e.g. --sys python:2.7=/opt/local/)
+  --no-sys=<package>    Do not use host system version of <package>. If
+                        package is 'ALL', do not use system versions at
+                        all. (Ignored if package specified with --sys.)
 
   --var NAME=VALUE      Add environment variable NAME with VALUE. 
                         May be specified several times.
@@ -7911,9 +7914,10 @@ sub main {
 
     my $dot_output;
 
-    my @databases  = ();
-    my @extra_vars = ();
-    my @sys_locs   = ();
+    my @databases   = ();
+    my @extra_vars  = ();
+    my @sys_locs    = ();
+    my @no_sys_locs = ();
 
     # if the executable name does looks like "perl", we use $0, as it has the
     # name of the script. Otherwise, this is a static run, and we use the given
@@ -7955,6 +7959,7 @@ sub main {
         "interactive" => \$interactive_run,
 
         "sys=s"    => \@sys_locs,
+        "nosys=s"  => \@no_sys_locs,
         "var=s"    => \@extra_vars,
 
         # options for developing, not for runtime:
@@ -8001,10 +8006,11 @@ sub main {
     push @extra_vars, "MAKEFLAGS=-j${make_jobs}";
     push @extra_vars, "VC3_COMMAND_LINE=" . File::Spec->rel2abs(join(" ", $original_command));
 
-    my $bag = VC3::Bag->new($dry_run, $interactive_run, $silent, \@databases, \@sys_locs, \@extra_vars);
+    my $bag = VC3::Bag->new($dry_run, $interactive_run, $silent, \@databases, \@sys_locs, \@no_sys_locs, \@extra_vars);
 
-    $bag->add_requirements(\@requires);
-    $bag->build_requirements($sh_on_error, $force_rebuild, $no_depend);
+    $bag->set_plan_for(@requires);
+    #$bag->add_requirements(\@requires);
+    #$bag->build_requirements($sh_on_error, $force_rebuild, $no_depend);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -8083,11 +8089,13 @@ use File::Temp qw/tempfile/;
 use version ();
 use FindBin  qw/$RealBin $RealScript/;
 use POSIX ();
+use Storable qw/dclone/;
+use Data::Dumper;
 
 use JSON::Tiny;
 
 sub new {
-    my ($class, $dry_run, $interactive_run, $silent, $databases, $sys_locs, $extra_vars) = @_;
+    my ($class, $dry_run, $interactive_run, $silent, $databases, $sys_locs, $no_sys_locs, $extra_vars) = @_;
 
     my $self = bless {}, $class;
 
@@ -8102,6 +8110,8 @@ sub new {
 
     $self->{sources} = $self->decode_bags($databases);
 
+    $self->{no_system} = { map { ( $_ => 1 ), } @{$no_sys_locs} };
+
     # create first environment
     $self->clear_environment();
     my %environment;
@@ -8111,56 +8121,6 @@ sub new {
     $self->add_manual_packages($sys_locs);
 
     return $self;
-}
-
-sub order_widgets {
-    my ($self, @requires) = @_;
-
-    # order: widget -> integer. If n =< m, n can be installed before m.
-    my (%order, %range);
-
-    tie %order, 'Tie::RefHash';
-
-    # range: widget -> [min, max]. Range of version allowed for widget.
-    $self->{range} = {};
-
-    for my $req (@requires) {
-        my $widget = $self->select_version($req->{name}, $req->{min}, $req->{max});
-        $widget->order_dependencies(\%order);
-    }
-        
-    # list of all packages needed, from inner to outter.
-    my @ordered_widgets = sort { $order{$b} <=> $order{$a} || $a->name cmp $b->name } keys %order;
-
-    $self->{order} = \@ordered_widgets;
-}
-
-sub update_range {
-    my ($self, $name, $new_min, $new_max) = @_;
-
-    $self->{range}{$name} ||= [];
-    my ($min, $max)     = @{$self->{range}{$name}};
-
-    $min ||= $new_min;
-    $max ||= $new_max;
-
-    if($new_min) {
-        if($max && $new_min gt $max) {
-            die "Incompatible versions for '$name' requested: $new_min > $max";
-        } elsif($new_min ge $min) {
-            $min = $new_min;
-        }
-    }
-
-    if($new_max) {
-        if($min && $new_max lt $min) {
-            die "Incompatible versions for '$name' requested: $new_max < $min";
-        } elsif($new_max le $max) {
-            $max = $new_max;
-        }
-    }
-
-    $self->{range}{$name} = [$min, $max];
 }
 
 sub check_manual_requirements() {
@@ -8379,38 +8339,6 @@ sub requirements {
     return $self->{requirements};
 }
 
-sub add_requirement {
-    my ($self, $req) = @_;
-
-    $req =~ m/
-    ^
-    (?<name> [A-z0-9_-]+)
-    (:                      # start of min version
-    (?<min> [^:]*)
-    (:                      # start of max version
-    (?<max> [^:]*)
-    )?)?
-    $
-    /x;
-
-    my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
-
-    # turn into version strings
-    $min = version->parse("$min") if($min);
-    $max = version->parse("$max") if($max);
-
-    push @{$self->requirements}, { 'name' => $name, 'min' => $min, 'max' => $max };
-    $self->order_widgets(@{$self->requirements});
-}
-
-sub add_requirements {
-    my ($self, $requires) = @_;
-
-    for my $req (@{$requires}) {
-        $self->add_requirement($req);
-    }
-}
-
 sub build_requirements {
     my ($self, $sh_on_error, $force_rebuild, $no_depend) = @_;
 
@@ -8433,6 +8361,112 @@ sub build_requirements {
 
     $self->clear_environment();
 }
+
+sub merge_plan {
+    my ($self, $plan_a, $plan_b) =  @_;
+
+    $plan_a  ||= {};
+    my $plan_c = {};
+
+    for my $name (keys %{$plan_a}) {
+        my $value_a = $plan_a->{$name};
+        $plan_c->{$name} = \%{$value_a};
+    }
+
+    for my $name (keys %{$plan_b}) {
+        my $value_b = $plan_b->{$name};
+        my $value_c = $plan_c->{$name} || \%{$value_b};
+
+        # check if plans are compatible.
+        if($value_c->{max} lt $value_b->{min} || $value_b->{max} lt $value_c->min) {
+            $self->say("Incompatible versions for $name: [" . $value_c->{min} . ', '. $value_c->{max} . '], [' . $value_b->{min} . ', '. $value_b->{max} . '], ');
+
+            return undef;
+        }
+
+        my $min = $value_c->{min} le $value_b->{min} ? $value_c->{min} : $value_b->{min};
+        my $max = $value_c->{max} ge $value_b->{max} ? $value_c->{max} : $value_b->{max};
+
+        # if from other plan the versions are more restrictive, switch to that.
+        if($value_b->{min} ge $min && $value_b->{max} le $max) {
+            $value_c = \%{$value_b};
+        }
+        
+        # otherwise, do not switch plans, but restrict the appropiate limit.
+        if($value_c->{min} gt $min) {
+            $value_c->{min} = $min;
+        }
+
+        if($value_c->{max} lt $max) {
+            $value_c->{max} = $max;
+        }
+
+        $plan_c->{name} = $value_c;
+    }
+
+    return $plan_c;
+}
+
+sub set_plan_for {
+    my ($self, @requires) = @_;
+
+    $self->{indent_level} = 0;
+
+    my $root_entry = { version => 'v0.0.1', phony => 1, dependencies => {} };
+
+    for my $req (@requires) {
+        my ($name, $min, $max) = $self->parse_requirement($req);
+
+        my $versions = [];
+        push @{$versions}, $min if($min);
+        push @{$versions}, $max if($max);
+
+        $root_entry->{dependencies}{$name} = $versions;
+    }
+
+    my $dummy_name = "overall_plan_" . join('_', @requires);
+
+    $self->{sources}{$dummy_name} = [ VC3::Widget->new($self, $dummy_name, $root_entry) ];
+
+    my $plan = VC3::Plan->new($self);
+
+    if(!$plan->add_target($dummy_name)) {
+        die("Could not find an installation plan.\n");
+    }
+
+    $self->{ords} = $plan->order();
+    my @ordered = sort { ($self->{ords}{$a} <=> $self->{ords}{$b}) || ($a cmp $b) } keys %{$self->{ords}};
+    $self->{order} = \@ordered;
+
+    print(  map { "$_(" . $self->{ords}{$_} . ")\n" }  keys %{$self->{ords}} );
+
+    return $plan;
+}
+
+sub parse_requirement {
+    my ($self, $req) = @_;
+
+    $req =~ m/
+    ^
+    (?<name> [A-z0-9_-]+)
+    (:                      # start of min version
+    (?<min> [^:]*)
+    (:                      # start of max version
+    (?<max> [^:]*)
+    )?)?
+    $
+    /x;
+
+    my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
+
+    # turn into version strings
+    $min = version->parse("$min") if($min);
+    $max = version->parse("$max") if($max);
+
+    return ($name, $min, $max);
+}
+
+
 
 sub prepare_exec_environment {
     my ($self) = @_;
@@ -8669,9 +8703,15 @@ sub decode_bag {
     }
 
     return $sources;
-}
+} 
 
 sub build_requirement {
+    my ($self, $widget_name, $sh_on_error, $force_rebuild, $depend_step_now, $min_version, $max_version) = @_;
+
+
+}
+
+sub build_widget {
     my ($self, $widget_name, $sh_on_error, $force_rebuild, $depend_step_now, $min_version, $max_version) = @_;
 
     my $widget = $self->select_version($widget_name, $min_version, $max_version);
@@ -8692,9 +8732,22 @@ sub build_requirement {
     $self->say("checking for $widget_name-" . $widget->version);
     ####
 
-    my $exit_status = 0;
+    my $exit_status = 1;
     if($widget->sources) { 
         for my $source (@{$widget->sources}) {
+
+            $self->say(ref $source);
+            $self->say(ref $self->{no_system});
+
+            $self->say(keys %{$self->{no_system}});
+            $self->say($widget_name);
+            $self->say( %{$self->{no_system}} );
+            $self->say($self->{no_system}{$widget_name});
+
+            if($self->{no_system} && $source->isa('VC3::Source::System')) {
+                next if $self->{no_system}{ALL};
+                next if $self->{no_system}{$widget_name};
+            }
 
             $exit_status = -1;
             eval { $exit_status = $widget->check_prerequisites($source) };
@@ -8781,6 +8834,7 @@ sub select_version {
     my $versions = $self->widgets_of($widget_name);
 
     for my $widget (@{$versions}) {
+
         my $version = $widget->version;
         
         push @found, $version->normal;
@@ -9084,7 +9138,7 @@ sub say {
 
     return if($self->{silent_run});
 
-    print(('.' x $self->{indent_level}), @rest, "\n");
+    print(('.' x $self->{indent_level}), join(' ', @rest), "\n");
 }
 
 
@@ -9095,6 +9149,8 @@ use IO::Handle;
 use Digest::Perl::MD5 qw(md5_hex);
 use Cwd;
 use File::Temp qw/tempdir/;
+use Data::Dumper;
+
 
 use JSON::Tiny;
 
@@ -9460,42 +9516,6 @@ sub hash_to_canonical_str {
     return $str;
 }
 
-sub check_prerequisites {
-    my ($self, $source) = @_;
-
-    # by default return true. Usually packages do not have prerequisites.
-    unless($source->prerequisites()) {
-        return 0;
-    }
-
-    if($self->bag->dry_run) {
-        return 0;
-    }
-
-    my @steps = @{$source->prerequisites};
-
-    my ($pid, $pre_in) = $self->bag->shell();
-
-    # add shifting to tmp directory as the first step.
-    unshift @steps, 'cd ' . $self->bag->tmp_dir;
-
-    # add exiting cleanly from shell as a last step.
-    push @steps, 'exit 0';
-
-    for my $step (@steps) {
-        print { $pre_in } "$step\n";
-    }
-
-    my $exit_status = -1;
-    eval { close $pre_in; $exit_status = $? };
-
-    if(!$@ && WIFEXITED($exit_status) && (WEXITSTATUS($exit_status) == 0)) {
-        return 0;
-    } else {
-        return -1;
-    }
-}
-
 
 sub msgs_manual_requirements {
     my ($self) = @_;
@@ -9512,44 +9532,6 @@ sub msgs_manual_requirements {
     return @restricted_unmet;
 }
 
-
-sub order_dependencies {
-    my ($self, $order) = @_;
-
-    # if no parents, then give level one, a root package
-    # larger level means more inner 
-    $order->{$self} |= 1;
-
-    my $level = $order->{$self};
-
-    $self->order_dependency($level, $self, $order);
-
-    if($self->sources) {
-        for my $s (@{$self->sources}) {
-            $self->order_dependency($level, $s, $order);
-        }
-    }
-}
-
-sub order_dependency {
-    my ($self, $level, $dep, $order) = @_;
-
-    my $wdeps = $dep->dependencies;
-
-    return unless $wdeps;
-
-    for my $dependency (keys %{$wdeps}) {
-        my ($min_ver, $max_ver) = @{$wdeps->{$dependency}};
-        my $next = $self->bag->select_version($dependency, $min_ver, $max_ver);
-
-        my $next_level = $order->{$next} || 0;
-
-        if($next_level < $level + 1) {
-            $order->{$next} = $level + 1;
-            $next->order_dependencies($order);
-        }
-    }
-}
 
 sub prepare_recipe_sandbox {
     my ($self, $no_erase, $no_depend) = @_;
@@ -9743,6 +9725,9 @@ sub new {
     elsif($source_raw->{type} eq 'manual-distribution') {
         $source = VC3::Source::ManualDist->new($widget, $source_raw);
     }
+    elsif($source_raw->{type} eq 'binary') {
+        $source = VC3::Source::Binary->new($widget, $source_raw);
+    }
     elsif($source_raw->{type} eq 'system') {
         $source = VC3::Source::System->new($widget, $source_raw);
     }
@@ -9871,6 +9856,42 @@ sub prerequisites {
 
     # by default return true. Usually packages do not have prerequisites.
     return $self->{prerequisites};
+}
+
+sub check_prerequisites {
+    my ($self) = @_;
+
+    # by default return true. Usually packages do not have prerequisites.
+    unless($self->prerequisites()) {
+        return 0;
+    }
+
+    if($self->widget->bag->dry_run) {
+        return 0;
+    }
+
+    my @steps = @{$self->prerequisites};
+
+    my ($pid, $pre_in) = $self->widget->bag->shell();
+
+    # add shifting to tmp directory as the first step.
+    unshift @steps, 'cd ' . $self->widget->bag->tmp_dir;
+
+    # add exiting cleanly from shell as a last step.
+    push @steps, 'exit 0';
+
+    for my $step (@steps) {
+        print { $pre_in } "$step\n";
+    }
+
+    my $exit_status = -1;
+    eval { close $pre_in; $exit_status = $? };
+
+    if(!$@ && WIFEXITED($exit_status) && (WEXITSTATUS($exit_status) == 0)) {
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 sub say {
@@ -10057,6 +10078,48 @@ sub setup_build_shell {
     return $self->widget->setup_build_shell(@{$self->recipe});
 }
 
+sub subplan_for {
+    my ($self, $plan) = @_;
+
+
+    my $exit_status = -1;
+    eval { $exit_status = $self->check_prerequisites() };
+    if($exit_status) {
+        $self->say("Fail-prereq: " . $self->widget->name . '-' . $self->widget->version);
+        return undef;
+    }
+
+    my $subplan = $self->widget->bag->merge_plan($plan, {});
+
+    if($self->dependencies) {
+        for my $d (keys %{$self->dependencies}) {
+            my ($min_dep, $max_dep) = @{$self->dependencies->{$d}};
+
+            #skip dependency if already in plan:
+            if($subplan->{$d}) {
+                my $v = $subplan->{$d};
+                next if(!$min_dep && !$max_dep);
+                next if(!$min_dep && $max_dep ge $v->{max});
+                next if(!$max_dep && $min_dep le $v->{min});
+                next if($max_dep ge $v->{max} && $min_dep le $v->{min});
+            }
+
+            my $subsubplan = $self->widget->bag->subplan_for($d, $min_dep, $max_dep, $subplan);
+
+            if($subsubplan) {
+                $subplan = $self->widget->bag->merge_plan($subplan, $subsubplan);
+
+                if(!$subplan) {
+                    return undef;
+                }
+            }
+        }
+    }
+
+    return $subplan;
+}
+
+
 package VC3::Source::Tarball;
 use base 'VC3::Source::Generic';
 use Carp;
@@ -10166,20 +10229,320 @@ sub execute_recipe_unlocked {
     return $result;
 }
 
+package VC3::Source::Binary;
+use base 'VC3::Source::Generic';
+use Carp;
+
+# Right now, do the same as generic.
+
+package VC3::Plan;
+
+sub new {
+    my ($class, $bag, $parent) = @_;
+
+    my $self = bless {}, $class;
+
+    $self->bag($bag);
+
+    $self->elements($parent && $parent->elements || {});
+
+    return $self;
+}
+
+sub bag {
+    my ($self, $new) = @_;
+
+    if($new) {
+        $self->{bag} = $new;
+    }
+
+    return $self->{bag};
+}
+
+sub say {
+    my ($self, @rest) = @_;
+
+    return $self->bag->say(@rest);
+}
+
+sub elements {
+    my ($self, $new) = @_;
+
+    if($new) {
+        $self->{elements} = \%{ $new };
+    }
+
+    return $self->{elements};
+}
+
+sub add_target {
+    my ($self, $name, $min, $max) = @_;
+
+    $self->bag->{indent_level}++;
+
+    $self->say("Plan:    $name => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+
+    my $available = $self->bag->widgets_of($name);
+    for my $widget (@{$available}) {
+
+        if($self->add_widget($widget, $min, $max)) {
+            $self->bag->{indent_level}--;
+            return 1;
+        }
+    }
+
+    $self->say("Failure: $name => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+    $self->bag->{indent_level}--;
+
+    return 0;
+}
+
+sub add_widget {
+    my ($self, $widget, $min, $max) = @_;
+
+    my $version = $widget->version;
+
+    $self->say("Try:     " . $widget->name . " => $version");
+
+    if($min && $min gt $version || $max && $max lt $version) {
+        $self->say("Incorrect version: $version => [@{[$min || 0]},@{[$max || 'infinity']}]");
+        return 0;
+    }
+
+    my $saved_state = $self->elements();
+
+    my $p = $self->elements->{$widget->name};
+    my $e = $self->refine($widget, $p, $min, $max);
+
+    my $success;
+    if($p && !$e) {
+        $self->say("conflicting versions: @{[$widget->name]} [@{[$p->{min} || 0]}, @{[$p->{max} || 'infinity']}] <=> [@{[$min || 0]}, @{[$max || 'infinity']}]");
+        $success = 0;
+    } elsif($p && $e) {
+        # already in plan, simple refinenment of versions
+        $success = 1;
+    } elsif(!$e) {
+        $success = 0;
+        die('bug, this should not happen.');
+    } else {
+
+        if($self->add_dependencies($widget->dependencies)) {
+            if($widget->sources) {
+                my $s = $self->add_sources($widget->sources);
+                if($s) {
+                    $e->{source} = $s;
+                    $success = 1;
+                } else {
+                    $self->say("could not add any source for: @{[$widget->name]} $version => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+                    $success = 0;
+                }
+            } else {
+                $success = 1;
+            }
+        } else {
+            $self->say("could not set dependencies for: @{[$widget->name]} $version => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+            $success = 0;
+        }
+    }
+
+    if($success) {
+        # add new step to plan
+        $self->elements->{$widget->name} = $e;
+        $self->say("Success: @{[$widget->name]} => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+    } else {
+        # restore old plan on error
+        $self->elements($saved_state);
+    }
+
+    return $success;
+}
+
+sub add_dependencies {
+    my ($self, $dependencies) = @_;
+
+    my $saved_state = $self->elements();
+
+    my $success = 1;
+    for my $name (keys %{$dependencies}) {
+
+        my ($min, $max) = @{$dependencies->{$name}};
+        unless($self->add_target($name, $min, $max)) {
+            $success = 0;
+            last;
+        }
+    }
+
+    unless($success) {
+        $self->elements($saved_state);
+    }
+
+    return $success;
+}
+
+sub add_sources {
+    my ($self, $sources) = @_;
+
+    my $saved_state = $self->elements();
+    for my $s (@{$sources}) {
+        if($self->add_source($s)) {
+            return $s;
+        }
+        $self->elements($saved_state);
+    }
+
+    return undef;
+}
+
+
+sub add_source {
+    my ($self, $source) = @_;
+
+    my $exit_status = -1;
+    eval { $exit_status = $source->check_prerequisites() };
+    if($exit_status) {
+        $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version);
+        return 0;
+    }
+
+    return $self->add_dependencies($source->dependencies);
+}
+
+sub refine {
+    my ($self, $widget, $p, $min, $max) = @_;
+
+    if($p) {
+        return $p->refine($min, $max);
+    } else {
+        VC3::Plan::Element->new($widget, $min, $max, undef);
+    }
+}
+
+sub order {
+    my ($self) = @_;
+
+    my $ordinal_of = {};
+
+    my @names = keys %{$self->elements};
+
+    for my $name (@names) {
+        $ordinal_of->{$name} = 1;
+    }
+
+    my $to_go = @names;
+
+    while($to_go >= 0) {
+        my $change = 0;
+
+        $to_go--;
+
+        for my $name (@names) {
+            my $e = $self->elements->{$name};
+            my $o = $ordinal_of->{$name};
+
+            my @deps;
+
+            if($e->{widget}->dependencies) {
+                push @deps, keys %{$e->{widget}->dependencies};
+            }
+
+            if($e->{source} && $e->{source}->dependencies) {
+                push @deps, keys %{$e->{source}->dependencies};
+            }
+
+            my $max = $o;
+            if(@deps) {
+                $max = 1 + List::Util::max( @{$ordinal_of}{@deps} );
+            }
+
+            if($max != $o) {
+                $change = 1;
+                $ordinal_of->{$e->{widget}->name} = $max;
+            }
+        }
+
+        if(!$change) {
+            return $ordinal_of;
+        }
+    }
+
+    die 'Circular dependency found';
+}
+
+
+package VC3::Plan::Element;
+
+sub new {
+    my ($class, $widget, $min, $max, $source) = @_;
+
+    my $self = bless {}, $class;
+
+    if($min && $max && $min gt $max) {
+        die 'Incompatible versions';
+    }
+
+    $self->{widget} = $widget;
+    $self->{min}    = $min;
+    $self->{max}    = $max;
+    $self->{source} = $source;
+
+    return $self;
+}
+
+sub refine {
+    my ($self, $new_min, $new_max) = @_;
+
+    if($new_min && $self->{max} && $new_min gt $self->{max}) {
+        return undef;
+    }
+
+    if($new_max && $self->{min} && $new_max lt $self->{min}) {
+        return undef;
+    }
+
+    my $min = $new_min || $self->{min};
+    if($new_min && $self->{min}) {
+        $min = $new_min lt $self->{min} ? $new_min : $self->{min};
+    }
+
+    my $max = $new_max || $self->{max};
+    if($new_max && $self->{max}) {
+        $max = $new_max lt $self->{max} ? $new_max : $self->{max};
+    }
+
+    if($min && $min gt $self->{widget}->version) { 
+        return undef;
+    }
+
+    if($max) {
+        my $v   = version->parse($max);
+        my $num = $v->numify();
+        my $fix = ($num * 1000000) % 1000;
+        $num   += 0.000999 unless($fix);
+        $v      = version->parse($num);
+        
+        if($v lt $self->{widget}->version) { 
+            return undef;
+        }
+    }
+
+    return VC3::Plan::Element->new($self->{widget}, $min, $max, $self->{source});
+}
+
+
 
 package VC3::Builder;
 __DATA__
 {
     "vc3-wq-factory":[
         {
-            "version":"v0.0.1",
+            "version":"v0.000.001",
             "phony":1,
             "dependencies":{
                 "cctools":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-factory":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ]
             }
         }
@@ -10187,7 +10550,7 @@ __DATA__
 
     "vc3-factory":[
         {
-            "version":"v0.0.1",
+            "version":"v0.000.001",
             "phony":1,
             "sources":[
                 {
@@ -10202,13 +10565,13 @@ __DATA__
             ],
             "dependencies":{
                 "vc3-services-common-requirements":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-info-service":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "condor":[
-                    "v8.6.0"
+                    "v8.006.000"
                 ]
             },
             "environment_variables":[
@@ -10234,32 +10597,32 @@ __DATA__
 
     "vc3-services":[
         {
-            "version":"v0.0.1",
+            "version":"v0.000.001",
             "phony":1,
             "dependencies":{
                 "vc3-builder":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-pluginmanager":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-certificates":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-info-service":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-wrappers":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-core":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-master":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-wq-factory":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ]
             }
         }
@@ -10267,14 +10630,14 @@ __DATA__
 
     "vc3-services-common-requirements":[
         {
-            "version":"v0.0.1",
+            "version":"v0.000.001",
             "phony":1,
             "dependencies":{
                 "python":[
-                    "v2.7.12"
+                    "v2.007.012"
                 ],
                 "git":[
-                    "v2.12.0"
+                    "v2.012.000"
                 ]
             },
             "environment_variables":[
@@ -10300,13 +10663,13 @@ __DATA__
 
     "vc3-dev":[
         {
-            "version":"v0.0.1",
+            "version":"v0.000.001",
             "dependencies":{
                 "vc3-services":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "perl":[
-                    "v2.24.0"
+                    "v2.024.000"
                 ]
             }
         }
@@ -10314,7 +10677,7 @@ __DATA__
 
     "vc3-builder":[
         {
-            "version":"v0.1",
+            "version":"v0.001",
             "phony":1,
             "sources":[
                 {
@@ -10328,7 +10691,7 @@ __DATA__
             ],
             "dependencies":{
                 "vc3-services-common-requirements":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ]
             }
         }
@@ -10336,7 +10699,7 @@ __DATA__
 
     "vc3-master":[
         {
-            "version":"v0.1",
+            "version":"v0.001",
             "phony":1,
             "sources":[
                 {
@@ -10351,7 +10714,7 @@ __DATA__
             ],
             "dependencies":{
                 "vc3-core":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ]
             }
         }
@@ -10359,7 +10722,7 @@ __DATA__
 
     "vc3-core":[
         {
-            "version":"v0.1",
+            "version":"v0.001",
             "phony":1,
             "sources":[
                 {
@@ -10374,13 +10737,13 @@ __DATA__
             ],
             "dependencies":{
                 "vc3-pluginmanager":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-info-service":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-wrappers":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ]
             }
         }
@@ -10388,11 +10751,11 @@ __DATA__
 
     "vc3-test-service":[
         {
-            "version":"v0.1",
+            "version":"v0.001",
             "phony":1,
             "dependencies":{
                 "vc3-wrappers":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ]
             }
         }
@@ -10400,7 +10763,7 @@ __DATA__
 
     "vc3-wrappers":[
         {
-            "version":"v0.1",
+            "version":"v0.001",
             "phony":1,
             "sources":[
                 {
@@ -10415,7 +10778,7 @@ __DATA__
             ],
             "dependencies":{
                 "vc3-info-service":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ]
             }
         }
@@ -10423,7 +10786,7 @@ __DATA__
 
     "vc3-info-service":[
         {
-            "version":"v0.1",
+            "version":"v0.001",
             "phony":1,
             "sources":[
                 {
@@ -10440,16 +10803,16 @@ __DATA__
             ],
             "dependencies":{
                 "vc3-pluginmanager":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "vc3-certificates":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "python-cherrypy":[
-                    "v3.2.2"
+                    "v3.002.002"
                 ],
                 "python-requests":[
-                    "v2.7.0"
+                    "v2.007.000"
                 ]
             },
             "environment_variables":[
@@ -10477,7 +10840,7 @@ __DATA__
 
     "vc3-certificates":[
         {
-            "version":"v0.1",
+            "version":"v0.001",
             "phony":1,
             "sources":[
                 {
@@ -10508,7 +10871,7 @@ __DATA__
             ],
             "dependencies":{
                 "vc3-services-common-requirements":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ]
             },
             "environment_variables":[
@@ -10542,7 +10905,7 @@ __DATA__
 
     "vc3-pluginmanager":[
         {
-            "version":"v0.1",
+            "version":"v0.001",
             "phony":1,
             "sources":[
                 {
@@ -10557,13 +10920,13 @@ __DATA__
             ],
             "dependencies":{
                 "vc3-services-common-requirements":[
-                    "v0.0.1"
+                    "v0.000.001"
                 ],
                 "python-cherrypy":[
-                    "v3.2.2"
+                    "v3.002.002"
                 ],
                 "python-requests":[
-                    "v2.7.0"
+                    "v2.007.000"
                 ]
             }
         }
@@ -10571,7 +10934,7 @@ __DATA__
 
     "icecube-argonne-demo":[
         {
-            "version":"v1.0",
+            "version":"v1.000",
             "phony":1,
             "sources":[
                 {
@@ -10587,10 +10950,10 @@ __DATA__
             ],
             "dependencies":{
                 "icecube-environment":[
-                    "v1.0"
+                    "v1.000"
                 ],
                 "python":[
-                    "v2.6"
+                    "v2.006"
                 ]
             },
             "environment_variables":[
@@ -10605,17 +10968,17 @@ __DATA__
 
     "icecube-environment":[
         {
-            "version":"v1.0",
+            "version":"v1.000",
             "phony":1,
             "prologue": [
                 "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"
             ],
             "dependencies":{
                 "cvmfs":[
-                    "v2.0"
+                    "v2.000"
                 ],
                 "python":[
-                    "v2.6"
+                    "v2.006"
                 ]
             }
         }
@@ -10623,7 +10986,7 @@ __DATA__
 
     "htcondor-glidein-wrapper":[
         {
-            "version":"v1.0",
+            "version":"v1.000",
             "sources":[
                 {
                     "type":"generic",
@@ -10637,7 +11000,7 @@ __DATA__
                     ],
                     "dependencies":{
                         "python":[
-                            "v2.6"
+                            "v2.006"
                         ]
                     }
                 }
@@ -10653,7 +11016,7 @@ __DATA__
 
     "cvmfs":[
         {
-            "version":"v2.0",
+            "version":"v2.000",
             "phony":1,
             "sources":[
                 {
@@ -10669,7 +11032,7 @@ __DATA__
                     ],
                     "dependencies":{
                         "parrot":[
-                            "v6.0.16"
+                            "v6.000.016"
                         ]
                     }
                 }
@@ -10679,13 +11042,13 @@ __DATA__
 
     "parrot":[
         {
-            "version":"v6.0.16",
+            "version":"v6.000.016",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
             "dependencies":{
                 "cctools":[
-                    "v6.0.16"
+                    "v6.000.016"
                 ]
             }
         }
@@ -10693,10 +11056,10 @@ __DATA__
 
     "cctools-catalog-server":[
         {
-            "version":"v6.0.16",
+            "version":"v6.000.016",
             "dependencies":{
                 "cctools":[
-                    "v6.0.16"
+                    "v6.000.016"
                 ]
             }
         }
@@ -10705,12 +11068,12 @@ __DATA__
 
     "cctools":[
         {
-            "version":"v6.0.16",
+            "version":"v6.000.016",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
             "sources":[
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
                         "cctools-6.0.16-x86_64-redhat7.tar.gz"
                     ],
@@ -10723,20 +11086,20 @@ __DATA__
                     ],
                     "dependencies":{
                         "perl":[
-                            "v5.16.0", "v5.16.999"
+                            "v5.016.000", "v5.016.003"
                         ],
                         "python":[
-                            "v2.7.0", "v2.7.999"
+                            "v2.007.000", "v2.007.012"
                         ]
                     }
                 },
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
                         "cctools-6.0.16-x86_64-redhat6.tar.gz"
                     ],
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x8664/redhat6\" ] || exit 1"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -10744,10 +11107,10 @@ __DATA__
                     ],
                     "dependencies":{
                         "perl":[
-                            "v5.10.0", "v5.10.999"
+                            "v5.010.000", "v5.010.001"
                         ],
                         "python":[
-                            "v2.6.0", "v2.6.999"
+                            "v2.006.000", "v2.006.009"
                         ]
                     }
                 },
@@ -10763,32 +11126,32 @@ __DATA__
                     ],
                     "dependencies":{
                         "swig":[
-                            "v3.0"
+                            "v3.000"
                         ],
                         "python":[
-                            "v2.6"
+                            "v2.006"
                         ],
                         "perl":[
-                            "v5.10"
+                            "v5.010"
                         ],
                         "libcvmfs":[
-                            "v2.2"
+                            "v2.002"
                         ],
                         "fuse":[
-                            "v2.9"
+                            "v2.009"
                         ],
                         "openssl":[
-                            "v1.0"
+                            "v1.000"
                         ],
                         "uuid":[
-                            "v1.0"
+                            "v1.000"
                         ]
                     }
                 }
             ],
             "dependencies":{
                 "zlib":[
-                    "v1.2"
+                    "v1.002"
                 ]
             },
             "environment_variables":[
@@ -10816,7 +11179,7 @@ __DATA__
 
     "swig":[
         {
-            "version":"v3.0.2",
+            "version":"v3.000.002",
             "versioncmd":"swig -version",
             "versionreg":"SWIG Version ([0-9.]*)",
             "sources":[
@@ -10832,13 +11195,13 @@ __DATA__
                     ],
                     "dependencies":{
                         "python":[
-                            "v2.6"
+                            "v2.006"
                         ],
                         "perl":[
-                            "v5.8"
+                            "v5.008"
                         ],
                         "pcre":[
-                            "v8.34"
+                            "v8.034"
                         ]
                     }
                 }
@@ -10854,10 +11217,10 @@ __DATA__
 
     "gcc":[
         {
-            "version":"v4.6.1",
+            "version":"v4.006.001",
             "sources":[
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
                         "gcc-4.6.1-2.tar.gz"
                     ],
@@ -10890,7 +11253,7 @@ __DATA__
 
     "patch":[
         {
-            "version":"v2.7.5",
+            "version":"v2.007.005",
             "sources":[
                 {
                     "type":"tarball",
@@ -10915,7 +11278,7 @@ __DATA__
 
     "cmake":[
         {
-            "version":"v3.5.2",
+            "version":"v3.005.002",
             "versioncmd":"cmake --version",
             "versionreg":"cmake version ([0-9.]*)",
             "sources":[
@@ -10942,7 +11305,7 @@ __DATA__
 
     "libcvmfs":[
         {
-            "version":"v2.3",
+            "version":"v2.003",
             "sources":[
                 {
                     "type":"tarball",
@@ -10962,22 +11325,22 @@ __DATA__
                     ],
                     "dependencies":{
                         "uuid":[
-                            "v1.0"
+                            "v1.000"
                         ],
                         "fuse":[
-                            "v2.9"
+                            "v2.009"
                         ],
                         "cmake":[
-                            "v3.1"
+                            "v3.001"
                         ],
                         "patch":[
-                            "v2.0"
+                            "v2.000"
                         ],
                         "attr":[
-                            "v2.4"
+                            "v2.004"
                         ],
                         "openssl":[
-                            "v1.0"
+                            "v1.000"
                         ]
                     }
                 }
@@ -10993,7 +11356,7 @@ __DATA__
 
     "uuid":[
         {
-            "version":"v1.0.3",
+            "version":"v1.000.003",
             "sources":[
                 {
                     "type":"tarball",
@@ -11027,7 +11390,7 @@ __DATA__
 
     "openssl":[
         {
-            "version":"v1.0.2",
+            "version":"v1.000.002",
             "sources":[
                 {
                     "type":"tarball",
@@ -11044,7 +11407,7 @@ __DATA__
             ],
             "dependencies":{
                 "zlib":[
-                    "v1.2"
+                    "v1.002"
                 ]
             },
             "environment_variables":[
@@ -11070,7 +11433,7 @@ __DATA__
 
     "libssh2":[
         {
-            "version":"v1.8.0",
+            "version":"v1.008.000",
             "sources":[
                 {
                     "type":"tarball",
@@ -11088,7 +11451,7 @@ __DATA__
             ],
             "dependencies":{
                 "openssl":[
-                    "v1.0.2"
+                    "v1.000.002"
                 ]
             },
             "environment_variables":[
@@ -11114,7 +11477,7 @@ __DATA__
 
     "gss":[
         {
-            "version":"v1.0.3",
+            "version":"v1.000.003",
             "sources":[
                 {
                     "type":"tarball",
@@ -11156,7 +11519,7 @@ __DATA__
 
     "curl":[
         {
-            "version":"v7.53.1",
+            "version":"v7.053.001",
             "sources":[
                 {
                     "type":"tarball",
@@ -11173,16 +11536,16 @@ __DATA__
             ],
             "dependencies":{
                 "zlib":[
-                    "v1.2"
+                    "v1.002"
                 ],
                 "openssl":[
-                    "v1.0.2"
+                    "v1.000.002"
                 ],
                 "gss":[
-                    "v1.0.3"
+                    "v1.000.003"
                 ],
                 "libssh2":[
-                    "v1.8.0"
+                    "v1.008.000"
                 ]
             },
             "environment_variables":[
@@ -11212,7 +11575,7 @@ __DATA__
 
     "git":[
         {
-            "version":"v2.12.0",
+            "version":"v2.012.000",
             "sources":[
                 {
                     "type":"tarball",
@@ -11229,25 +11592,25 @@ __DATA__
             ],
             "dependencies":{
                 "zlib":[
-                    "v1.2"
+                    "v1.002"
                 ],
                 "openssl":[
-                    "v1.0.2"
+                    "v1.000.002"
                 ],
                 "gss":[
-                    "v1.0.3"
+                    "v1.000.003"
                 ],
                 "curl":[
-                    "v7.53.1"
+                    "v7.053.001"
                 ],
                 "libssh2":[
-                    "v1.8.0"
+                    "v1.008.000"
                 ],
                 "perl":[
-                    "v5.24"
+                    "v5.024"
                 ],
                 "python":[
-                    "v2.7"
+                    "v2.007"
                 ]
             },
             "environment_variables":[
@@ -11277,10 +11640,10 @@ __DATA__
 
     "condor":[
         {
-            "version":"v8.6.0",
+            "version":"v8.006.000",
             "sources":[
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
                         "condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
                     ],
@@ -11293,7 +11656,7 @@ __DATA__
                     ]
                 },
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
                         "condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
                     ],
@@ -11325,7 +11688,7 @@ __DATA__
 
     "berkeley-db":[
         {
-            "version":"v6.2.23",
+            "version":"v6.002.023",
             "sources":[
                 {
                     "type":"tarball",
@@ -11361,7 +11724,7 @@ __DATA__
 
     "readline":[
         {
-            "version":"v6.3",
+            "version":"v6.003",
             "sources":[
                 {
                     "type":"tarball",
@@ -11395,7 +11758,7 @@ __DATA__
 
     "glib":[
         {
-            "version":"v2.18.1",
+            "version":"v2.018.001",
             "sources":[
                 {
                     "type":"tarball",
@@ -11413,19 +11776,19 @@ __DATA__
             ],
             "dependencies":{
                 "libffi":[
-                    "v3.2.1"
+                    "v3.002.001"
                 ],
                 "gettext":[
-                    "v0.19"
+                    "v0.019"
                 ],
                 "zlib":[
-                    "v1.2"
+                    "v1.002"
                 ],
                 "pcre":[
-                    "v8.13"
+                    "v8.013"
                 ],
                 "python":[
-                    "v2.5"
+                    "v2.005"
                 ]
             },
             "environment_variables":[
@@ -11455,7 +11818,7 @@ __DATA__
 
     "attr":[
         {
-            "version":"v2.4.47",
+            "version":"v2.004.047",
             "sources":[
                 {
                     "type":"tarball",
@@ -11473,7 +11836,7 @@ __DATA__
             ],
             "dependencies":{
                 "gettext":[
-                    "v0.19"
+                    "v0.019"
                 ]
             },
             "environment_variables":[
@@ -11503,7 +11866,7 @@ __DATA__
 
     "libffi":[
         {
-            "version":"v3.2.1",
+            "version":"v3.002.001",
             "sources":[
                 {
                     "type":"tarball",
@@ -11541,7 +11904,7 @@ __DATA__
 
     "pcre":[
         {
-            "version":"v8.39",
+            "version":"v8.039",
             "sources":[
                 {
                     "type":"tarball",
@@ -11582,7 +11945,7 @@ __DATA__
 
     "fuse":[
         {
-            "version":"v2.9.3",
+            "version":"v2.009.003",
             "sources":[
                 {
                     "type":"tarball",
@@ -11619,7 +11982,7 @@ __DATA__
 
     "perl":[
         {
-            "version":"v5.10",
+            "version":"v5.010",
             "sources":[
                 {
                     "type":"system",
@@ -11631,7 +11994,7 @@ __DATA__
                 ]
         },
         {
-            "version":"v5.16",
+            "version":"v5.016",
             "sources":[
                 {
                     "type":"system",
@@ -11643,7 +12006,7 @@ __DATA__
                 ]
         },
         {
-            "version":"v5.24.0",
+            "version":"v5.024.000",
             "sources":[
                 {
                     "type":"system",
@@ -11722,7 +12085,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl":[
-                    "v5.10"
+                    "v5.010"
                 ]
             }
         }
@@ -11730,7 +12093,7 @@ __DATA__
 
     "perl-cpanminus":[
         {
-            "version":"v1.7",
+            "version":"v1.007",
             "sources":[
                 {
                     "type":"generic",
@@ -11745,7 +12108,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-local-lib":[
-                    "v2.0"
+                    "v2.000"
                 ]
             }
         }
@@ -11753,7 +12116,7 @@ __DATA__
 
     "python-setuptools":[
         {
-            "version":"v24.0.2",
+            "version":"v24.000.002",
             "sources":[
                 {
                     "type":"tarball",
@@ -11767,7 +12130,7 @@ __DATA__
             ],
             "dependencies":{
                 "python":[
-                    "v2.6"
+                    "v2.006"
                 ]
             }
         }
@@ -11775,7 +12138,7 @@ __DATA__
 
     "python-pip":[
         {
-            "version":"v1.8.2",
+            "version":"v1.008.002",
             "sources":[
                 {
                     "type":"generic",
@@ -11790,10 +12153,10 @@ __DATA__
             ],
             "dependencies":{
                 "python":[
-                    "v2.6"
+                    "v2.006"
                 ],
                 "python-setuptools":[
-                    "v24.0"
+                    "v24.000"
                 ]
             },
             "environment_variables":[
@@ -11807,7 +12170,7 @@ __DATA__
 
     "python-virtualenv":[
         {
-            "version":"v1.0.0",
+            "version":"v1.000.000",
             "sources":[
                 {
                     "type":"generic",
@@ -11824,7 +12187,7 @@ __DATA__
             ],
             "dependencies":{
                 "python-pip":[
-                    "v1.8"
+                    "v1.008"
                 ]
             },
             "environment_variables":[
@@ -11839,7 +12202,7 @@ __DATA__
 
     "python-cherrypy":[
         {
-            "version":"v3.2.2",
+            "version":"v3.002.002",
             "sources":[
                 {
                     "type":"tarball",
@@ -11853,7 +12216,7 @@ __DATA__
             ],
             "dependencies":{
                 "python":[
-                    "v2.6"
+                    "v2.006"
                 ]
             }
         }
@@ -11861,7 +12224,7 @@ __DATA__
 
     "python-requests":[
         {
-            "version":"v2.7.0",
+            "version":"v2.007.000",
             "sources":[
                 {
                     "type":"tarball",
@@ -11875,7 +12238,7 @@ __DATA__
             ],
             "dependencies":{
                 "python":[
-                    "v2.6"
+                    "v2.006"
                 ]
             }
         }
@@ -11884,7 +12247,7 @@ __DATA__
 
     "python":[
         {
-            "version":"v2.6",
+            "version":"v2.006",
             "sources":[
                 {
                     "type":"system",
@@ -11899,7 +12262,7 @@ __DATA__
             ]
         },
         {
-            "version":"v2.7.12",
+            "version":"v2.007.012",
             "sources":[
                 {
                     "type":"system",
@@ -11926,10 +12289,10 @@ __DATA__
                     ],
                     "dependencies":{
                         "zlib":[
-                            "v1.2.8"
+                            "v1.002.008"
                         ],
                         "openssl":[
-                            "v1.0"
+                            "v1.000"
                         ]
                     }
                 }
@@ -11964,7 +12327,7 @@ __DATA__
 
     "zlib": [
         {
-            "version":"v1.2.8",
+            "version":"v1.002.008",
             "sources":[
                 {
                     "type":"tarball",
@@ -12006,7 +12369,7 @@ __DATA__
 
     "gsl": [
         {
-            "version":"v2.1",
+            "version":"v2.001",
             "sources":[
                 {
                     "type":"tarball",
@@ -12044,7 +12407,7 @@ __DATA__
 
     "gettext": [
         {
-            "version":"v0.19.8",
+            "version":"v0.019.008",
             "sources":[
                 {
                     "type":"tarball",
@@ -12086,10 +12449,10 @@ __DATA__
 
     "cxx11": [
         {
-            "version":"v4.9.2",
+            "version":"v4.009.002",
             "sources":[
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
                        "crossx86-x86_64-linux-musl-1.1.6.tar.gz"
                     ],
@@ -12123,16 +12486,16 @@ __DATA__
 
     "mash": [
         {
-            "version":"v1.1",
+            "version":"v1.001",
             "sources":[
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
-                       "mash-Linux64-v1.1.tar.gz"
+                       "mash-Linux64-v1.001.tar.gz"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf mash-Linux64-v1.001.tar.gz"
                     ]
                 }
             ],
@@ -12149,7 +12512,7 @@ __DATA__
 
     "xrootd": [
         {
-            "version":"v4.3.0",
+            "version":"v4.003.000",
             "sources":[
                 {
                     "type":"tarball",
@@ -12166,17 +12529,17 @@ __DATA__
                     ],
                     "dependencies":{
                         "cmake":[
-                            "v3.1"
+                            "v3.001"
                         ]
                     }
                 }
             ],
             "dependencies":{
                 "perl":[
-                    "v5.10"
+                    "v5.010"
                 ],
                 "fuse":[
-                    "v2.9"
+                    "v2.009"
                 ]
             },
             "environment_variables":[
@@ -12202,7 +12565,7 @@ __DATA__
 
     "irods":[
         {
-            "version":"v3.0",
+            "version":"v3.000",
             "sources":[
                 {
                     "type":"tarball",
@@ -12217,7 +12580,7 @@ __DATA__
                     ],
                     "dependencies":{
                         "help2man":[
-                            "v1.0.0"
+                            "v1.000.000"
                         ]
                     }
                 }
@@ -12245,7 +12608,7 @@ __DATA__
 
     "help2man":[
         {
-            "version":"v1.43.3",
+            "version":"v1.043.003",
             "sources":[
                 {
                     "type":"tarball",
@@ -12270,7 +12633,7 @@ __DATA__
 
     "perl-text-soundex":[
         {
-            "version":"v3.0",
+            "version":"v3.000",
             "sources":[
                 {
                     "type":"generic",
@@ -12281,7 +12644,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12289,7 +12652,7 @@ __DATA__
 
     "perl-bioperl":[
         {
-            "version":"v1.6",
+            "version":"v1.006",
             "sources":[
                 {
                     "type":"generic",
@@ -12300,16 +12663,16 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ],
                 "perl-module-build":[
-                    "v0.42"
+                    "v0.042"
                 ],
                 "berkeley-db":[
-                    "v6.0"
+                    "v6.000"
                 ],
                 "perl-DB_File":[
-                    "v1.8"
+                    "v1.008"
                 ]
 
             }
@@ -12318,7 +12681,7 @@ __DATA__
 
     "perl-DB_File":[
         {
-            "version":"v1.8",
+            "version":"v1.008",
             "sources":[
                 {
                     "type":"tarball",
@@ -12333,10 +12696,10 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ],
                 "berkeley-db":[
-                    "v6.0"
+                    "v6.000"
                 ]
             }
         }
@@ -12344,7 +12707,7 @@ __DATA__
 
     "perl-dbi":[
         {
-            "version":"v1.6",
+            "version":"v1.006",
             "sources":[
                 {
                     "type":"generic",
@@ -12355,7 +12718,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12363,7 +12726,7 @@ __DATA__
 
     "perl-file-which":[
         {
-            "version":"v1.2",
+            "version":"v1.002",
             "sources":[
                 {
                     "type":"generic",
@@ -12374,7 +12737,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12382,7 +12745,7 @@ __DATA__
 
     "perl-unsafe-signals":[
         {
-            "version":"v0.03",
+            "version":"v0.003",
             "sources":[
                 {
                     "type":"generic",
@@ -12393,7 +12756,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12401,7 +12764,7 @@ __DATA__
 
     "perl-bit-vector":[
         {
-            "version":"v7.4",
+            "version":"v7.004",
             "sources":[
                 {
                     "type":"generic",
@@ -12412,7 +12775,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12431,7 +12794,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12439,7 +12802,7 @@ __DATA__
 
     "perl-inline":[
         {
-            "version":"v0.8",
+            "version":"v0.008",
             "sources":[
                 {
                     "type":"generic",
@@ -12450,7 +12813,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12458,7 +12821,7 @@ __DATA__
 
     "perl-inline-c":[
         {
-            "version":"v0.76",
+            "version":"v0.076",
             "sources":[
                 {
                     "type":"generic",
@@ -12469,7 +12832,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12477,7 +12840,7 @@ __DATA__
 
     "perl-forks":[
         {
-            "version":"v0.36",
+            "version":"v0.036",
             "sources":[
                 {
                     "type":"generic",
@@ -12488,7 +12851,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12496,7 +12859,7 @@ __DATA__
 
     "perl-forks-shared":[
         {
-            "version":"v0.36",
+            "version":"v0.036",
             "sources":[
                 {
                     "type":"generic",
@@ -12507,7 +12870,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12515,7 +12878,7 @@ __DATA__
 
     "perl-io-all":[
         {
-            "version":"v0.86",
+            "version":"v0.086",
             "sources":[
                 {
                     "type":"generic",
@@ -12526,7 +12889,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12545,7 +12908,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12553,7 +12916,7 @@ __DATA__
 
     "perl-dbd-sqlite":[
         {
-            "version":"v1.5",
+            "version":"v1.005",
             "sources":[
                 {
                     "type":"generic",
@@ -12564,7 +12927,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12572,7 +12935,7 @@ __DATA__
 
     "perl-want":[
         {
-            "version":"v0.29",
+            "version":"v0.029",
             "sources":[
                 {
                     "type":"generic",
@@ -12583,7 +12946,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12591,7 +12954,7 @@ __DATA__
 
     "perl-lwp-simple":[
         {
-            "version":"v6.15",
+            "version":"v6.015",
             "sources":[
                 {
                     "type":"generic",
@@ -12602,7 +12965,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-cpanminus":[
-                    "v1.7"
+                    "v1.007"
                 ]
             }
         }
@@ -12610,7 +12973,7 @@ __DATA__
 
     "hmmer":[
         {
-            "version":"v3.1",
+            "version":"v3.001",
             "sources":[
                 {
                     "type":"tarball",
@@ -12626,7 +12989,7 @@ __DATA__
             ],
             "dependencies":{
                 "openmpi":[
-                    "v1.10"
+                    "v1.010"
                 ]
             },
             "environment_variables":[
@@ -12652,7 +13015,7 @@ __DATA__
 
     "openmpi":[
         {
-            "version":"v1.10",
+            "version":"v1.010",
             "sources":[
                 {
                     "type":"tarball",
@@ -12690,10 +13053,10 @@ __DATA__
 
     "ncbi-blast":[
         {
-            "version":"v2.2.28",
+            "version":"v2.002.028",
             "sources":[
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
                         "ncbi-blast-2.2.28+-x64-linux.tar.gz"
                     ],
@@ -12721,19 +13084,19 @@ __DATA__
             ],
             "dependencies":{
                 "zlib":[
-                    "v1.2"
+                    "v1.002"
                 ],
                 "pcre":[
-                    "v8.34"
+                    "v8.034"
                 ],
                 "python":[
-                    "v2.6"
+                    "v2.006"
                 ],
                 "perl":[
-                    "v5.8"
+                    "v5.008"
                 ],
                 "sqlite3":[
-                    "v3.13"
+                    "v3.013"
                 ]
             },
             "environment_variables":[
@@ -12759,10 +13122,10 @@ __DATA__
 
     "ncbi-rmblastn":[
         {
-            "version":"v2.2.28",
+            "version":"v2.002.028",
             "sources":[
                 {
-                    "type":"generic",
+                    "type":"binary",
                     "files":[
                         "ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
                     ],
@@ -12792,22 +13155,22 @@ __DATA__
             ],
             "dependencies":{
                 "zlib":[
-                    "v1.2"
+                    "v1.002"
                 ],
                 "pcre":[
-                    "v8.34"
+                    "v8.034"
                 ],
                 "python":[
-                    "v2.6"
+                    "v2.006"
                 ],
                 "perl":[
-                    "v5.8"
+                    "v5.008"
                 ],
                 "ncbi-blast":[
-                    "v2.2.28"
+                    "v2.002.028"
                 ],
                 "sqlite3":[
-                    "v3.13"
+                    "v3.013"
                 ]
             },
             "environment_variables":[
@@ -12833,7 +13196,7 @@ __DATA__
 
     "sqlite3":[
         {
-            "version":"v3.13",
+            "version":"v3.013",
             "sources":[
                 {
                     "type":"tarball",
@@ -12871,7 +13234,7 @@ __DATA__
 
     "exonerate":[
         {
-            "version":"v2.2.0",
+            "version":"v2.002.000",
             "sources":[
                 {
                     "type":"tarball",
@@ -12917,7 +13280,7 @@ __DATA__
 
     "snap":[
         {
-            "version":"v2013.11.29",
+            "version":"v2013.011.029",
             "sources":[
                 {
                     "type":"tarball",
@@ -12937,7 +13300,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl":[
-                    "v5.8"
+                    "v5.008"
                 ]
             },
             "environment_variables":[
@@ -12958,10 +13321,10 @@ __DATA__
 
     "repeatmasker":[
         {
-            "version":"v4.0.6",
+            "version":"v4.000.006",
             "dependencies":{
                 "repeatmasker-restricted":[
-                    "v4.0.6"
+                    "v4.000.006"
                 ]
             },
             "environment_variables":[
@@ -12981,7 +13344,7 @@ __DATA__
 
     "repeatmasker-restricted":[
         {
-            "version":"v4.0.6",
+            "version":"v4.000.006",
             "sources":[
                 {
                     "type":"manual-distribution",
@@ -13009,7 +13372,7 @@ __DATA__
             ],
             "dependencies":{
                 "repeatmasker-free":[
-                    "v4.0.6"
+                    "v4.000.006"
                 ]
             }
         }
@@ -13017,7 +13380,7 @@ __DATA__
 
     "repeatmasker-free":[
         {
-            "version":"v4.0.6",
+            "version":"v4.000.006",
             "sources":[
                 {
                     "type":"generic",
@@ -13035,22 +13398,22 @@ __DATA__
             "dependencies":
             {
                 "perl":[
-                    "v5.8"
+                    "v5.008"
                 ],
                 "hmmer":[
-                    "v3.1"
+                    "v3.001"
                 ],
                 "ncbi-blast":[
-                    "v2.2.28"
+                    "v2.002.028"
                 ],
                 "ncbi-rmblastn":[
-                    "v2.2.28"
+                    "v2.002.028"
                 ],
                 "trf":[
-                    "v4.0.9"
+                    "v4.000.009"
                 ],
                 "perl-text-soundex":[
-                    "v3.0"
+                    "v3.000"
                 ]
             },
             "environment_variables":[
@@ -13070,7 +13433,7 @@ __DATA__
 
     "augustus":[
         {
-            "version":"v2.4",
+            "version":"v2.004",
             "sources":[
                 {
                     "type":"generic",
@@ -13109,7 +13472,7 @@ __DATA__
 
     "trf":[
         {
-            "version":"v4.09",
+            "version":"v4.009",
             "sources":[
                 {
                     "msg_manual_requirement":[
@@ -13146,7 +13509,7 @@ __DATA__
 
     "maker":[
         {
-            "version":"v2.31",
+            "version":"v2.031",
             "sources":[
                 {
                     "type":"manual-distribution",
@@ -13176,58 +13539,58 @@ __DATA__
             ],
             "dependencies":{
                 "ncbi-blast":[
-                    "v2.2.28"
+                    "v2.002.028"
                 ],
                 "snap":[
-                    "v2013.11.29"
+                    "v2013.011.029"
                 ],
                 "repeatmasker":[
-                    "v4.0.6"
+                    "v4.000.006"
                 ],
                 "exonerate":[
-                    "v2.2"
+                    "v2.002"
                 ],
                 "augustus":[
-                    "v2.4"
+                    "v2.004"
                 ],
                 "perl-bioperl":[
-                    "v1.6"
+                    "v1.006"
                 ],
                 "perl-dbi":[
-                    "v1.6"
+                    "v1.006"
                 ],
                 "perl-dbd-sqlite":[
-                    "v1.5"
+                    "v1.005"
                 ],
                 "perl-want":[
-                    "v0.29"
+                    "v0.029"
                 ],
                 "perl-lwp-simple":[
-                    "v6.15"
+                    "v6.015"
                 ],
                 "perl-file-which":[
-                    "v1.2"
+                    "v1.002"
                 ],
                 "perl-unsafe-signals":[
-                    "v0.03"
+                    "v0.003"
                 ],
                 "perl-bit-vector":[
-                    "v7.4"
+                    "v7.004"
                 ],
                 "perl-inline":[
-                    "v0.8"
+                    "v0.008"
                 ],
                 "perl-inline-c":[
-                    "v0.76"
+                    "v0.076"
                 ],
                 "perl-forks":[
-                    "v0.36"
+                    "v0.036"
                 ],
                 "perl-forks-shared":[
-                    "v0.36"
+                    "v0.036"
                 ],
                 "perl-io-all":[
-                    "v0.86"
+                    "v0.086"
                 ],
                 "perl-io-prompt":[
                     "v0.997"
@@ -13245,7 +13608,7 @@ __DATA__
 
     "findutils":[
         {
-            "version":"v4.1.20",
+            "version":"v4.001.020",
             "sources":[
                 {
                     "type":"system",
@@ -13295,7 +13658,7 @@ __DATA__
             "dependencies":
             {
                 "maker":[
-                    "v2.31"
+                    "v2.031"
                 ]
             }
         }

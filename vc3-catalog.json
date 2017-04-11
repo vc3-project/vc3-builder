@@ -2788,29 +2788,6 @@
     "repeatmasker":[
         {
             "version":"v4.000.006",
-            "dependencies":{
-                "repeatmasker-restricted":[
-                    "v4.000.006"
-                ]
-            },
-            "environment_variables":[
-                {
-                    "name":"PATH",
-                    "value":"${VC3_ROOT_REPEATMASKER}",
-                    "absolute":1
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"${VC3_ROOT_REPEATMASKER}/lib",
-                    "absolute":1
-                }
-            ]
-        }
-    ],
-
-    "repeatmasker-restricted":[
-        {
-            "version":"v4.000.006",
             "sources":[
                 {
                     "type":"manual-distribution",
@@ -2829,10 +2806,10 @@
                         "repeatmaskerlibraries-LATEST.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
-                        "tar -C ${VC3_ROOT_REPEATMASKER} -xpf repeatmaskerlibraries-LATEST.tar.gz",
-                        "cd ${VC3_ROOT_REPEATMASKER}",
-                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_ROOT_PERL}/bin/perl -repeatmasker_dir=${VC3_ROOT_REPEATMASKER} -trf_bin_path=${VC3_ROOT_TRF}/bin/trf -hmmer_bin_dir=${VC3_ROOT_HMMER}/bin -rmblast_bin_dir=${VC3_ROOT_NCBI_RMBLASTN}/bin -default_engine=rmblast"
+                        "mkdir -p ${VC3_ROOT_REPEATMASKER_COMMON}",
+                        "tar -C ${VC3_ROOT_REPEATMASKER_COMMON} -xpf repeatmaskerlibraries-LATEST.tar.gz",
+                        "cd ${VC3_ROOT_REPEATMASKER_COMMON}",
+                        "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_ROOT_PERL}/bin/perl -repeatmasker_dir=${VC3_ROOT_REPEATMASKER_COMMON} -trf_bin_path=${VC3_ROOT_TRF}/bin/trf -hmmer_bin_dir=${VC3_ROOT_HMMER}/bin -rmblast_bin_dir=${VC3_ROOT_NCBI_RMBLASTN}/bin -default_engine=rmblast"
                     ]
                 }
             ],
@@ -2855,14 +2832,16 @@
                         "VC3_RepeatMasker-open-4-0-6.configure"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_ROOT_REPEATMASKER}",
-                        "tar -C ${VC3_ROOT_REPEATMASKER} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
-                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_ROOT_REPEATMASKER}/"
+                        "mkdir -p ${VC3_ROOT_REPEATMASKER_COMMON}",
+                        "tar -C ${VC3_ROOT_REPEATMASKER_COMMON} --strip-components=1 -xpf RepeatMasker-open-4-0-6.tar.gz",
+                        "cp VC3_RepeatMasker-open-4-0-6.configure ${VC3_ROOT_REPEATMASKER_COMMON}/"
                     ]
                 }
             ],
-            "dependencies":
-            {
+            "dependencies": {
+                "repeatmasker-common":[
+                    "v4.000.006"
+                ],
                 "perl":[
                     "v5.008"
                 ],
@@ -2881,16 +2860,22 @@
                 "perl-text-soundex":[
                     "v3.000"
                 ]
-            },
+            }
+        }
+    ],
+
+    "repeatmasker-common":[
+        {
+            "version":"v4.000.006",
             "environment_variables":[
                 {
                     "name":"PATH",
-                    "value":"${VC3_ROOT_REPEATMASKER}",
+                    "value":"${VC3_ROOT_REPEATMASKER_COMMON}",
                     "absolute":1
                 },
                 {
                     "name":"LD_LIBRARY_PATH",
-                    "value":"${VC3_ROOT_REPEATMASKER}/lib",
+                    "value":"${VC3_ROOT_REPEATMASKER_COMMON}/lib",
                     "absolute":1
                 }
             ]

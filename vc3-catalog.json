@@ -486,9 +486,12 @@
             "phony":1,
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
+                    "type":"system",
+                    "prerequisites":[
                         "stat /cvmfs/cms.cern.ch"
+                    ],
+                    "recipe":[
+                        "echo /cvmfs"
                     ]
                 },
                 {

@@ -8772,10 +8772,15 @@ sub execute {
             '-c',
             ". " . $self->sh_profile);
 
+        POSIX::setpgid(0, 0);
+
         exec { $args[0] } @args;
         die 'Could not exec payload';
     } elsif($pid > 0) {
-        POSIX::setpgid($pid, 0);
+
+        close(STDIN);
+        close(STDOUT);
+        POSIX::setpgid($pid, $pid);
 
         if($self->{interactive_run}) {
             $self->bring_to_foreground($pid);
@@ -8794,6 +8799,8 @@ sub execute {
 
 sub bring_to_foreground {
     my ($self, $groupid) = @_;
+
+    $SIG{TTOU} = 'IGNORE';
 
     open my $term, '+<', '/dev/tty';
     return unless $term;
@@ -10751,9 +10758,12 @@ __DATA__
             "phony":1,
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
+                    "type":"system",
+                    "prerequisites":[
                         "stat /cvmfs/cms.cern.ch"
+                    ],
+                    "recipe":[
+                        "echo /cvmfs"
                     ]
                 },
                 {

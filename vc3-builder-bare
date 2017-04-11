@@ -262,6 +262,7 @@ sub print_modules_used {
     my $url      = $vc3_repository . '/' . $file;
     my $output   = $vc3_distfiles  . '/' . $file;
 
+    # dummy calls to trigger the use of the http module.
     my $response_a = $ff->mirror($url, $output);
     my $response_b = $ff->mirror($url, $output);
 
@@ -297,17 +298,13 @@ package VC3::Bag;
 
 use Carp qw/carp croak/;
 use English qw/-mo_match_vars/;
-use List::Util qw/max/;
 use File::Spec ();
 use File::Temp qw/tempfile/;
-use version ();
 use FindBin  qw/$RealBin $RealScript/;
-use POSIX ();
-use Storable qw/dclone/;
-use Data::Dumper;
-use Term::ANSIColor;
-
 use JSON::Tiny;
+use List::Util qw/max/;
+use POSIX ();
+use version ();
 
 sub new {
     my ($class, $dry_run, $interactive_run, $silent, $databases, $sys_locs, $no_sys_locs, $extra_vars) = @_;
@@ -318,7 +315,6 @@ sub new {
     $self->{interactive_run} = $interactive_run;
     $self->{silent_run}      = $silent;
 
-    $self->{environment_variables} = [];
     $self->set_builder_variables();
 
     $self->{sources} = $self->decode_bags($databases);
@@ -386,6 +382,8 @@ sub activate_widget {
 sub set_builder_variables {
     my ($self) = @_;
 
+    $self->{environment_variables} = [];
+
     $self->set_machine_vars();
 
     # expand ~
@@ -430,6 +428,43 @@ sub set_builder_variables {
 sub DESTROY {
     my ($self) = @_;
     $self->cleanup();
+}
+
+sub root_dir {
+    my ($self, $root) = @_;
+
+    $self->{root_dir} = $root if($root);
+
+    return $self->{root_dir};
+}
+
+sub home_dir {
+    my ($self, $home) = @_;
+
+    $self->{home_dir} = $home if($home);
+
+    return $self->{home_dir};
+}
+
+sub tmp_dir {
+    my ($self, $tmp) = @_;
+
+    $self->{tmp_dir} = $tmp if($tmp);
+
+    return $self->{tmp_dir};
+}
+
+sub sh_profile {
+    my ($self, $init) = @_;
+
+    $self->{sh_profile} = $init if($init);
+
+    return $self->{sh_profile};
+}
+
+sub dry_run {
+    my ($self) = @_;
+    return $self->{dry_run};
 }
 
 sub environment_variables {
@@ -509,7 +544,6 @@ sub add_manual_packages {
     }
 }
 
-
 sub del_builder_variable {
     my ($self, $name) = @_;
 
@@ -517,15 +551,6 @@ sub del_builder_variable {
     @vars = grep { $name ne $_->{name} } @vars;
 
     $self->environment_variables(\@vars);
-}
-
-sub requirements {
-    my ($self, $reqs) = @_;
-
-    $self->{requirements}   = $reqs if($reqs);
-    $self->{requirements} ||= [];
-
-    return $self->{requirements};
 }
 
 sub set_plan_for {
@@ -562,7 +587,6 @@ sub set_plan_for {
     my @ordered = sort { ($self->{ords}{$a} <=> $self->{ords}{$b}) || ($a cmp $b) } keys %{$self->{ords}};
     $self->{order} = [ map { $plan->elements->{$_}{widget} } @ordered ];
 
-    #print(  map { "$_(" . $self->{ords}{$_} . ")\n" }  @ordered );
     return $plan;
 }
 
@@ -589,7 +613,6 @@ sub parse_requirement {
     return ($name, $min, $max);
 }
 
-
 sub execute_plan {
     my ($self) = @_;
 
@@ -601,38 +624,6 @@ sub execute_plan {
         $self->build_widget($w);
         $self->activate_widget($w);
     }
-}
-
-sub root_dir {
-    my ($self, $root) = @_;
-
-    $self->{root_dir} = $root if($root);
-
-    return $self->{root_dir};
-}
-
-sub home_dir {
-    my ($self, $home) = @_;
-
-    $self->{home_dir} = $home if($home);
-
-    return $self->{home_dir};
-}
-
-sub tmp_dir {
-    my ($self, $tmp) = @_;
-
-    $self->{tmp_dir} = $tmp if($tmp);
-
-    return $self->{tmp_dir};
-}
-
-sub sh_profile {
-    my ($self, $init) = @_;
-
-    $self->{sh_profile} = $init if($init);
-
-    return $self->{sh_profile};
 }
 
 sub cleanup {
@@ -668,11 +659,6 @@ sub cleanup {
         kill 'KILL', -$self->{child_pid};
         $self->{child_pid} = undef;
     }
-}
-
-sub dry_run {
-    my ($self) = @_;
-    return $self->{dry_run};
 }
 
 sub set_machine_vars {

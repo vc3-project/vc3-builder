@@ -55,8 +55,6 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --repository <url>    Site to fetch packages if needed.
                         Default is ${vc3_repository}
 
-  --no-dependencies     Install only packages named explicitely with --require. 
-                        Fail if their dependencies are not installed.
   --force               Reinstall the packages named with --require and the
                         packages they depend on.
 
@@ -121,7 +119,6 @@ sub main {
 
     my $print_help   = 0;
     my $make_jobs    = 4;
-    my $no_depend    = 0;
     my $sh_on_error  = 0;
     my $env_to       = 0;
 
@@ -167,7 +164,6 @@ sub main {
 
         "sh-on-error"     => \$sh_on_error,
 
-        "no-dependencies" => \$no_depend,
         "force"           => \$force_rebuild,
 
         "env-to=s" => \$env_to,
@@ -180,7 +176,7 @@ sub main {
         "interactive" => \$interactive_run,
 
         "sys=s"    => \@sys_locs,
-        "nosys=s"  => \@no_sys_locs,
+        "no-sys=s"  => \@no_sys_locs,
         "var=s"    => \@extra_vars,
 
         # options for developing, not for runtime:
@@ -230,8 +226,6 @@ sub main {
     my $bag = VC3::Bag->new($dry_run, $interactive_run, $silent, \@databases, \@sys_locs, \@no_sys_locs, \@extra_vars);
 
     $bag->set_plan_for(@requires);
-    #$bag->add_requirements(\@requires);
-    #$bag->build_requirements($sh_on_error, $force_rebuild, $no_depend);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -242,7 +236,7 @@ sub main {
         exit 0;
     }
 
-    $bag->prepare_exec_environment();
+    $bag->execute_plan();
 
     my $exit_code;
     if($no_run) {
@@ -270,7 +264,6 @@ sub print_modules_used {
 
     my $response_a = $ff->mirror($url, $output);
     my $response_b = $ff->mirror($url, $output);
-
 
     my @modules = grep { /\.pm$/ } keys %INC;
 
@@ -312,6 +305,7 @@ use FindBin  qw/$RealBin $RealScript/;
 use POSIX ();
 use Storable qw/dclone/;
 use Data::Dumper;
+use Term::ANSIColor;
 
 use JSON::Tiny;
 
@@ -327,16 +321,9 @@ sub new {
     $self->{environment_variables} = [];
     $self->set_builder_variables();
 
-    $self->{dependency_graph} = {};
-
     $self->{sources} = $self->decode_bags($databases);
 
     $self->{no_system} = { map { ( $_ => 1 ), } @{$no_sys_locs} };
-
-    # create first environment
-    $self->clear_environment();
-    my %environment;
-    tie %environment, 'Tie::RefHash';
 
     $self->add_manual_variables($extra_vars);
     $self->add_manual_packages($sys_locs);
@@ -349,8 +336,11 @@ sub check_manual_requirements() {
 
     my @restricted_unmet;
     for my $w (@{$self->{order}}) {
-        push @restricted_unmet, $w->msgs_manual_requirements();
-        $self->add_to_environment($w);
+        my $msg = $w->msgs_manual_requirements();
+        if($msg) {
+            $self->activate_widget($w);
+            push @restricted_unmet, $w->msgs_manual_requirements();
+        }
     }
 
     if(@restricted_unmet > 0) {
@@ -371,48 +361,26 @@ sub check_manual_requirements() {
         die;
     }
 
-    $self->clear_environment();
     return 1;
 }
 
 
-sub clear_environment {
+sub active_widgets {
     my ($self) = @_;
 
-    my %first;
-    tie %first, 'Tie::RefHash';
+    unless($self->{active_widgets}) {
+        my %new;
+        tie %new, 'Tie::RefHash';
 
-    $self->{environment_stack} = [\%first];
-}
-
-sub push_environment {
-    my ($self) = @_;
-
-    $self->{environment_stack} ||= [];
-
-    my $current = $self->peek_environment || {};
-
-    my %next;
-    tie %next, 'Tie::RefHash';
-
-    # copy to next. manually because widgets are refs, no strings
-    for my $w (keys %{$current}) {
-        $next{$w} = 1;
+        $self->{active_widgets} = \%new;
     }
 
-    push @{$self->{environment_stack}}, \%next;
+    return $self->{active_widgets};
 }
 
-sub pop_environment {
-    my ($self) = @_;
-    my $top = pop @{$self->{environment_stack}};
-
-    return $top;
-}
-
-sub peek_environment {
-    my ($self) = @_;
-    return @{$self->{environment_stack}}[-1];
+sub activate_widget {
+    my ($self, $widget) = @_;
+    $self->active_widgets->{$widget} = 1;
 }
 
 sub set_builder_variables {
@@ -560,74 +528,6 @@ sub requirements {
     return $self->{requirements};
 }
 
-sub build_requirements {
-    my ($self, $sh_on_error, $force_rebuild, $no_depend) = @_;
-
-    eval { $self->check_manual_requirements() };
-    if($@) {
-        unless($self->dry_run) {
-            exit 1;
-        }
-    }
-
-    $self->{indent_level} = 0;
-
-    my $depend_step = 'build_all';
-    $depend_step    = 'build_one' if $no_depend;
-
-    for my $req (@{$self->requirements}) {
-        $self->clear_environment();
-        $self->build_requirement($req->{name}, $sh_on_error, $force_rebuild, $depend_step, $req->{min}, $req->{max});
-    }
-
-    $self->clear_environment();
-}
-
-sub merge_plan {
-    my ($self, $plan_a, $plan_b) =  @_;
-
-    $plan_a  ||= {};
-    my $plan_c = {};
-
-    for my $name (keys %{$plan_a}) {
-        my $value_a = $plan_a->{$name};
-        $plan_c->{$name} = \%{$value_a};
-    }
-
-    for my $name (keys %{$plan_b}) {
-        my $value_b = $plan_b->{$name};
-        my $value_c = $plan_c->{$name} || \%{$value_b};
-
-        # check if plans are compatible.
-        if($value_c->{max} lt $value_b->{min} || $value_b->{max} lt $value_c->min) {
-            $self->say("Incompatible versions for $name: [" . $value_c->{min} . ', '. $value_c->{max} . '], [' . $value_b->{min} . ', '. $value_b->{max} . '], ');
-
-            return undef;
-        }
-
-        my $min = $value_c->{min} le $value_b->{min} ? $value_c->{min} : $value_b->{min};
-        my $max = $value_c->{max} ge $value_b->{max} ? $value_c->{max} : $value_b->{max};
-
-        # if from other plan the versions are more restrictive, switch to that.
-        if($value_b->{min} ge $min && $value_b->{max} le $max) {
-            $value_c = \%{$value_b};
-        }
-        
-        # otherwise, do not switch plans, but restrict the appropiate limit.
-        if($value_c->{min} gt $min) {
-            $value_c->{min} = $min;
-        }
-
-        if($value_c->{max} lt $max) {
-            $value_c->{max} = $max;
-        }
-
-        $plan_c->{name} = $value_c;
-    }
-
-    return $plan_c;
-}
-
 sub set_plan_for {
     my ($self, @requires) = @_;
 
@@ -640,7 +540,7 @@ sub set_plan_for {
 
         my $versions = [];
         push @{$versions}, $min if($min);
-        push @{$versions}, $max if($max);
+        push @{$versions}, $max if($max); # bug: without min, max becomes min
 
         $root_entry->{dependencies}{$name} = $versions;
     }
@@ -650,17 +550,19 @@ sub set_plan_for {
     $self->{sources}{$dummy_name} = [ VC3::Widget->new($self, $dummy_name, $root_entry) ];
 
     my $plan = VC3::Plan->new($self);
+    $self->{plan} = $plan;
 
     if(!$plan->add_target($dummy_name)) {
         die("Could not find an installation plan.\n");
     }
 
+    delete $plan->elements->{$dummy_name};
+
     $self->{ords} = $plan->order();
     my @ordered = sort { ($self->{ords}{$a} <=> $self->{ords}{$b}) || ($a cmp $b) } keys %{$self->{ords}};
-    $self->{order} = \@ordered;
+    $self->{order} = [ map { $plan->elements->{$_}{widget} } @ordered ];
 
-    print(  map { "$_(" . $self->{ords}{$_} . ")\n" }  keys %{$self->{ords}} );
-
+    #print(  map { "$_(" . $self->{ords}{$_} . ")\n" }  @ordered );
     return $plan;
 }
 
@@ -688,44 +590,18 @@ sub parse_requirement {
 }
 
 
-
-sub prepare_exec_environment {
+sub execute_plan {
     my ($self) = @_;
 
-    $self->clear_environment();
-    for my $req (@{$self->requirements}) {
-        $self->collect_environment($req->{name}, $req->{min}, $req->{max});
+    my $plan = $self->{plan};
+
+    $self->check_manual_requirements();
+
+    for my $w (@{$self->{order}}) {
+        $self->build_widget($w);
+        $self->activate_widget($w);
     }
 }
-
-sub collect_environment {
-    my ($self, $requirement, $min_version, $max_version) = @_;
-    
-    my $widget = $self->select_version($requirement, $min_version, $max_version);
-    $self->add_to_environment($widget);
-
-    $self->{dependencies}{$widget->name} ||= {};
-
-    my @all_dependencies;
-
-    if($widget->dependencies) {
-        push @all_dependencies, $widget->dependencies;
-    }
-
-    if($widget->active_source && $widget->active_source->dependencies) {
-        push @all_dependencies, $widget->active_source->dependencies;
-    }
-
-    for my $dependencies (@all_dependencies) {
-        for my $dependency (keys %{$dependencies}) {
-            my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
-
-            $self->collect_environment($dependency, $min_dep_ver, $max_dep_ver);
-            $self->{dependencies}{$widget->name}{$dependency} = 1;
-        }
-    }
-}
-
 
 sub root_dir {
     my ($self, $root) = @_;
@@ -926,195 +802,35 @@ sub decode_bag {
     return $sources;
 } 
 
-sub build_requirement {
-    my ($self, $widget_name, $sh_on_error, $force_rebuild, $depend_step_now, $min_version, $max_version) = @_;
-
-
-}
-
 sub build_widget {
-    my ($self, $widget_name, $sh_on_error, $force_rebuild, $depend_step_now, $min_version, $max_version) = @_;
+    my ($self, $widget, $sh_on_error, $force_rebuild, $depend_step_now, $min_version, $max_version) = @_;
 
-    my $widget = $self->select_version($widget_name, $min_version, $max_version);
+    $self->say("processing for @{[$widget->name]}-" . $widget->version);
 
-    $self->say("processing for $widget_name-" . $widget->version);
+    my $s = $widget->active_source;
 
-    my $depend_step_next = $depend_step_now;
-    $depend_step_next    = 'check' if $depend_step_now eq 'build_one';
+    my $exit_status = 0;
+    if($s) {
+        eval { $exit_status = -1; $exit_status = $s->execute_recipe($force_rebuild) };
 
-    if($widget->active_source && $widget->active_source->dependencies) {
-        $self->set_dependencies($widget, $sh_on_error, $force_rebuild, $depend_step_next, $widget->active_source->dependencies);
-    }
-
-    $self->set_dependencies($widget, $sh_on_error, $force_rebuild, $depend_step_next, $widget->dependencies);
-
-    # check here missing, we are not checking anything here, only below at
-    # sources!
-    $self->say("checking for $widget_name-" . $widget->version);
-    ####
-
-    my $exit_status = 1;
-    if($widget->sources) { 
-        for my $source (@{$widget->sources}) {
-
-            $self->say(ref $source);
-            $self->say(ref $self->{no_system});
-
-            $self->say(keys %{$self->{no_system}});
-            $self->say($widget_name);
-            $self->say( %{$self->{no_system}} );
-            $self->say($self->{no_system}{$widget_name});
-
-            if($self->{no_system} && $source->isa('VC3::Source::System')) {
-                next if $self->{no_system}{ALL};
-                next if $self->{no_system}{$widget_name};
-            }
-
-            $exit_status = -1;
-            eval { $exit_status = $widget->check_prerequisites($source) };
-
-            if($@) {
-                $self->say($@);
-            }
-            if($exit_status) {
-                # on error, prerequisites were not meet.
-                next;
-            }
-
-            # save current environment so that we can rollback in case of error.
-            $self->push_environment();
-
-            # set dependencies particular to this source
-            $self->set_dependencies($widget, $sh_on_error, $force_rebuild, $depend_step_next, $source->dependencies);
-
-            eval { $exit_status = -1; $exit_status = $source->execute_recipe($force_rebuild, $depend_step_now) };
-
-            if($exit_status) {
-                # on error, reestablish old environment, and show last lines of log
-                # file.
-                
-                $widget->process_error($sh_on_error, $EVAL_ERROR, $exit_status);
-                $self->pop_environment();
-            } else {
-                # on success, we keep break out and do no try more recipes.
-                # we also record the succesful recipe.
-                $widget->active_source($source);
-                last;
-            }
+        if($exit_status) {
+            $widget->process_error($sh_on_error, $EVAL_ERROR, $exit_status);
+            exit 1;
         }
     }
 
-    # last of the tries also failed, so we report failure for this widget.
-    if($exit_status) {
-        die "Could not set environment for '" . $widget->name . "' succesfully' . \n";
-    }
-    
-    $self->add_to_environment($widget);
-
-    $self->update_range($widget->name, $min_version, $max_version);
-}
-
-sub set_dependencies {
-    my ($self, $widget, $sh_on_error, $force_rebuild, $depend_step, $dependencies) = @_;
-
-    # set root of this widget, in case dependencies need to refer to its parent.
-    $self->add_builder_variable($widget->var_root_name, $widget->root_dir);
-
-    my $namev = $widget->name . '-' . $widget->version; 
-    $self->{indent_level}++;
-
-    $self->{dependency_graph}{$widget->name} ||= {};
-    
-    if($dependencies) {
-        for my $dependency (keys %{$dependencies}) {
-            my ($min_dep_ver, $max_dep_ver) = @{$dependencies->{$dependency}};
-
-            $self->say("$namev needs $dependency");
-            
-            $self->{dependency_graph}{$dependency}{$widget->name} = 1;
-
-            $self->build_requirement($dependency, $sh_on_error, $force_rebuild, $depend_step, $min_dep_ver, $max_dep_ver);
-        }
-    }
-
-    $self->del_builder_variable($widget->var_root_name);
-
-    $self->{indent_level}--;
-}
-
-# versions available, min desired version, max desired version
-sub select_version {
-    my ($self, $widget_name, $min_version, $max_version) = @_;
-
-    if($min_version && $max_version && $min_version gt $max_version) {
-        die "minimum version '$min_version' is greater than maximum version '$max_version' for '$widget_name'";
-    }
-
-    my @found;
-
-    my $versions = $self->widgets_of($widget_name);
-
-    for my $widget (@{$versions}) {
-
-        my $version = $widget->version;
-        
-        push @found, $version->normal;
-
-        next if $min_version && $min_version gt $version;
-        next if $max_version && $max_version lt $version;
-
-        return $widget;
-    }
-
-    $max_version = $min_version unless $max_version;
-    die "I did not find a suitable version for '$widget_name'.\n Found: {"
-    . join(', ', @found)
-    . '}. Wanted ['
-    . $min_version->normal
-    . ',' . $max_version->normal
-    . "]\n";
+    return $exit_status;
 }
 
 sub dot_graph {
     my ($self, $dotname) = @_;
-
-    open(my $dot_f, '>', $dotname) 
-    || die "Could not open '$dotname': $!";
-
-    print { $dot_f } "digraph {\n";
-
-    #$self->{dependencies}{vc3_builder} = {};
-    #$self->{dependencies}{vc3_builder}{$_} = 1 for @external_dependencies;
-
-    for my $pkg (keys %{$self->{dependency_graph}}) {
-        my @deps = keys %{$self->{dependency_graph}{$pkg}};
-
-        if(@deps) {
-            for my $dep (@deps) {
-                print { $dot_f } qq(\t"$dep"->"$pkg";\n);
-            }
-        } else {
-            print { $dot_f } qq(\t"$pkg";\n);
-        }
-    }
-
-    print { $dot_f } "}\n";
-
-    close $dot_f;
-}
-
-sub add_to_environment {
-    my ($self, $widget) = @_;
-
-    my $env = $self->peek_environment;
-
-    $env->{$widget} = 1;
+    return $self->{plan}->dot_graph($dotname);
 }
 
 sub set_environment_variables {
     my ($self, $sh_f) = @_;
 
-    my $env = $self->peek_environment();
+    my $env = $self->active_widgets();
 
     my $expansion = {};
 
@@ -1195,7 +911,7 @@ sub order_variables {
 sub set_wrapper {
     my ($self, $wrapper_file, $profile_file) = @_;
 
-    my $env = $self->peek_environment;
+    my $env = $self->active_widgets();
 
     my $payload = "/bin/sh -c '. $profile_file'";
     for my $w (@{$self->{order}}) {
@@ -1230,7 +946,7 @@ sub set_wrapper {
 sub consolidate_prologue {
     my ($self) = @_;
 
-    my $env = $self->peek_environment;
+    my $env = $self->active_widgets();
 
     my @progs = ("cd '" . $self->home_dir . "'");
 
@@ -1241,7 +957,6 @@ sub consolidate_prologue {
             push @progs, @{$w->prologue};
         }
     }
-
 
     return \@progs;
 }
@@ -1359,7 +1074,7 @@ sub say {
 
     return if($self->{silent_run});
 
-    print(('.' x $self->{indent_level}), join(' ', @rest), "\n");
+    print( ('.' x $self->{indent_level}), join(' ', @rest), "\n");
 }
 
 
@@ -1755,7 +1470,7 @@ sub msgs_manual_requirements {
 
 
 sub prepare_recipe_sandbox {
-    my ($self, $no_erase, $no_depend) = @_;
+    my ($self, $no_erase) = @_;
 
     # clear build directory, to avoid bugs from uncleaned sources.
     my $build = $self->build_dir;
@@ -1789,7 +1504,6 @@ sub prepare_recipe_sandbox {
 
     # set the destination directory as an environment variable before
     # setting up the shell, so that the child created inherets it.
-    $self->bag->push_environment();
     $self->bag->add_builder_variable('VC3_PREFIX', $self->root_dir);
     $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
 }
@@ -1797,7 +1511,6 @@ sub prepare_recipe_sandbox {
 sub cleanup_recipe_sandbox {
     my ($self, $result) = @_;
 
-    $self->bag->pop_environment();
     $self->bag->del_builder_variable('VC3_PREFIX');
     $self->bag->del_builder_variable('VC3_BUILD');
 
@@ -2190,12 +1903,12 @@ sub prepare_files {
 
 
 sub prepare_recipe_sandbox {
-    my ($self, $no_depend) = @_;
+    my ($self) = @_;
 
 
     my $no_erase = $self->isa('VC3::Source::System');
 
-    my $result = $self->widget->prepare_recipe_sandbox($no_erase, $no_depend);
+    my $result = $self->widget->prepare_recipe_sandbox($no_erase);
 
     if($result == 0) {
         return 0;
@@ -2219,26 +1932,22 @@ sub cleanup_recipe_sandbox {
 
 
 sub execute_recipe {
-    my ($self, $force_rebuild, $depend_step) = @_;
+    my ($self, $force_rebuild) = @_;
 
     my $result = 1;
 
     $self->widget->ribbon->set_lock();
     eval {
         my $state = $self->widget->ribbon->state;
-        if($state ne 'DONE' && $depend_step eq 'check') {
-            $self->widget->ribbon->release_lock();
-            $result = 1;
-            die('Dependency ' . $self->widget->name . ' is not installed.');
-        } elsif($state eq 'DONE' && !$force_rebuild && !$self->widget->phony && !$self->phony) {
+        if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony && !$self->phony) {
             $result = 0;
         } else {
-            $self->say("preparing '" . $self->widget->name . "' for ", $self->widget->bag->target);
+            $self->say("preparing '" . $self->widget->name . "' for " . $self->widget->bag->target);
             if($self->widget->bag->dry_run) {
                 $result = 0;
             } else {
-                $self->prepare_recipe_sandbox($depend_step);
-                $result = $self->execute_recipe_unlocked($depend_step);
+                $self->prepare_recipe_sandbox();
+                $result = $self->execute_recipe_unlocked();
             }
         }
     };
@@ -2256,7 +1965,7 @@ sub execute_recipe {
 }
 
 sub execute_recipe_unlocked {
-    my ($self, $no_depend) = @_;
+    my ($self) = @_;
 
     $self->widget->ribbon->commit('PROCESSING');
 
@@ -2298,48 +2007,6 @@ sub setup_build_shell {
     my ($self) = @_;
     return $self->widget->setup_build_shell(@{$self->recipe});
 }
-
-sub subplan_for {
-    my ($self, $plan) = @_;
-
-
-    my $exit_status = -1;
-    eval { $exit_status = $self->check_prerequisites() };
-    if($exit_status) {
-        $self->say("Fail-prereq: " . $self->widget->name . '-' . $self->widget->version);
-        return undef;
-    }
-
-    my $subplan = $self->widget->bag->merge_plan($plan, {});
-
-    if($self->dependencies) {
-        for my $d (keys %{$self->dependencies}) {
-            my ($min_dep, $max_dep) = @{$self->dependencies->{$d}};
-
-            #skip dependency if already in plan:
-            if($subplan->{$d}) {
-                my $v = $subplan->{$d};
-                next if(!$min_dep && !$max_dep);
-                next if(!$min_dep && $max_dep ge $v->{max});
-                next if(!$max_dep && $min_dep le $v->{min});
-                next if($max_dep ge $v->{max} && $min_dep le $v->{min});
-            }
-
-            my $subsubplan = $self->widget->bag->subplan_for($d, $min_dep, $max_dep, $subplan);
-
-            if($subsubplan) {
-                $subplan = $self->widget->bag->merge_plan($subplan, $subsubplan);
-
-                if(!$subplan) {
-                    return undef;
-                }
-            }
-        }
-    }
-
-    return $subplan;
-}
-
 
 package VC3::Source::Tarball;
 use base 'VC3::Source::Generic';
@@ -2414,14 +2081,14 @@ sub phony {
 }
 
 sub execute_recipe_unlocked {
-    my ($self, $no_depend) = @_;
+    my ($self) = @_;
 
     my $output_filename = $self->widget->build_log;
 
     my $state = $self->widget->ribbon->state;
     
     my $result;
-    eval { $result = $self->SUPER::execute_recipe_unlocked($no_depend); };
+    eval { $result = $self->SUPER::execute_recipe_unlocked(); };
 
     # re-establish state, as system is tried every time:
     $self->widget->ribbon->commit($state);
@@ -2496,12 +2163,18 @@ sub elements {
     return $self->{elements};
 }
 
+sub element_of {
+    my ($self, $name) = @_;
+
+    return $self->elements->{$name};
+}
+
 sub add_target {
     my ($self, $name, $min, $max) = @_;
 
     $self->bag->{indent_level}++;
 
-    $self->say("Plan:    $name => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+    $self->say("Plan:    $name => [@{[$min || 0]}, @{[$max || '']}]");
 
     my $available = $self->bag->widgets_of($name);
     for my $widget (@{$available}) {
@@ -2512,7 +2185,7 @@ sub add_target {
         }
     }
 
-    $self->say("Failure: $name => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+    $self->say("Failure: $name => [@{[$min || 0]}, @{[$max || '']}]");
     $self->bag->{indent_level}--;
 
     return 0;
@@ -2526,7 +2199,7 @@ sub add_widget {
     $self->say("Try:     " . $widget->name . " => $version");
 
     if($min && $min gt $version || $max && $max lt $version) {
-        $self->say("Incorrect version: $version => [@{[$min || 0]},@{[$max || 'infinity']}]");
+        $self->say("Incorrect version: $version => [@{[$min || 0]},@{[$max || '']}]");
         return 0;
     }
 
@@ -2537,7 +2210,7 @@ sub add_widget {
 
     my $success;
     if($p && !$e) {
-        $self->say("conflicting versions: @{[$widget->name]} [@{[$p->{min} || 0]}, @{[$p->{max} || 'infinity']}] <=> [@{[$min || 0]}, @{[$max || 'infinity']}]");
+        $self->say("conflicting versions: @{[$widget->name]} [@{[$p->{min} || 0]}, @{[$p->{max} || '']}] <=> [@{[$min || 0]}, @{[$max || '']}]");
         $success = 0;
     } elsif($p && $e) {
         # already in plan, simple refinenment of versions
@@ -2551,17 +2224,17 @@ sub add_widget {
             if($widget->sources) {
                 my $s = $self->add_sources($widget->sources);
                 if($s) {
-                    $e->{source} = $s;
+                    $widget->active_source($s);
                     $success = 1;
                 } else {
-                    $self->say("could not add any source for: @{[$widget->name]} $version => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+                    $self->say("could not add any source for: @{[$widget->name]} $version => [@{[$min || 0]}, @{[$max || '']}]");
                     $success = 0;
                 }
             } else {
                 $success = 1;
             }
         } else {
-            $self->say("could not set dependencies for: @{[$widget->name]} $version => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+            $self->say("could not set dependencies for: @{[$widget->name]} $version => [@{[$min || 0]}, @{[$max || '']}]");
             $success = 0;
         }
     }
@@ -2569,7 +2242,7 @@ sub add_widget {
     if($success) {
         # add new step to plan
         $self->elements->{$widget->name} = $e;
-        $self->say("Success: @{[$widget->name]} => [@{[$min || 0]}, @{[$max || 'infinity']}]");
+        $self->say("Success: @{[$widget->name]} @{[$e->widget->version]} => [@{[$min || 0]}, @{[$max || '']}]");
     } else {
         # restore old plan on error
         $self->elements($saved_state);
@@ -2605,6 +2278,12 @@ sub add_sources {
 
     my $saved_state = $self->elements();
     for my $s (@{$sources}) {
+
+        if($self->bag->{no_system} && $s->isa('VC3::Source::System')) {
+            next if $self->bag->{no_system}{ALL};
+            next if $self->bag->{no_system}{$s->widget->name};
+        }
+
         if($self->add_source($s)) {
             return $s;
         }
@@ -2662,12 +2341,14 @@ sub order {
 
             my @deps;
 
-            if($e->{widget}->dependencies) {
-                push @deps, keys %{$e->{widget}->dependencies};
+            my $w = $e->{widget};
+
+            if($w->dependencies) {
+                push @deps, keys %{$w->dependencies};
             }
 
-            if($e->{source} && $e->{source}->dependencies) {
-                push @deps, keys %{$e->{source}->dependencies};
+            if($w->active_source && $w->active_source->dependencies) {
+                push @deps, keys %{$w->active_source->dependencies};
             }
 
             my $max = $o;
@@ -2677,7 +2358,7 @@ sub order {
 
             if($max != $o) {
                 $change = 1;
-                $ordinal_of->{$e->{widget}->name} = $max;
+                $ordinal_of->{$w->name} = $max;
             }
         }
 
@@ -2689,6 +2370,41 @@ sub order {
     die 'Circular dependency found';
 }
 
+sub dot_graph {
+    my ($self, $dotname) = @_;
+    my @names = keys %{$self->elements};
+
+    open(my $dot_f, '>', $dotname) 
+    || die "Could not open '$dotname': $!";
+
+    print { $dot_f } "digraph {\n";
+
+    for my $name (@names) {
+        my @deps;
+
+        my $e = $self->elements->{$name};
+        my $w = $e->{widget};
+
+        if($w->dependencies) {
+            push @deps, keys %{$w->dependencies};
+        }
+
+        if($w->active_source && $w->active_source->dependencies) {
+            push @deps, keys %{$w->active_source->dependencies};
+        }
+
+        if(@deps) {
+            for my $dep (@deps) {
+                print { $dot_f } qq(\t"$dep"->"$name";\n);
+            }
+        } else {
+            print { $dot_f } qq(\t"$name";\n);
+        }
+    }
+
+    print { $dot_f } "}\n";
+    close $dot_f;
+}
 
 package VC3::Plan::Element;
 
@@ -2704,9 +2420,38 @@ sub new {
     $self->{widget} = $widget;
     $self->{min}    = $min;
     $self->{max}    = $max;
-    $self->{source} = $source;
 
     return $self;
+}
+
+sub widget {
+    my ($self, $new) = @_;
+
+    if($new) {
+        $self->{widget} = $new;;
+    }
+
+    return $self->{widget};
+}
+
+sub min {
+    my ($self, $new) = @_;
+
+    if($new) {
+        $self->{min} = $new;
+    }
+
+    return $self->{min};
+}
+
+sub max {
+    my ($self, $new) = @_;
+
+    if($new) {
+        $self->{max} = $new;
+    }
+
+    return $self->{max};
 }
 
 sub refine {
@@ -2746,7 +2491,7 @@ sub refine {
         }
     }
 
-    return VC3::Plan::Element->new($self->{widget}, $min, $max, $self->{source});
+    return VC3::Plan::Element->new($self->{widget}, $min, $max);
 }
 
 

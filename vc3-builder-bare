@@ -1564,8 +1564,8 @@ sub new {
     $self->{lockname} = $tmpdir . '/' . $name . '.lock';
     $self->{checksum} = $checksum;
 
-    $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -nfs => 1, stale => 1, wmin => 5,
-        wfunc => sub { LockFile::Simple::core_warn("Waiting for a lock for '$name'. If you think this lock is stale, please remove the file:\n'" . $self->{lockname} . "'\n") }
+    $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -nfs => 1, -stale => 1, -wmin => 2,
+        -wfunc => sub { LockFile::Simple::core_warn("Waiting for a lock for '$name'. If you think this lock is stale, please remove the file:\n'" . $self->{lockname} . "'\n") }
     );
 
     return $self;
@@ -1625,10 +1625,10 @@ sub state {
 
             if(!$report->{state}) {
                 $state = 'MISSING';
-            } elsif(!$report->{checksum}) {
-                $state = 'MISSING';
-            } elsif($report->{checksum} ne $self->{checksum}) {
-                $state = 'OUT_OF_DATE';
+            #} elsif(!$report->{checksum}) {
+            #     $state = 'MISSING';
+            # } elsif($report->{checksum} ne $self->{checksum}) {
+            # $state = 'OUT_OF_DATE';
             } elsif($report->{state} eq 'PROCESSING') {
                 $state = 'PROCESSING';
             } else {

@@ -8344,7 +8344,7 @@ sub set_plan_for {
 
         my $versions = [];
         push @{$versions}, $min if($min);
-        push @{$versions}, $max if($max); # bug: without min, max becomes min
+        push @{$versions}, $max if($max);
 
         $root_entry->{dependencies}{$name} = $versions;
     }
@@ -8384,6 +8384,10 @@ sub parse_requirement {
     /x;
 
     my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
+
+    if(!$min && $max) {
+        $min = 'v0.0.0';
+    }
 
     # turn into version strings
     $min = version->parse("$min") if($min);
@@ -8846,7 +8850,7 @@ sub say {
 
     return if($self->{silent_run});
 
-    print( ('.' x $self->{indent_level}), join(' ', @rest), "\n");
+    print( ('.' x (2*$self->{indent_level})), join(' ', @rest), "\n");
 }
 
 
@@ -8878,8 +8882,6 @@ sub new {
     $self->prologue($json_description->{prologue});
     $self->environment_variables($json_description->{environment_variables});
     $self->phony($json_description->{phony});
-
-    $self->checksum($json_description);
 
     $self->add_root_variable();
 
@@ -8995,6 +8997,7 @@ sub active_source {
 
     if($source) {
         $self->{active_source} = $source;
+        $self->checksum($source);
     }
 
     return $self->{active_source};
@@ -9190,14 +9193,16 @@ sub process_error {
 sub checksum {
     my ($self, $load) = @_;
 
-    if($load) {
+    if(!$self->{checksum}) {
+        $load ||= 'no source';
+
         my $txt = $self->hash_to_canonical_str($load);
         my $dgt = md5_hex($txt);
 
-        $self->{'checksum'} = $dgt;
+        $self->{checksum} = $dgt;
     }
 
-    return $self->{'checksum'};
+    return $self->{checksum};
 }
 
 sub hash_to_canonical_str {
@@ -9352,9 +9357,9 @@ sub commit {
     open ($ribbon_fh, '>', $self->{filename});
 
     my $report = {};
-    $report->{'state'}    = $state;
-    $report->{'checksum'} = $self->{checksum};
-    $report->{'time'}     = time();
+    $report->{state}    = $state;
+    $report->{checksum} = $self->{checksum};
+    $report->{time}     = time();
 
     printf { $ribbon_fh } JSON::Tiny::encode_json($report);
 
@@ -9465,6 +9470,8 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->prerequisites($json_description->{prerequisites});
 
+    $self->{type} = $json_description->{type};
+
     return $self;
 }
 
@@ -9546,9 +9553,21 @@ sub dependencies {
 
             if($max_version) {
                 $max_version = version->parse($max_version);
+
+                unless($min_version) {
+                    $min_version = version->parse('v0.0.0');
+                }
             }
 
-            $self->{dependencies}{$name} = [$min_version, $max_version];
+            $self->{dependencies}{$name} = [];
+
+            if($min_version) {
+                push @{$self->{dependencies}{$name}}, $min_version;
+            }
+
+            if($max_version) {
+                push @{$self->{dependencies}{$name}}, $max_version;
+            }
         }
     }
 
@@ -9572,13 +9591,13 @@ sub check_prerequisites {
         return 0;
     }
 
-    if($self->widget->bag->dry_run) {
-        return 0;
-    }
-
     my @steps = @{$self->prerequisites};
 
     my ($pid, $pre_in) = $self->widget->bag->shell();
+
+    print { $pre_in } "exec 1>> /dev/null\n";
+    print { $pre_in } "exec 2>&1\n";
+    print { $pre_in } "set -ex\n";
 
     # add shifting to tmp directory as the first step.
     unshift @steps, 'cd ' . $self->widget->bag->tmp_dir;
@@ -9896,6 +9915,7 @@ use Carp;
 # Right now, do the same as generic.
 
 package VC3::Plan;
+use JSON::Tiny;
 
 sub new {
     my ($class, $bag, $parent) = @_;
@@ -9946,7 +9966,7 @@ sub add_target {
 
     $self->bag->{indent_level}++;
 
-    $self->say("Plan:    $name => [@{[$min || 0]}, @{[$max || '']}]");
+    $self->say("Plan:    $name => [@{[$min || '']}, @{[$max || '']}]");
 
     my $available = $self->bag->widgets_of($name);
     for my $widget (@{$available}) {
@@ -9957,7 +9977,7 @@ sub add_target {
         }
     }
 
-    $self->say("Failure: $name => [@{[$min || 0]}, @{[$max || '']}]");
+    $self->say("Failure: $name => [@{[$min || '']}, @{[$max || '']}]");
     $self->bag->{indent_level}--;
 
     return 0;
@@ -9971,7 +9991,7 @@ sub add_widget {
     $self->say("Try:     " . $widget->name . " => $version");
 
     if($min && $min gt $version || $max && $max lt $version) {
-        $self->say("Incorrect version: $version => [@{[$min || 0]},@{[$max || '']}]");
+        $self->say("Incorrect version: $version => [@{[$min || '']},@{[$max || '']}]");
         return 0;
     }
 
@@ -9982,7 +10002,7 @@ sub add_widget {
 
     my $success;
     if($p && !$e) {
-        $self->say("conflicting versions: @{[$widget->name]} [@{[$p->{min} || 0]}, @{[$p->{max} || '']}] <=> [@{[$min || 0]}, @{[$max || '']}]");
+        $self->say("conflicting versions: @{[$widget->name]} [@{[$p->{min} || '']}, @{[$p->{max} || '']}] <=> [@{[$min || '']}, @{[$max || '']}]");
         $success = 0;
     } elsif($p && $e) {
         # already in plan, simple refinenment of versions
@@ -9999,14 +10019,14 @@ sub add_widget {
                     $widget->active_source($s);
                     $success = 1;
                 } else {
-                    $self->say("could not add any source for: @{[$widget->name]} $version => [@{[$min || 0]}, @{[$max || '']}]");
+                    $self->say("could not add any source for: @{[$widget->name]} $version => [@{[$min || '']}, @{[$max || '']}]");
                     $success = 0;
                 }
             } else {
                 $success = 1;
             }
         } else {
-            $self->say("could not set dependencies for: @{[$widget->name]} $version => [@{[$min || 0]}, @{[$max || '']}]");
+            $self->say("could not set dependencies for: @{[$widget->name]} $version => [@{[$min || '']}, @{[$max || '']}]");
             $success = 0;
         }
     }
@@ -10014,7 +10034,7 @@ sub add_widget {
     if($success) {
         # add new step to plan
         $self->elements->{$widget->name} = $e;
-        $self->say("Success: @{[$widget->name]} @{[$e->widget->version]} => [@{[$min || 0]}, @{[$max || '']}]");
+        $self->say("Success: @{[$widget->name]} @{[$e->widget->version]} => [@{[$min || '']}, @{[$max || '']}]");
     } else {
         # restore old plan on error
         $self->elements($saved_state);
@@ -10178,6 +10198,77 @@ sub dot_graph {
     close $dot_f;
 }
 
+sub to_file {
+    my ($self, $filename) = @_;
+
+    my $output = {};
+
+    for my $e (values %{$self->elements}) {
+        my $n = {};
+        my $w = $e->widget;
+        $n->{version} = $w->version->normal;
+
+        if($w->dependencies) {
+            $n->{dependencies} = $w->dependencies;
+        }
+
+        if($w->wrapper) {
+            $n->{wrapper} = $w->wrapper;
+        }
+
+        if($w->prologue) {
+            $n->{prologue} = $w->prologue;
+        }
+
+        if($w->environment_variables) {
+            $n->{environment_variables} = $w->environment_variables;
+        }
+
+        if($w->phony) {
+            $n->{phony} = $w->phony;
+        }
+
+        if($w->active_source) {
+            my $s = $w->active_source;
+            my $m = {};
+
+            $m->{type} = $s->{type};
+
+            if($s->recipe) {
+                $m->{recipe} = $s->recipe;
+            }
+
+            if($s->files) {
+                $m->{files} = $s->files;
+            }
+
+            if($s->msg_manual_requirement) {
+                $m->{msg_manual_requirement} = $s->msg_manual_requirement;
+            }
+
+            if($s->dependencies) {
+                $m->{dependencies} = $s->dependencies;
+            }
+
+            if($s->prerequisites) {
+                $m->{prerequisites} = $s->prerequisites;
+            }
+
+            $n->{sources} = [ $m ];
+        }
+
+        $output->{$w->name} = [ $n ];
+    }
+
+    open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
+
+    my $json = JSON::Tiny::encode_json($output);
+
+    print { $f_h } $json, "\n";
+
+    close $f_h;
+}
+
 package VC3::Plan::Element;
 
 sub new {
@@ -10266,6 +10357,11 @@ sub refine {
     return VC3::Plan::Element->new($self->{widget}, $min, $max);
 }
 
+package version;
+sub TO_JSON {
+    my ($self) = @_;
+    return $self->normal;
+}
 
 
 package VC3::Builder;

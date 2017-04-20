@@ -9046,7 +9046,7 @@ sub root_dir {
     }
 
     unless($self->{root_dir}) {
-        my $rel = $self->bag->target . '/' . $self->name . '-' . $self->version;
+        my $rel = $self->bag->target . '/' . $self->name . '/' . $self->version;
         $self->{root_dir} = File::Spec->rel2abs($vc3_root) . '/' . $rel;
     }
 
@@ -9060,7 +9060,7 @@ sub root_dir {
 sub bookeeping_dir {
     my ($self, $relative) = @_;
 
-    my $rel = $self->bag->target . '/' . $self->name . '-' . $self->version;
+    my $rel = $self->bag->target . '/' . $self->name . '/' . $self->version;
 
     if($relative) {
         return $rel;

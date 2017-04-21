@@ -7862,6 +7862,8 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --dot <file>          Write a dependency graph of the requirements to <file>.
 
+  --parallel <dir>      Write specifications for a parallel build to <dir>.
+
   Developers options:
   --debug               On a builder error, print the full back-trace. 
 
@@ -7910,6 +7912,7 @@ sub main {
     my $force_rebuild      = 0;
 
     my $dot_output;
+    my $parallel_dir;       
 
     my @databases   = ();
     my @extra_vars  = ();
@@ -7955,8 +7958,10 @@ sub main {
         "interactive" => \$interactive_run,
 
         "sys=s"    => \@sys_locs,
-        "no-sys=s"  => \@no_sys_locs,
+        "no-sys=s" => \@no_sys_locs,
         "var=s"    => \@extra_vars,
+
+        "parallel=s" => \$parallel_dir,
 
         # options for developing, not for runtime:
         "debug-modules-used" => \$debug_modules_used,
@@ -7984,7 +7989,12 @@ sub main {
     }
 
     if(defined $dot_output) {
+        push @no_sys_locs, 'ALL';
         $dry_run = 1;
+    }
+
+    if(defined $parallel_dir) {
+        push @no_sys_locs, 'ALL';
     }
 
     unless(@requires) {
@@ -8008,11 +8018,15 @@ sub main {
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
-        exit 0;
     }
 
     if($bag->dry_run) {
         exit 0;
+    }
+
+    if(defined $parallel_dir) {
+        $bag->to_parallel($parallel_dir);
+        $bag->set_plan_for('cctools-statics');
     }
 
     $bag->execute_plan();
@@ -8077,6 +8091,7 @@ package VC3::Bag;
 
 use Carp qw/carp croak/;
 use English qw/-mo_match_vars/;
+use File::Copy;
 use File::Spec ();
 use File::Temp qw/tempfile/;
 use FindBin  qw/$RealBin $RealScript/;
@@ -8184,6 +8199,8 @@ sub set_builder_variables {
     $self->home_dir($vc3_user_home);
     $self->tmp_dir($tmp_dir);
 
+    $self->builder_path("$RealBin/$RealScript");
+
     File::Path::make_path($self->root_dir);
     File::Path::make_path($vc3_distfiles);
     File::Path::make_path(File::Spec->join($vc3_distfiles, 'manual-distribution'));
@@ -8197,7 +8214,7 @@ sub set_builder_variables {
 
     $self->add_builder_variable('VC3_ROOT',         $vc3_root);
     $self->add_builder_variable('VC3_DISTFILES',    $vc3_distfiles);
-    $self->add_builder_variable('VC3_BUILDER_PATH', "$RealBin/$RealScript");
+    $self->add_builder_variable('VC3_BUILDER_PATH', $self->builder_path);
     $self->add_builder_variable('HOME',             $self->home_dir);
     $self->add_builder_variable('TMP',              $self->tmp_dir);
     $self->add_builder_variable('TERM',             'linux');
@@ -8232,6 +8249,23 @@ sub tmp_dir {
 
     return $self->{tmp_dir};
 }
+
+sub plan {
+    my ($self, $new) = @_;
+
+    $self->{plan} = $new if($new);
+
+    return $self->{plan};
+}
+
+sub builder_path {
+    my ($self, $new) = @_;
+
+    $self->{builder} = $new if($new);
+
+    return $self->{builder};
+}
+
 
 sub sh_profile {
     my ($self, $init) = @_;
@@ -8354,7 +8388,7 @@ sub set_plan_for {
     $self->{sources}{$dummy_name} = [ VC3::Widget->new($self, $dummy_name, $root_entry) ];
 
     my $plan = VC3::Plan->new($self);
-    $self->{plan} = $plan;
+    $self->plan($plan);
 
     if(!$plan->add_target($dummy_name)) {
         die("Could not find an installation plan.\n");
@@ -8390,8 +8424,8 @@ sub parse_requirement {
     }
 
     # turn into version strings
-    $min = version->parse("$min") if($min);
-    $max = version->parse("$max") if($max);
+    $min = version->declare("$min") if($min);
+    $max = version->declare("$max") if($max);
 
     return ($name, $min, $max);
 }
@@ -8399,7 +8433,7 @@ sub parse_requirement {
 sub execute_plan {
     my ($self) = @_;
 
-    my $plan = $self->{plan};
+    my $plan = $self->plan;
 
     $self->check_manual_requirements();
 
@@ -8574,7 +8608,7 @@ sub decode_bag {
 sub build_widget {
     my ($self, $widget, $sh_on_error, $force_rebuild, $depend_step_now, $min_version, $max_version) = @_;
 
-    $self->say("processing for @{[$widget->name]}-" . $widget->version);
+    $self->say("processing for @{[$widget->name]}-" . $widget->version->normal);
 
     my $s = $widget->active_source;
 
@@ -8593,7 +8627,32 @@ sub build_widget {
 
 sub dot_graph {
     my ($self, $dotname) = @_;
-    return $self->{plan}->dot_graph($dotname);
+    return $self->plan->dot_graph($dotname);
+}
+
+sub to_parallel {
+    my ($self, $dir) = @_;
+
+    my $abs_dir  = $self->home_dir . "/$dir";
+    my $dag_name = 'dag';
+
+    File::Path::make_path($abs_dir);
+
+    open my $script_f, '>', "$abs_dir/build" || die "Could not open '$abs_dir/build' for writing: $!";
+    print { $script_f } <<EOF;
+#! /bin/sh
+
+makeflow --shared-fs @{[$self->root_dir]} $dag_name "\$@"
+
+EOF
+    close $script_f;
+    chmod 0755, "$abs_dir/build";
+
+    my $builder_name = 'builder';
+    copy($self->builder_path, "$abs_dir/$builder_name");
+    chmod 0755, "$abs_dir/$builder_name";
+
+    $self->plan->to_makeflow($abs_dir, $dag_name, $builder_name);
 }
 
 sub set_environment_variables {
@@ -8963,7 +9022,7 @@ sub version {
     my ($self, $new_version) = @_;
 
     if($new_version) {
-        $self->{version} = version->parse($new_version);
+        $self->{version} = version->declare($new_version);
     }
 
     unless($self->{version}) {
@@ -9046,7 +9105,8 @@ sub root_dir {
     }
 
     unless($self->{root_dir}) {
-        my $rel = $self->bag->target . '/' . $self->name . '/' . $self->version;
+        my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
+
         $self->{root_dir} = File::Spec->rel2abs($vc3_root) . '/' . $rel;
     }
 
@@ -9060,7 +9120,7 @@ sub root_dir {
 sub bookeeping_dir {
     my ($self, $relative) = @_;
 
-    my $rel = $self->bag->target . '/' . $self->name . '/' . $self->version;
+    my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
 
     if($relative) {
         return $rel;
@@ -9548,14 +9608,14 @@ sub dependencies {
             my ($min_version, $max_version) = @{$versions};
 
             if($min_version) {
-                $min_version = version->parse($min_version);
+                $min_version = version->declare($min_version);
             }
 
             if($max_version) {
-                $max_version = version->parse($max_version);
+                $max_version = version->declare($max_version);
 
                 unless($min_version) {
-                    $min_version = version->parse('v0.0.0');
+                    $min_version = version->declare('v0.0.0');
                 }
             }
 
@@ -9739,13 +9799,13 @@ sub execute_recipe {
             } else {
                 $self->prepare_recipe_sandbox();
                 $result = $self->execute_recipe_unlocked();
+                $self->cleanup_recipe_sandbox($result);
             }
         }
     };
 
     my $error_msg = $@;
 
-    $self->cleanup_recipe_sandbox($result);
     $self->widget->ribbon->release_lock();
 
     if($error_msg) {
@@ -9758,7 +9818,9 @@ sub execute_recipe {
 sub execute_recipe_unlocked {
     my ($self) = @_;
 
-    $self->widget->ribbon->commit('PROCESSING');
+    unless($self->isa('VC3::Source::System')) {
+        $self->widget->ribbon->commit('PROCESSING');
+    }
 
     my $result = -1;
     my ($pid, $build_in) = $self->setup_build_shell();
@@ -9876,13 +9938,8 @@ sub execute_recipe_unlocked {
 
     my $output_filename = $self->widget->build_log;
 
-    my $state = $self->widget->ribbon->state;
-    
     my $result;
     eval { $result = $self->SUPER::execute_recipe_unlocked(); };
-
-    # re-establish state, as system is tried every time:
-    $self->widget->ribbon->commit($state);
 
     if($@) {
         die $@;
@@ -9988,10 +10045,10 @@ sub add_widget {
 
     my $version = $widget->version;
 
-    $self->say("Try:     " . $widget->name . " => $version");
+    $self->say("Try:     " . $widget->name . " => @{[$version->normal]}");
 
     if($min && $min gt $version || $max && $max lt $version) {
-        $self->say("Incorrect version: $version => [@{[$min || '']},@{[$max || '']}]");
+        $self->say("Incorrect version: @{[$version->normal]} => [@{[$min->normal || '']},@{[$max->normal || '']}]");
         return 0;
     }
 
@@ -10002,7 +10059,7 @@ sub add_widget {
 
     my $success;
     if($p && !$e) {
-        $self->say("conflicting versions: @{[$widget->name]} [@{[$p->{min} || '']}, @{[$p->{max} || '']}] <=> [@{[$min || '']}, @{[$max || '']}]");
+        $self->say("conflicting versions: @{[$widget->name]} [@{[$p->{min}->normal || '']}, @{[$p->{max}->normal || '']}] <=> [@{[$min->normal || '']}, @{[$max->normal || '']}]");
         $success = 0;
     } elsif($p && $e) {
         # already in plan, simple refinenment of versions
@@ -10019,14 +10076,14 @@ sub add_widget {
                     $widget->active_source($s);
                     $success = 1;
                 } else {
-                    $self->say("could not add any source for: @{[$widget->name]} $version => [@{[$min || '']}, @{[$max || '']}]");
+                    $self->say("could not add any source for: @{[$widget->name, $version]} => [@{[$min || '']}, @{[$max || '']}]");
                     $success = 0;
                 }
             } else {
                 $success = 1;
             }
         } else {
-            $self->say("could not set dependencies for: @{[$widget->name]} $version => [@{[$min || '']}, @{[$max || '']}]");
+            $self->say("could not set dependencies for: @{[$widget->name]} $version->normal => [@{[$min->normal || '']}, @{[$max->normal || '']}]");
             $success = 0;
         }
     }
@@ -10034,7 +10091,7 @@ sub add_widget {
     if($success) {
         # add new step to plan
         $self->elements->{$widget->name} = $e;
-        $self->say("Success: @{[$widget->name]} @{[$e->widget->version]} => [@{[$min || '']}, @{[$max || '']}]");
+        $self->say("Success: @{[$widget->name]} @{[$e->widget->version->normal]} => [@{[$min || '']}, @{[$max || '']}]");
     } else {
         # restore old plan on error
         $self->elements($saved_state);
@@ -10092,7 +10149,7 @@ sub add_source {
     my $exit_status = -1;
     eval { $exit_status = $source->check_prerequisites() };
     if($exit_status) {
-        $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version);
+        $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version->normal);
         return 0;
     }
 
@@ -10196,6 +10253,77 @@ sub dot_graph {
 
     print { $dot_f } "}\n";
     close $dot_f;
+}
+
+sub to_makeflow {
+    my ($self, $dir, $dag_name, $builder_exec) = @_;
+
+
+    my $local_database = 'recipes';
+    $self->to_file("$dir/$local_database");
+
+    my $makeflow_name = 'dag';
+
+    open(my $mflow_f, '>', "$dir/$makeflow_name") 
+    || die "Could not open '$dir/$makeflow_name': $!";
+
+    print { $mflow_f } ".MAKEFLOW CATEGORY builds\n";
+    print { $mflow_f } ".MAKEFLOW CORES    4\n";
+    print { $mflow_f } ".MAKEFLOW MEMORY   2048\n";     #  2 GB of RAM
+    print { $mflow_f } ".MAKEFLOW DISK     20000\n";    # 10 GB of disk
+    print { $mflow_f } "\n\n";
+
+    my $bag = $self->bag;
+    print { $mflow_f } "RECIPES  = $local_database\n";
+    print { $mflow_f } "ROOT_DIR = @{[$bag->root_dir]}\n";
+    print { $mflow_f } "TRGT_DIR = \$(ROOT_DIR)/@{[$bag->target]}\n";
+    print { $mflow_f } "HOME_DIR = @{[$bag->home_dir]}\n";
+    print { $mflow_f } "DIST_DIR = $vc3_distfiles\n";
+    print { $mflow_f } "REPO     = $vc3_repository\n";
+    print { $mflow_f } "OPTIONS  = --make-jobs \$(CORES) --no-sys=ALL --no-run\n\n";
+
+    print { $mflow_f } "RIBBON   = .VC3_DEPENDENCY_BUILD\n\n";
+
+    print { $mflow_f } "\n";
+    print { $mflow_f } "BUILD_COMMAND  = ./$builder_exec --database \$(RECIPES) --install \$(ROOT_DIR) --home \$(HOME_DIR) --distfiles \$(DIST_DIR) --repository \$(REPO) \$(OPTIONS)\n";
+
+    print { $mflow_f } "\n\n";
+    
+    my @names = keys %{$self->elements};
+    for my $name (@names) {
+        my @deps;
+
+        my $e = $self->elements->{$name};
+        my $w = $e->{widget};
+
+        if($w->dependencies) {
+            push @deps, keys %{$w->dependencies};
+        }
+
+        if($w->active_source && $w->active_source->dependencies) {
+            push @deps, keys %{$w->active_source->dependencies};
+        }
+
+        my @inputs;
+        my $root = $bag->root_dir . '/' . $bag->target;
+        for my $d (@deps) {
+            my $rname = $self->elements->{$d}->{widget}->ribbon->{filename};
+
+            $rname =~ s/.VC3_DEPENDENCY_BUILD$/\$(RIBBON)/;
+            $rname =~ s/^\Q$root/\$(TRGT_DIR)/;
+
+            push @inputs, $rname;
+        }
+
+        my $output = $w->ribbon->{filename};
+        $output =~ s/.VC3_DEPENDENCY_BUILD$/\$(RIBBON)/;
+        $output =~ s/^\Q$root/\$(TRGT_DIR)/;
+
+        print { $mflow_f } "$output: $builder_exec $local_database @inputs\n";
+        print { $mflow_f } "\t\$(BUILD_COMMAND) --require $name\n\n";
+    }
+
+    close $mflow_f;
 }
 
 sub to_file {
@@ -10343,7 +10471,7 @@ sub refine {
     }
 
     if($max) {
-        my $v   = version->parse($max);
+        my $v   = version->declare($max);
         my $num = $v->numify();
         my $fix = ($num * 1000000) % 1000;
         $num   += 0.000999 unless($fix);
@@ -10372,8 +10500,21 @@ __DATA__
             "version":"v0.000.001",
             "phony":1,
             "dependencies":{
-                "cctools":[
+                "cctools-statics":[
                     "v0.000.001"
+                ],
+                "vc3-factory":[
+                    "v0.000.001"
+                ]
+            }
+        },
+        {
+            "version":"v0.000.001",
+            "phony":1,
+            "version":"v6.000.016",
+            "dependencies":{
+                "cctools":[
+                    "v6.000.016"
                 ],
                 "vc3-factory":[
                     "v0.000.001"
@@ -10895,6 +11036,14 @@ __DATA__
         {
             "version":"v6.000.016",
             "dependencies":{
+                "cctools-statics":[
+                    "v0.000.001"
+                ]
+            }
+        },
+        {
+            "version":"v6.000.016",
+            "dependencies":{
                 "cctools":[
                     "v6.000.016"
                 ]
@@ -10902,6 +11051,32 @@ __DATA__
         }
     ],
 
+    "cctools-statics":[
+        {
+            "version":"v6.000.016",
+            "sources":[
+                {
+                    "type":"binary",
+                    "files":[
+                        "cctools-statics-6.0.16-x86_64.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-statics-6.0.16-x86_64.tar.gz"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
 
     "cctools":[
         {
@@ -13238,6 +13413,14 @@ __DATA__
     "repeatmasker-common":[
         {
             "version":"v4.000.006",
+            "sources": [
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "echo setting variables..."
+                    ]
+                }
+            ],
             "environment_variables":[
                 {
                     "name":"PATH",

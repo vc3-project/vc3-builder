@@ -4,8 +4,21 @@
             "version":"v0.000.001",
             "phony":1,
             "dependencies":{
-                "cctools":[
+                "cctools-statics":[
                     "v0.000.001"
+                ],
+                "vc3-factory":[
+                    "v0.000.001"
+                ]
+            }
+        },
+        {
+            "version":"v0.000.001",
+            "phony":1,
+            "version":"v6.000.016",
+            "dependencies":{
+                "cctools":[
+                    "v6.000.016"
                 ],
                 "vc3-factory":[
                     "v0.000.001"
@@ -527,6 +540,14 @@
         {
             "version":"v6.000.016",
             "dependencies":{
+                "cctools-statics":[
+                    "v0.000.001"
+                ]
+            }
+        },
+        {
+            "version":"v6.000.016",
+            "dependencies":{
                 "cctools":[
                     "v6.000.016"
                 ]
@@ -534,6 +555,32 @@
         }
     ],
 
+    "cctools-statics":[
+        {
+            "version":"v6.000.016",
+            "sources":[
+                {
+                    "type":"binary",
+                    "files":[
+                        "cctools-statics-6.0.16-x86_64.tar.gz"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-statics-6.0.16-x86_64.tar.gz"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
 
     "cctools":[
         {
@@ -2870,6 +2917,14 @@
     "repeatmasker-common":[
         {
             "version":"v4.000.006",
+            "sources": [
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "echo setting variables..."
+                    ]
+                }
+            ],
             "environment_variables":[
                 {
                     "name":"PATH",

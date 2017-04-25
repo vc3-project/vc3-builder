@@ -8591,7 +8591,13 @@ sub dot_graph {
 sub to_parallel {
     my ($self, $dir) = @_;
 
-    my $abs_dir        = $self->home_dir . "/$dir";
+    my $abs_dir;
+    if(File::Spec->file_name_is_absolute($dir)) {
+        $abs_dir = $dir;
+    } else {
+        $abs_dir = File::Spec->join($self->home_dir, $dir);
+    }
+
     my $dag_name       = 'dag';
     my $builder_name   = 'builder';
     my $local_database = 'recipes';

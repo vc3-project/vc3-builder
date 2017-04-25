@@ -683,7 +683,7 @@
                 },
                 {
                     "name":"PYTHONPATH",
-                    "value":"lib/python2.7/site-packages"
+                    "value":"lib/python${VC3_VERSION_PYTHON}/site-packages"
                 },
                 {
                     "name":"PERL5LIB",

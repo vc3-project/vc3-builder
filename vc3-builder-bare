@@ -1136,39 +1136,43 @@ sub new {
     $self->environment_variables($json_description->{environment_variables});
     $self->phony($json_description->{phony});
 
-    $self->add_root_variable();
+    $self->add_widget_variable('ROOT',    $self->root_dir);
+
+    my $majmin = $self->version->normal;
+    $majmin =~ s/^v([0-9]+\.[0-9]+)\..*/$1/;
+
+    $self->add_widget_variable('VERSION', $majmin);
 
     return $self;
 }
 
-sub add_root_variable {
-    my ($self) = @_;
+sub add_widget_variable {
+    my ($self, $varname, $value) = @_;
 
-    my $vars      = $self->environment_variables || [];
+    my $vars    = $self->environment_variables || [];
 
-    my $root_name = 'VC3_ROOT_' . uc($self->name);
+    $varname = $self->widget_var($varname);
 
-    # replace - with _, as env vars cannot have - in their names.
-    $root_name =~ s/-/_/g;
-
-    my $root_var = {
-        name     => $root_name,
-        value    => $self->root_dir,
+    my $var = {
+        name     => $varname,
+        value    => $value,
         clobber  => 1,
         absolute => 1
     };
-    unshift @{$vars}, $root_var;
+    unshift @{$vars}, $var;
 
-    $self->var_root_name($root_name);
     $self->environment_variables($vars);
 }
 
-sub var_root_name {
-    my ($self, $new_var_root_name) = @_;
+sub widget_var {
+    my ($self, $varname) = @_;
 
-    $self->{var_root_name} = $new_var_root_name if($new_var_root_name);
+    my $expanded = "VC3_${varname}_" . uc($self->name);
 
-    return $self->{var_root_name};
+    # replace - with _, as env vars cannot have - in their names.
+    $expanded =~ s/-/_/g;
+
+    return $expanded;
 }
 
 sub bag {
@@ -1305,7 +1309,7 @@ sub root_dir {
     }
 
     if(!$old || $old ne $self->{root_dir}) {
-        $self->add_root_variable();
+        $self->add_widget_variable('ROOT', $self->{root_dir});
     }
 
     return $self->{root_dir};
@@ -1397,7 +1401,7 @@ sub consolidate_environment_variables {
         for my $path (@paths) {
             if(!$absolute) {
                 if($self->root_dir eq $self->bookeeping_dir) {
-                    $path = '${' . $self->var_root_name . '}/' . $path;
+                    $path = '${' . $self->widget_var('ROOT') . '}/' . $path;
                 } else {
                     $path = $self->root_dir . '/' . $path;
                 }
@@ -2531,11 +2535,17 @@ sub to_makeflow {
     print { $mflow_f } ".MAKEFLOW DISK     20000\n";    # 20 GB of disk
     print { $mflow_f } "\n\n";
 
-    my $bag = $self->bag;
+    my $bag    = $self->bag;
+    my $root   = $bag->root_dir;
+    my $target = $bag->root_dir . '/' . $bag->target;
+
+    my $home   = $bag->home_dir;
+    $home      =~ s/^\Q$root/\$(ROOT_DIR)/;
+
     print { $mflow_f } "RECIPES  = $local_database\n";
-    print { $mflow_f } "ROOT_DIR = @{[$bag->root_dir]}\n";
+    print { $mflow_f } "ROOT_DIR = $root\n";
     print { $mflow_f } "TRGT_DIR = \$(ROOT_DIR)/@{[$bag->target]}\n";
-    print { $mflow_f } "HOME_DIR = @{[$bag->home_dir]}\n";
+    print { $mflow_f } "HOME_DIR = $home\n";
     print { $mflow_f } "DIST_DIR = $vc3_distfiles\n";
     print { $mflow_f } "REPO     = $vc3_repository\n";
     print { $mflow_f } "OPTIONS  = --make-jobs \$(CORES) --no-sys=ALL --no-run\n\n";
@@ -2563,19 +2573,18 @@ sub to_makeflow {
         }
 
         my @inputs;
-        my $root = $bag->root_dir . '/' . $bag->target;
         for my $d (@deps) {
             my $rname = $self->elements->{$d}->{widget}->ribbon->{filename};
 
             $rname =~ s/.VC3_DEPENDENCY_BUILD$/\$(RIBBON)/;
-            $rname =~ s/^\Q$root/\$(TRGT_DIR)/;
+            $rname =~ s/^\Q$target/\$(TRGT_DIR)/;
 
             push @inputs, $rname;
         }
 
         my $output = $w->ribbon->{filename};
         $output =~ s/.VC3_DEPENDENCY_BUILD$/\$(RIBBON)/;
-        $output =~ s/^\Q$root/\$(TRGT_DIR)/;
+        $output =~ s/^\Q$target/\$(TRGT_DIR)/;
 
         print { $mflow_f } "$output: $builder_exec $local_database @inputs\n";
         print { $mflow_f } "\t\$(BUILD_COMMAND) --require $name\n\n";

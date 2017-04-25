@@ -1640,7 +1640,11 @@
                         "setuptools-24.0.2.tar.gz"
                     ],
                     "recipe":[
-                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        "dir=${VC3_PREFIX}/local_modules/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                        "mkdir -p $dir",
+                        "export PYTHONPATH=${dir}:${PYTHONPATH}",
+                        "echo $PYTHONPATH",
+                        "python setup.py install --prefix=${VC3_PREFIX}/local_modules/"
                     ]
                 }
             ],
@@ -1648,7 +1652,24 @@
                 "python":[
                     "v2.006"
                 ]
-            }
+            },
+            "environment_variables":[
+                {
+                    "name":"VC3_MODULES_PYTHON",
+                    "value":"local_modules",
+                    "clobber":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MODULES_PYTHON}/bin",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                    "absolute":1
+                }
+            ]
         }
     ],
 
@@ -1662,8 +1683,7 @@
                         "pip-8.1.2.distribution"
                     ],
                     "recipe":[
-                        "echo -e \"\\n[install]\\ninstall-option=--prefix=${VC3_MODULES_PYTHON}\\n\" > ${PIP_CONFIG_FILE}",
-                        "python pip-8.1.2.distribution"
+                        "python pip-8.1.2.distribution --prefix=${VC3_MODULES_PYTHON}"
                     ]
                 }
             ],
@@ -1674,13 +1694,7 @@
                 "python-setuptools":[
                     "v24.000"
                 ]
-            },
-            "environment_variables":[
-                {
-                    "name":"PIP_CONFIG_FILE",
-                    "value":"pip.conf"
-                }
-            ]
+            }
         }
     ],
 
@@ -1705,14 +1719,7 @@
                 "python-pip":[
                     "v1.008"
                 ]
-            },
-            "environment_variables":[
-                {
-                    "name":"VC3_MODULES_PYTHON",
-                    "value":"${VC3_ROOT_PYTHON_PIP}/local_modules",
-                    "absolute":1
-                }
-            ]
+            }
         }
     ],
 
@@ -1815,27 +1822,12 @@
             ],
             "environment_variables":[
                 {
-                    "name":"VC3_MODULES_PYTHON",
-                    "value":"local_modules",
-                    "clobber":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"${VC3_MODULES_PYTHON}/bin",
-                    "absolute":1
-                },
-                {
                     "name":"PATH",
                     "value":"bin"
                 },
                 {
                     "name":"PYTHONPATH",
-                    "value":"${VC3_MODULES_PYTHON}/lib/python2.7/site-packages",
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH",
-                    "value":"lib/python2.7/site-packages"
+                    "value":"lib/python${VC3_VERSION_PYTHON}/site-packages"
                 }
             ]
         }

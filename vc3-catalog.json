@@ -2540,7 +2540,7 @@
                     ],
                     "recipe":[
                         "export CFLAGS=-fPIC",
-                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --disable-readline",
+                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-shared --disable-dependency-tracking --with-sge --disable-debug",
                         "make",
                         "make install"
                     ]
@@ -3061,6 +3061,9 @@
                 ],
                 "augustus":[
                     "v2.004"
+                ],
+                "openmpi":[
+                    "v1.010"
                 ],
                 "perl-bioperl":[
                     "v1.006"

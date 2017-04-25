@@ -7801,7 +7801,7 @@ my $pwd            = getcwd();
 my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
 my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
 my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
-my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/repository/builder-files";
+my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/builder-files";
 
 my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;
 my @cleanups;     # functions to call on exit.
@@ -7836,6 +7836,7 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --force               Reinstall the packages named with --require and the
                         packages they depend on.
+
 
   --make-jobs <n>       Concurrent make jobs. Default is 4.
   --sh-on-error         On building error, run /bin/sh on the partially-built
@@ -7911,6 +7912,8 @@ sub main {
     my $silent             = 0;
     my $force_rebuild      = 0;
 
+    my $ignore_locks       = 0;
+
     my $dot_output;
     my $parallel_dir;       
 
@@ -7947,6 +7950,7 @@ sub main {
         "sh-on-error"     => \$sh_on_error,
 
         "force"           => \$force_rebuild,
+        "ignore-locks"    => \$ignore_locks,
 
         "env-to=s" => \$env_to,
 
@@ -8027,9 +8031,10 @@ sub main {
     if(defined $parallel_dir) {
         $bag->to_parallel($parallel_dir);
         $bag->set_plan_for('cctools-statics');
+        $ignore_locks = 1;
     }
 
-    $bag->execute_plan();
+    $bag->execute_plan($sh_on_error, $force_rebuild, $ignore_locks);
 
     my $exit_code;
     if($no_run) {
@@ -8371,30 +8376,12 @@ sub set_plan_for {
 
     $self->{indent_level} = 0;
 
-    my $root_entry = { version => 'v0.0.1', phony => 1, dependencies => {} };
-
-    for my $req (@requires) {
-        my ($name, $min, $max) = $self->parse_requirement($req);
-
-        my $versions = [];
-        push @{$versions}, $min if($min);
-        push @{$versions}, $max if($max);
-
-        $root_entry->{dependencies}{$name} = $versions;
-    }
-
-    my $dummy_name = "overall_plan_" . join('_', @requires);
-
-    $self->{sources}{$dummy_name} = [ VC3::Widget->new($self, $dummy_name, $root_entry) ];
-
     my $plan = VC3::Plan->new($self);
     $self->plan($plan);
 
-    if(!$plan->add_target($dummy_name)) {
+    if(!$plan->add_main_targets(@requires)) {
         die("Could not find an installation plan.\n");
     }
-
-    delete $plan->elements->{$dummy_name};
 
     $self->{ords} = $plan->order();
     my @ordered = sort { ($self->{ords}{$a} <=> $self->{ords}{$b}) || ($a cmp $b) } keys %{$self->{ords}};
@@ -8403,42 +8390,13 @@ sub set_plan_for {
     return $plan;
 }
 
-sub parse_requirement {
-    my ($self, $req) = @_;
-
-    $req =~ m/
-    ^
-    (?<name> [A-z0-9_-]+)
-    (:                      # start of min version
-    (?<min> [^:]*)
-    (:                      # start of max version
-    (?<max> [^:]*)
-    )?)?
-    $
-    /x;
-
-    my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
-
-    if(!$min && $max) {
-        $min = 'v0.0.0';
-    }
-
-    # turn into version strings
-    $min = version->declare("$min") if($min);
-    $max = version->declare("$max") if($max);
-
-    return ($name, $min, $max);
-}
-
 sub execute_plan {
-    my ($self) = @_;
-
-    my $plan = $self->plan;
+    my ($self, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
 
     $self->check_manual_requirements();
 
     for my $w (@{$self->{order}}) {
-        $self->build_widget($w);
+        $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
         $self->activate_widget($w);
     }
 }
@@ -8606,7 +8564,7 @@ sub decode_bag {
 } 
 
 sub build_widget {
-    my ($self, $widget, $sh_on_error, $force_rebuild, $depend_step_now, $min_version, $max_version) = @_;
+    my ($self, $widget, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
 
     $self->say("processing for @{[$widget->name]}-" . $widget->version->normal);
 
@@ -8614,7 +8572,7 @@ sub build_widget {
 
     my $exit_status = 0;
     if($s) {
-        eval { $exit_status = -1; $exit_status = $s->execute_recipe($force_rebuild) };
+        eval { $exit_status = -1; $exit_status = $s->execute_recipe($force_rebuild, $ignore_locks) };
 
         if($exit_status) {
             $widget->process_error($sh_on_error, $EVAL_ERROR, $exit_status);
@@ -8633,26 +8591,35 @@ sub dot_graph {
 sub to_parallel {
     my ($self, $dir) = @_;
 
-    my $abs_dir  = $self->home_dir . "/$dir";
-    my $dag_name = 'dag';
+    my $abs_dir        = $self->home_dir . "/$dir";
+    my $dag_name       = 'dag';
+    my $builder_name   = 'builder';
+    my $local_database = 'recipes';
 
     File::Path::make_path($abs_dir);
 
     open my $script_f, '>', "$abs_dir/build" || die "Could not open '$abs_dir/build' for writing: $!";
-    print { $script_f } <<EOF;
+    print { $script_f } <<EOFF;
 #! /bin/sh
+set -e
 
-makeflow --shared-fs @{[$self->root_dir]} $dag_name "\$@"
+makeflow --shared-fs @{[$self->root_dir]} -r 5 $dag_name "\$@"
+
+cat <<EOF
+To run, from the current directory type:
+
+./$builder_name --database $local_database --install @{[$self->root_dir]} @{[map { "--require $_" } @{$self->plan->requirements}]}
 
 EOF
+EOFF
+
     close $script_f;
     chmod 0755, "$abs_dir/build";
 
-    my $builder_name = 'builder';
     copy($self->builder_path, "$abs_dir/$builder_name");
     chmod 0755, "$abs_dir/$builder_name";
 
-    $self->plan->to_makeflow($abs_dir, $dag_name, $builder_name);
+    $self->plan->to_makeflow($abs_dir, $dag_name, $builder_name, $local_database);
 }
 
 sub set_environment_variables {
@@ -9403,7 +9370,7 @@ sub new {
     $self->{lockname} = $tmpdir . '/' . $name . '.lock';
     $self->{checksum} = $checksum;
 
-    $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -nfs => 1, -stale => 1, -wmin => 2,
+    $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -stale => 1, -wmin => 2,
         -wfunc => sub { LockFile::Simple::core_warn("Waiting for a lock for '$name'. If you think this lock is stale, please remove the file:\n'" . $self->{lockname} . "'\n") }
     );
 
@@ -9783,11 +9750,14 @@ sub cleanup_recipe_sandbox {
 
 
 sub execute_recipe {
-    my ($self, $force_rebuild) = @_;
+    my ($self, $force_rebuild, $ignore_locks) = @_;
 
     my $result = 1;
 
-    $self->widget->ribbon->set_lock();
+    unless($ignore_locks) {
+        $self->widget->ribbon->set_lock();
+    }
+
     eval {
         my $state = $self->widget->ribbon->state;
         if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony && !$self->phony) {
@@ -9806,7 +9776,9 @@ sub execute_recipe {
 
     my $error_msg = $@;
 
-    $self->widget->ribbon->release_lock();
+    unless($ignore_locks) {
+        $self->widget->ribbon->release_lock();
+    }
 
     if($error_msg) {
         die $error_msg;
@@ -10018,6 +9990,16 @@ sub element_of {
     return $self->elements->{$name};
 }
 
+sub requirements {
+    my ($self) = @_;
+
+    unless($self->{requirements}) {
+        $self->{requirements} = [];
+    }
+
+    return $self->{requirements};
+}
+
 sub add_target {
     my ($self, $name, $min, $max) = @_;
 
@@ -10038,6 +10020,57 @@ sub add_target {
     $self->bag->{indent_level}--;
 
     return 0;
+}
+
+sub add_main_targets {
+    my ($self, @requires) = @_;
+
+    my $root_entry = { version => 'v0.0.1', phony => 1, dependencies => {} };
+
+    for my $req (@requires) {
+        my ($name, $min, $max) = $self->parse_requirement($req);
+
+        my $versions = [];
+        push @{$versions}, $min if($min);
+        push @{$versions}, $max if($max);
+
+        $root_entry->{dependencies}{$name} = $versions;
+        
+        unless($self->add_target($name)) {
+            die "Could not find plan for $req.\n";
+        }
+
+        push @{$self->requirements}, $name;
+    }
+
+    return 1;
+}
+
+sub parse_requirement {
+    my ($self, $req) = @_;
+
+    $req =~ m/
+    ^
+    (?<name> [A-z0-9_-]+)
+    (:                      # start of min version
+    (?<min> [^:]*)
+    (:                      # start of max version
+    (?<max> [^:]*)
+    )?)?
+    $
+    /x;
+
+    my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
+
+    if(!$min && $max) {
+        $min = 'v0.0.0';
+    }
+
+    # turn into version strings
+    $min = version->declare("$min") if($min);
+    $max = version->declare("$max") if($max);
+
+    return ($name, $min, $max);
 }
 
 sub add_widget {
@@ -10256,10 +10289,8 @@ sub dot_graph {
 }
 
 sub to_makeflow {
-    my ($self, $dir, $dag_name, $builder_exec) = @_;
+    my ($self, $dir, $dag_name, $builder_exec, $local_database) = @_;
 
-
-    my $local_database = 'recipes';
     $self->to_file("$dir/$local_database");
 
     my $makeflow_name = 'dag';
@@ -10270,7 +10301,7 @@ sub to_makeflow {
     print { $mflow_f } ".MAKEFLOW CATEGORY builds\n";
     print { $mflow_f } ".MAKEFLOW CORES    4\n";
     print { $mflow_f } ".MAKEFLOW MEMORY   2048\n";     #  2 GB of RAM
-    print { $mflow_f } ".MAKEFLOW DISK     20000\n";    # 10 GB of disk
+    print { $mflow_f } ".MAKEFLOW DISK     20000\n";    # 20 GB of disk
     print { $mflow_f } "\n\n";
 
     my $bag = $self->bag;
@@ -10285,7 +10316,7 @@ sub to_makeflow {
     print { $mflow_f } "RIBBON   = .VC3_DEPENDENCY_BUILD\n\n";
 
     print { $mflow_f } "\n";
-    print { $mflow_f } "BUILD_COMMAND  = ./$builder_exec --database \$(RECIPES) --install \$(ROOT_DIR) --home \$(HOME_DIR) --distfiles \$(DIST_DIR) --repository \$(REPO) \$(OPTIONS)\n";
+    print { $mflow_f } "BUILD_COMMAND  = ./$builder_exec --database \$(RECIPES) --install \$(ROOT_DIR) --home \$(HOME_DIR) --distfiles \$(DIST_DIR) --repository \$(REPO) \$(OPTIONS) --ignore-locks\n";
 
     print { $mflow_f } "\n\n";
     
@@ -13036,7 +13067,7 @@ __DATA__
                     ],
                     "recipe":[
                         "export CFLAGS=-fPIC",
-                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --disable-readline",
+                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-shared --disable-dependency-tracking --with-sge --disable-debug",
                         "make",
                         "make install"
                     ]
@@ -13557,6 +13588,9 @@ __DATA__
                 ],
                 "augustus":[
                     "v2.004"
+                ],
+                "openmpi":[
+                    "v1.010"
                 ],
                 "perl-bioperl":[
                     "v1.006"

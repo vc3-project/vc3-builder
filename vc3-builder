@@ -11225,7 +11225,7 @@ __DATA__
                 },
                 {
                     "name":"PYTHONPATH",
-                    "value":"lib/python2.7/site-packages"
+                    "value":"lib/python${VC3_VERSION_PYTHON}/site-packages"
                 },
                 {
                     "name":"PERL5LIB",
@@ -12253,15 +12253,19 @@ __DATA__
                     ]
                 }
             ],
-            "start":[
-                "cd ${HOME}",
-                "source ${VC3_MODULES_PYTHON}/bin/activate"
-            ],
             "dependencies":{
                 "python-pip":[
                     "v1.008"
                 ]
-            }
+            },
+            "environment_variables":
+            [
+                {
+                    "name":"PATH",
+                    "value":"${HOME}/.local/bin",
+                    "absolute":1
+                }
+            ]
         }
     ],
 

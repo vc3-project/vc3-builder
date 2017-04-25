@@ -1711,15 +1711,19 @@
                     ]
                 }
             ],
-            "start":[
-                "cd ${HOME}",
-                "source ${VC3_MODULES_PYTHON}/bin/activate"
-            ],
             "dependencies":{
                 "python-pip":[
                     "v1.008"
                 ]
-            }
+            },
+            "environment_variables":
+            [
+                {
+                    "name":"PATH",
+                    "value":"${HOME}/.local/bin",
+                    "absolute":1
+                }
+            ]
         }
     ],
 

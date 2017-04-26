@@ -2300,10 +2300,18 @@ sub parse_requirement {
     }
 
     # turn into version strings
-    $min = version->declare("$min") if($min);
-    $max = version->declare("$max") if($max);
+    $min = version->declare($min) if($min);
+    $max = version->declare($max) if($max);
 
     return ($name, $min, $max);
+}
+
+sub version_str {
+    my ($self, $v) = @_;
+
+    return ''         unless $v;
+    return $v->normal if $v->isa('version');
+    return version->parse($v)->normal;
 }
 
 sub add_widget {
@@ -2314,7 +2322,7 @@ sub add_widget {
     $self->say("Try:     " . $widget->name . " => @{[$version->normal]}");
 
     if($min && $min gt $version || $max && $max lt $version) {
-        $self->say("Incorrect version: @{[$version->normal]} => [@{[$min->normal || '']},@{[$max->normal || '']}]");
+        $self->say("Incorrect version: @{[$version->normal]} => [@{[$self->version_str($min)]},@{[$self->version_str($max)]}]");
         return 0;
     }
 
@@ -2342,7 +2350,7 @@ sub add_widget {
                     $widget->active_source($s);
                     $success = 1;
                 } else {
-                    $self->say("could not add any source for: @{[$widget->name, $version]} => [@{[$min || '']}, @{[$max || '']}]");
+                    $self->say("could not add any source for: @{[$widget->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
                     $success = 0;
                 }
             } else {
@@ -2357,7 +2365,7 @@ sub add_widget {
     if($success) {
         # add new step to plan
         $self->elements->{$widget->name} = $e;
-        $self->say("Success: @{[$widget->name]} @{[$e->widget->version->normal]} => [@{[$min || '']}, @{[$max || '']}]");
+        $self->say("Success: @{[$widget->name]} @{[$e->widget->version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
     } else {
         # restore old plan on error
         $self->elements($saved_state);

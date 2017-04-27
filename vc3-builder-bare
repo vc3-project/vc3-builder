@@ -217,6 +217,9 @@ sub main {
         push @no_sys_locs, 'ALL';
         $dry_run = 1;
     }
+    
+    #disable system deps for now:
+    push @no_sys_locs, 'ALL';
 
     if(defined $parallel_dir) {
         push @no_sys_locs, 'ALL';

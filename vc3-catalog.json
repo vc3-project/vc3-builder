@@ -326,25 +326,32 @@
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                        "[ -d certify ] || git clone https://github.com/vc3-project/certify.git",
-                        "cd certify/misc/ssca",
+                        "[ -d credible ] || git clone https://github.com/vc3-project/credible.git",
+                        "cd ${HOME}/git/credible",
+                        "python setup.py install --home=${VC3_SERVICES_HOME}",
+                        "credroot=${HOME}/var/credible/ssca/defaultca/intermediate",
+                        "srvroot=${HOME}/vc3-services/etc/certs",
                         "missing=0",
-                        "[ -f intermediate/certs/localhost.cert.pem ]            || missing=1",
-                        "[ -f intermediate/certs/VC3Admin.cert.pem ]             || missing=1",
-                        "[ -f intermediate/certs/ca-chain.cert.pem ]             || missing=1",
-                        "[ -f intermediate/certs/private/localhost.keynopw.pem ] || missing=1",
-                        "[ -f intermediate/certs/private/VC3Admin.keynopw.pem ]  || missing=1",
-                        "[ \"$missing\" = 0 ] || ./ssca.sh createroot",
-                        "[ \"$missing\" = 0 ] || ./ssca.sh createintermediate",
-                        "[ \"$missing\" = 0 ] || ./ssca.sh certchain",
-                        "[ \"$missing\" = 0 ] || ./ssca.sh hostcert localhost",
-                        "[ \"$missing\" = 0 ] || ./ssca.sh usercert VC3Admin",
-                        "mkdir -p ${VC3_SERVICES_HOME}/etc/certs/private",
-                        "cp -f intermediate/certs/localhost.cert.pem ${VC3_SERVICES_HOME}/etc/certs/",
-                        "cp -f intermediate/certs/VC3Admin.cert.pem ${VC3_SERVICES_HOME}/etc/certs/",
-                        "cp -f intermediate/certs/ca-chain.cert.pem ${VC3_SERVICES_HOME}/etc/certs/",
-                        "cp -f intermediate/private/localhost.keynopw.pem ${VC3_SERVICES_HOME}/etc/certs/private/",
-                        "cp -f intermediate/private/VC3Admin.keynopw.pem ${VC3_SERVICES_HOME}/etc/certs/private/"
+                        "[ -f $svroot/localhost.cert.pem ]            || missing=1",
+                        "[ -f $svroot/ca-chain.cert.pem ]             || missing=1",
+                        "[ -f $svroot/certs/VC3Admin.cert.pem ]             || missing=1",
+                        "[ -f $svroot/private/localhost.keynopw.pem ] || missing=1",
+                        "[ -f $svroot/private/VC3Admin.keynopw.pem ]  || missing=1",
+                        "if [ \"$missing\" = 1 ]; then",
+                        "   exe=\"python ${HOME}/vc3-services/lib/python/credible/credible.py\"",
+                        "   $exe -c ${HOME}/git/credible/etc/credible.conf hostcert localhost",
+                        "   $exe -c ${HOME}/git/credible/etc/credible.conf certchain",
+                        "   $exe -c ${HOME}/git/credible/etc/credible.conf usercert VC3Admin",
+                        "   mkdir -p $srvroot/private",
+                        "   cp -f $credroot/certs/localhost.cert.pem $srvroot",
+                        "   cp -f $credroot/certs/ca-chain.cert.pem  $srvroot",
+                        "   cp -f $credroot/certs/VC3Admin.cert.pem  $srvroot",
+                        "   cp -f $credroot/private/localhost.keynopw.pem $srvroot/private",
+                        "   cp -f $credroot/private/VC3Admin.keynopw.pem $srvroot/private",
+                        "   ~/vc3-services/bin/credible ~/git/credible/etc/credible.conf -d hostcert localhost > /dev/null",
+                        "   ~/vc3-services/bin/credible ~/git/credible/etc/credible.conf -d usercert VC3Admin > /dev/null",
+
+                        "fi"
                     ]
                 }
             ],
@@ -391,8 +398,8 @@
                     "type":"generic",
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd $HOME/git",
-                        "[ -d pluginmanager ] || git clone https://github.com/vc3-project/pluginmanager.git",
-                        "cd ${HOME}/git/pluginmanager",
+                        "[ -d plugin-manager ] || git clone https://github.com/bnl-sdcc/plugin-manager.git",
+                        "cd ${HOME}/git/plugin-manager",
                         "python setup.py install --home=${VC3_SERVICES_HOME}"
                     ]
                 }
@@ -914,7 +921,8 @@
                         "openssl-1.0.2h.tar.gz"
                     ],
                     "recipe":[
-                        "./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
+                        ": ./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
+                        "./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic",
                         "make depend",
                         "make",
                         "make install"
@@ -957,9 +965,8 @@
                         "libssh2-1.8.0.tar.gz"
                     ],
                     "recipe":[
-                        "export CFLAGS=\"-fPIC -I${VC3_ROOT_OPENSSL}/include\"",
-                        "export LDFLAGS=\"-L${VC3_ROOT_OPENSSL}/lib\"",
-                        "./configure --prefix=${VC3_PREFIX} --enable-static=yes --enable-shared=yes",
+                        "export CFLAGS=-fPIC",
+                        "./configure --prefix=${VC3_PREFIX} --with-libssl-prefix=${VC3_ROOT_OPENSSL} --enable-static=yes --enable-shared=yes",
                         "make",
                         "make install"
                     ]
@@ -1640,11 +1647,9 @@
                         "setuptools-24.0.2.tar.gz"
                     ],
                     "recipe":[
-                        "dir=${VC3_PREFIX}/local_modules/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                        "dir=${VC3_MODULES_PYTHON}",
                         "mkdir -p $dir",
-                        "export PYTHONPATH=${dir}:${PYTHONPATH}",
-                        "echo $PYTHONPATH",
-                        "python setup.py install --prefix=${VC3_PREFIX}/local_modules/"
+                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
                     ]
                 }
             ],
@@ -1652,24 +1657,7 @@
                 "python":[
                     "v2.006"
                 ]
-            },
-            "environment_variables":[
-                {
-                    "name":"VC3_MODULES_PYTHON",
-                    "value":"local_modules",
-                    "clobber":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"${VC3_MODULES_PYTHON}/bin",
-                    "absolute":1
-                },
-                {
-                    "name":"PYTHONPATH",
-                    "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                    "absolute":1
-                }
-            ]
+            }
         }
     ],
 
@@ -1727,6 +1715,40 @@
         }
     ],
 
+    "python-cryptography":[
+        {
+            "version":"v1.008.001",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "cryptography-1.8.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python":[
+                    "v2.006"
+                ],
+                "python-setuptools":[
+                    "v24.000.000"
+                ],
+                "libffi":[
+                    "v3.002.001"
+                ],
+                "openssl":[
+                    "v1.000.000"
+                ],
+                "python-setuptools":[
+                    "v24.000.000"
+                ]
+            }
+        }
+    ],
+
     "python-cherrypy":[
         {
             "version":"v3.002.002",
@@ -1744,6 +1766,31 @@
             "dependencies":{
                 "python":[
                     "v2.006"
+                ],
+                "python-pyOpenSSL":[
+                    "v17.000.000"
+                ]
+            }
+        }
+    ],
+
+    "python-pyOpenSSL":[
+        {
+            "version":"v17.000.000",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "pyOpenSSL-17.0.0.tar.gz"
+                    ],
+                    "recipe":[
+                        "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "python-cryptography":[
+                    "v1.008.000"
                 ]
             }
         }
@@ -1832,6 +1879,22 @@
                 {
                     "name":"PYTHONPATH",
                     "value":"lib/python${VC3_VERSION_PYTHON}/site-packages"
+                },
+                {
+                    "name":"VC3_MODULES_PYTHON",
+                    "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_MODULES_PYTHON}/bin",
+                    "absolute":1
+                },
+                {
+                    "name":"PYTHONPATH",
+                    "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                    "absolute":1
                 }
             ]
         }

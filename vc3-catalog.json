@@ -275,6 +275,10 @@
                 {
                     "type":"generic",
                     "recipe":[
+                        "if vc3-info-client --get 'hello-server'; then",
+                        "   echo 'Server already installed and running'",
+                        "   exit 0",
+                        "fi",
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d vc3-info-service ] || git clone https://github.com/vc3-project/vc3-info-service.git",
                         "cd vc3-info-service",

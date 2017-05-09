@@ -886,9 +886,11 @@ sub set_environment_variables {
     }
 
     $expansion->{'PATH'} ||= [];
+    $expansion->{'LD_LIBRARY_PATH'} ||= [];
 
     # use default PATH:
     push @{$expansion->{'PATH'}}, $ENV{'PATH'} || '/bin:/usr/bin';
+    push @{$expansion->{'LD_LIBRARY_PATH'}}, $ENV{'LD_LIBRARY_PATH'} || '/lib:/usr/lib:/usr/local/lib';
 
     for my $var_name (keys %{$expansion}) {
         eval { $expansion->{$var_name} = join(':', @{$expansion->{$var_name}}) };

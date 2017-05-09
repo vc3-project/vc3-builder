@@ -85,6 +85,10 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --dot <file>          Write a dependency graph of the requirements to <file>.
 
   --parallel <dir>      Write specifications for a parallel build to <dir>.
+                        (Implies --prestage.)
+
+  --prestage            Download all files to --distfiles <dir> before
+                        processing.
 
   Developers options:
   --debug               On a builder error, print the full back-trace. 
@@ -132,6 +136,7 @@ sub main {
     my $interactive_run    = 0;
     my $silent             = 0;
     my $force_rebuild      = 0;
+    my $prestage           = 0;
 
     my $ignore_locks       = 0;
 
@@ -179,6 +184,7 @@ sub main {
 
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
+        "prestage" => \$prestage,
 
         "interactive" => \$interactive_run,
 
@@ -258,6 +264,12 @@ sub main {
 
         $bag->set_plan_for('cctools-statics');
         $ignore_locks = 1;
+    }
+
+    $bag->check_manual_requirements();
+
+    if($prestage) {
+        $bag->plan->prestage();
     }
 
     $bag->execute_plan($sh_on_error, $force_rebuild, $ignore_locks);
@@ -621,8 +633,6 @@ sub set_plan_for {
 sub execute_plan {
     my ($self, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
 
-    $self->check_manual_requirements();
-
     for my $w (@{$self->{order}}) {
         $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
         $self->activate_widget($w);
@@ -854,6 +864,9 @@ EOFF
     chmod 0755, "$abs_dir/$builder_name";
 
     $self->plan->to_makeflow($abs_dir, $dag_name, $builder_name, $local_database);
+
+    $self->check_manual_requirements();
+    $self->plan->prestage();
 }
 
 sub set_environment_variables {
@@ -2656,6 +2669,15 @@ sub to_makeflow {
     }
 
     close $mflow_f;
+}
+
+sub prestage {
+    my ($self) = @_;
+
+    for my $e (values %{$self->elements}) {
+        my $s = $e->widget->active_source;
+        $s->get_files();
+    }
 }
 
 sub to_file {

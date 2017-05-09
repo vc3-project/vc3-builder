@@ -8214,6 +8214,8 @@ sub set_builder_variables {
     File::Path::make_path($self->root_dir);
     File::Path::make_path($vc3_distfiles);
     File::Path::make_path(File::Spec->join($vc3_distfiles, 'manual-distribution'));
+    File::Path::make_path(File::Spec->join($vc3_distfiles, 'perl'));
+    File::Path::make_path(File::Spec->join($vc3_distfiles, 'python'));
     File::Path::make_path($self->home_dir);
     File::Path::make_path($self->tmp_dir);
 
@@ -9484,6 +9486,9 @@ sub new {
     elsif($source_raw->{type} eq 'system') {
         $source = VC3::Source::System->new($widget, $source_raw);
     }
+    elsif($source_raw->{type} eq 'cpan') {
+        $source = VC3::Source::Perl->new($widget, $source_raw);
+    }
     else {
         croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
     }
@@ -9493,6 +9498,7 @@ sub new {
 
 package VC3::Source::Generic;
 use Carp;
+use File::Basename;
 use File::Copy;
 use File::Path;
 use File::Spec;
@@ -9729,7 +9735,7 @@ sub prepare_files {
     my ($self, $build_dir) = @_;
 
     for my $file (@{$self->files}) {
-        symlink($self->file_absolute($file), $build_dir . '/' . $file)
+        symlink($self->file_absolute($file), $build_dir . '/' . basename($file))
         || die "Could not link '" . $file . "' to build directory.\n";
     }
 }
@@ -9955,8 +9961,54 @@ sub execute_recipe_unlocked {
 package VC3::Source::Binary;
 use base 'VC3::Source::Generic';
 use Carp;
-
 # Right now, do the same as generic.
+
+
+package VC3::Source::Perl;
+use base 'VC3::Source::Generic';
+use Carp;
+
+sub new {
+    my ($class, $widget, $json_description) = @_;
+
+    unless($json_description->{recipe}) {
+        my @steps;
+        push @steps, "cpanm --notest --mirror $vc3_distfiles/perl -L foo --mirror-only " . $json_description->{files}->[0];
+        #push @steps, "cpanm --notest --mirror $vc3_distfiles/perl -L foo " . $json_description->{files}->[0];
+        $json_description->{recipe} = \@steps;
+    }
+
+    my $self = VC3::Source::Generic->new($widget, $json_description);
+
+    unless($self->files) {
+        croak "For type 'perl', at least one file should be defined in the files list.";
+    }
+
+    unless($self->dependencies) {
+        $self->dependencies({});
+    }
+
+    $self->{dependencies}{'perl-cpanminus'} ||= [];
+
+
+    $self = bless $self, $class;
+
+    return $self;
+}
+
+sub prepare_files  {
+    my ($self, $build_dir) = @_;
+
+    # do nothing
+    return;
+}
+
+sub get_file {
+    my ($self) = @_;
+
+    # do nothing
+    return;
+}
 
 package VC3::Plan;
 use JSON::Tiny;
@@ -12116,6 +12168,11 @@ __DATA__
                     ]
                 }
             ],
+            "dependencies":{
+                "perl-vc3-modules":[
+                    "v0.001.000"
+                ]
+            },
             "environment_variables":[
                 {
                     "name":"PATH",
@@ -12152,6 +12209,25 @@ __DATA__
                     "name":"PATH",
                     "value":"${VC3_MODULES_PERL}/bin",
                     "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "perl-vc3-modules":[
+        {
+            "version":"v000.001.000",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "perl-vc3-modules-001.tar"
+                    ],
+                    "recipe":[
+                        ": cpanm --force -L none --save-dists /path/ --scandeps PACKAGE", 
+                        ": orepan2-indexer /path/",
+                        "tar -C ${VC3_DISTFILES} -xf perl-vc3-modules-001.tar"
+                    ]
                 }
             ]
         }
@@ -12777,17 +12853,12 @@ __DATA__
             "version":"v3.000",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest Text::Soundex"
+                    "type":"cpan",
+                    "files":[
+                        "Text::Soundex"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -12796,19 +12867,13 @@ __DATA__
             "version":"v1.006",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest CJFIELDS/BioPerl-1.6.924.tar.gz"
+                    "type":"cpan",
+                    "files":[
+                        "CJFIELDS/BioPerl-1.6.924.tar.gz"
                     ]
                 }
             ],
             "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ],
-                "perl-module-build":[
-                    "v0.042"
-                ],
                 "berkeley-db":[
                     "v6.000"
                 ],
@@ -12851,17 +12916,12 @@ __DATA__
             "version":"v1.006",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest DBI"
+                    "type":"cpan",
+                    "files":[
+                        "DBI"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -12870,17 +12930,12 @@ __DATA__
             "version":"v1.002",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest File::Which"
+                    "type":"cpan",
+                    "files":[
+                        "File::Which"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -12889,17 +12944,12 @@ __DATA__
             "version":"v0.003",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest Perl::Unsafe::Signals"
+                    "type":"cpan",
+                    "files":[
+                        "Perl::Unsafe::Signals"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -12908,36 +12958,12 @@ __DATA__
             "version":"v7.004",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest Bit::Vector"
+                    "type":"cpan",
+                    "files":[
+                        "STBEY/Bit-Vector-7.4.tar.gz"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
-        }
-    ],
-
-    "perl-module-build":[
-        {
-            "version":"v0.4218",
-            "sources":[
-                {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest Module::Build"
-                    ]
-                }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -12946,17 +12972,12 @@ __DATA__
             "version":"v0.008",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest Inline"
+                    "type":"cpan",
+                    "files":[
+                        "Inline"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -12965,17 +12986,12 @@ __DATA__
             "version":"v0.076",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest Inline::C"
+                    "type":"cpan",
+                    "files":[
+                        "Inline::C"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -12984,36 +13000,12 @@ __DATA__
             "version":"v0.036",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest forks"
+                    "type":"cpan",
+                    "files":[
+                        "forks"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
-        }
-    ],
-
-    "perl-forks-shared":[
-        {
-            "version":"v0.036",
-            "sources":[
-                {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest forks"
-                    ]
-                }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -13022,36 +13014,12 @@ __DATA__
             "version":"v0.086",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest IO::All"
+                    "type":"cpan",
+                    "files":[
+                        "IO::All"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
-        }
-    ],
-
-    "perl-io-prompt":[
-        {
-            "version":"v0.997",
-            "sources":[
-                {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest IO::All"
-                    ]
-                }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -13060,17 +13028,12 @@ __DATA__
             "version":"v1.005",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest DBD::SQLite"
+                    "type":"cpan",
+                    "files":[
+                        "DBD::SQLite"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -13079,17 +13042,12 @@ __DATA__
             "version":"v0.029",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest Want"
+                    "type":"cpan",
+                    "files":[
+                        "Want"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -13098,17 +13056,12 @@ __DATA__
             "version":"v6.015",
             "sources":[
                 {
-                    "type":"generic",
-                    "recipe":[
-                        "cpanm --notest LWP::Simple"
+                    "type":"cpan",
+                    "files":[
+                        "LWP::Simple"
                     ]
                 }
-            ],
-            "dependencies":{
-                "perl-cpanminus":[
-                    "v1.007"
-                ]
-            }
+            ]
         }
     ],
 
@@ -13723,14 +13676,8 @@ __DATA__
                 "perl-forks":[
                     "v0.036"
                 ],
-                "perl-forks-shared":[
-                    "v0.036"
-                ],
                 "perl-io-all":[
                     "v0.086"
-                ],
-                "perl-io-prompt":[
-                    "v0.997"
                 ]
             },
             "environment_variables":[

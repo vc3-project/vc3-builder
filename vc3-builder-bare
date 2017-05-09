@@ -435,6 +435,8 @@ sub set_builder_variables {
     File::Path::make_path($self->root_dir);
     File::Path::make_path($vc3_distfiles);
     File::Path::make_path(File::Spec->join($vc3_distfiles, 'manual-distribution'));
+    File::Path::make_path(File::Spec->join($vc3_distfiles, 'perl'));
+    File::Path::make_path(File::Spec->join($vc3_distfiles, 'python'));
     File::Path::make_path($self->home_dir);
     File::Path::make_path($self->tmp_dir);
 
@@ -1705,6 +1707,9 @@ sub new {
     elsif($source_raw->{type} eq 'system') {
         $source = VC3::Source::System->new($widget, $source_raw);
     }
+    elsif($source_raw->{type} eq 'cpan') {
+        $source = VC3::Source::Perl->new($widget, $source_raw);
+    }
     else {
         croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
     }
@@ -1714,6 +1719,7 @@ sub new {
 
 package VC3::Source::Generic;
 use Carp;
+use File::Basename;
 use File::Copy;
 use File::Path;
 use File::Spec;
@@ -1950,7 +1956,7 @@ sub prepare_files {
     my ($self, $build_dir) = @_;
 
     for my $file (@{$self->files}) {
-        symlink($self->file_absolute($file), $build_dir . '/' . $file)
+        symlink($self->file_absolute($file), $build_dir . '/' . basename($file))
         || die "Could not link '" . $file . "' to build directory.\n";
     }
 }
@@ -2176,8 +2182,54 @@ sub execute_recipe_unlocked {
 package VC3::Source::Binary;
 use base 'VC3::Source::Generic';
 use Carp;
-
 # Right now, do the same as generic.
+
+
+package VC3::Source::Perl;
+use base 'VC3::Source::Generic';
+use Carp;
+
+sub new {
+    my ($class, $widget, $json_description) = @_;
+
+    unless($json_description->{recipe}) {
+        my @steps;
+        push @steps, "cpanm --notest --mirror $vc3_distfiles/perl -L foo --mirror-only " . $json_description->{files}->[0];
+        #push @steps, "cpanm --notest --mirror $vc3_distfiles/perl -L foo " . $json_description->{files}->[0];
+        $json_description->{recipe} = \@steps;
+    }
+
+    my $self = VC3::Source::Generic->new($widget, $json_description);
+
+    unless($self->files) {
+        croak "For type 'perl', at least one file should be defined in the files list.";
+    }
+
+    unless($self->dependencies) {
+        $self->dependencies({});
+    }
+
+    $self->{dependencies}{'perl-cpanminus'} ||= [];
+
+
+    $self = bless $self, $class;
+
+    return $self;
+}
+
+sub prepare_files  {
+    my ($self, $build_dir) = @_;
+
+    # do nothing
+    return;
+}
+
+sub get_file {
+    my ($self) = @_;
+
+    # do nothing
+    return;
+}
 
 package VC3::Plan;
 use JSON::Tiny;

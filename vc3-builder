@@ -13813,7 +13813,7 @@ __DATA__
                     "recipe":[
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf NAMD_Source.tar.gz",
                         "cd ${VC3_PREFIX}",
-                        "./config Linux-x86_64-g++ --charm-arch mpi-linux-x86_64 --charm-base ${VC3_ROOT_CHARM} --tcl-prefix ${VC3_ROOT_TCL} --fftw-prefix ${VC3_ROOT_FFTW}",
+                        "./config Linux-x86_64-g++ --charm-arch mpi-linux-x86_64 --charm-base ${VC3_ROOT_CHARM} --tcl-prefix ${VC3_ROOT_TCL} --fftw-prefix ${VC3_ROOT_FFTW} --python-prefix ${VC3_ROOT_PYTHON}",
                         "cd Linux-x86_64-g++",
                         "make"
                     ]
@@ -13831,6 +13831,9 @@ __DATA__
                 ],
                 "tcl":[
                     "v8.005.009"
+                ],
+                "python":[
+                    "v2.006.000"
                 ]
             },
             "environment_variables":

@@ -8057,6 +8057,7 @@ sub main {
 
         $bag->set_plan_for('cctools-statics');
         $ignore_locks = 1;
+        $prestage     = 1;
     }
 
     $bag->check_manual_requirements();
@@ -10471,6 +10472,8 @@ sub prestage {
 
     for my $e (values %{$self->elements}) {
         my $s = $e->widget->active_source;
+        next unless $s;
+
         $s->get_files();
     }
 }
@@ -13783,6 +13786,177 @@ __DATA__
                     "v2.031"
                 ]
             }
+        }
+    ], 
+
+    "namd":[
+        {
+            "version":"v2.012.000",
+            "sources":[
+                {
+                    "type":"manual-distribution",
+                    "msg_manual_requirement":[
+"NAMD has a restrictive distribution license, and has to",
+"be downloaded manually. Please follow these steps:",
+"    1) On http://www.ks.uiuc.edu/Research, click on 'Sofware/NAMD/Download'.",
+"    3) Click 'Source code' on the most recent stable release.",
+"    2) Register for a free account.",
+"    3) Download the most recent stable release.",
+"    4) Copy the file into",
+"${VC3_DISTFILES}/manual-distribution/NAMD_Source.tar.gz.",
+"    For example:",
+"cp ~/Downloads/NAMD_2.12_Source.tar.gz ${VC3_DISTFILES}/manual-distribution/NAMD_Source.tar.gz",
+"    5) Try again '${VC3_COMMAND_LINE}'."],
+                    "files":[
+                        "NAMD_Source.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf NAMD_Source.tar.gz",
+                        "cd ${VC3_PREFIX}",
+                        "./config Linux-x86_64-g++ --charm-arch mpi-linux-x86_64 --charm-base ${VC3_ROOT_CHARM} --tcl-prefix ${VC3_ROOT_TCL} --fftw-prefix ${VC3_ROOT_FFTW}",
+                        "cd Linux-x86_64-g++",
+                        "make"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "openmpi":[
+                    "v1.010"
+                ],
+                "charm":[
+                    "v6.007.001"
+                ],
+                "fftw":[
+                    "v3.003.006"
+                ],
+                "tcl":[
+                    "v8.005.009"
+                ]
+            },
+            "environment_variables":
+            [
+                {
+                    "name":"PATH",
+                    "value":"${VC3_ROOT_NAMD}/Linux-x86_64-g++",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+    "charm":[
+        {
+            "version":"v6.007.01",
+            "sources":[
+                {
+                    "type":"generic",
+                    "files":[
+                        "charm-6.7.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf charm-6.7.1.tar.gz",
+                        "cd ${VC3_PREFIX}",
+                        "env MPICXX=mpicxx ./build charm++ mpi-linux-x86_64 --with-production"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "openmpi":[
+                    "v1.010"
+                ]
+            },
+            "environment_variables":[
+                {
+                    "name":"CHARM_BASE",
+                    "value":"$VC3_ROOT_CHARM/mpi-linux-x86_64",
+                    "absolute":1,
+                    "clobber":1
+                },
+                {
+                    "name":"PATH",
+                    "value":"${VC3_ROOT_CHARM}/mpi-linux-x86_64/bin",
+                    "absolute":1
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"${VC3_ROOT_CHARM}/mpi-linux-x86_64/lib",
+                    "absolute":1
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"${VC3_ROOT_CHARM}/mpi-linux-x86_64/include",
+                    "absolute":1
+                }
+            ]
+        }
+    ],
+
+
+    "tcl":[
+        {
+            "version":"v8.005.09",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "tcl8.5.9-src.tar.gz"
+                    ],
+                    "recipe":[
+                        "cd unix",
+                        "./configure --prefix ${VC3_PREFIX} --enable-threads --enable-64bit",
+                        "make",
+                        "make install"
+                    ]
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                }
+            ]
+        }
+    ],
+
+    "fftw":[
+        {
+            "version":"v3.003.006",
+            "sources":[
+                {
+                    "type":"tarball",
+                    "files":[
+                        "fftw-3.3.6-pl2.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix ${VC3_PREFIX} --enable-openmp --enable-mpi --enable-shared --enable-float",
+                        "make",
+                        "make install"
+                    ],
+                    "dependencies":{
+                        "openmpi":[
+                            "v1.010"
+                        ]
+                    }
+                }
+            ],
+            "environment_variables":[
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                }
+            ]
         }
     ]
 }

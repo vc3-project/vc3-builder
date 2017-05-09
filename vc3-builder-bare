@@ -278,6 +278,7 @@ sub main {
 
         $bag->set_plan_for('cctools-statics');
         $ignore_locks = 1;
+        $prestage     = 1;
     }
 
     $bag->check_manual_requirements();
@@ -2692,6 +2693,8 @@ sub prestage {
 
     for my $e (values %{$self->elements}) {
         my $s = $e->widget->active_source;
+        next unless $s;
+
         $s->get_files();
     }
 }

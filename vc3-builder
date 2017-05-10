@@ -10366,6 +10366,19 @@ sub dot_graph {
 
     print { $dot_f } "digraph {\n";
 
+    print { $dot_f } "node [shape=record];\n";
+
+    for my $name (@names) {
+        my $e = $self->elements->{$name};
+        my $w = $e->{widget};
+        my $v = $w->version->normal;
+
+        my $n = $name;
+        $n =~ s/[^A-z0-9]//g;
+
+        print { $dot_f } qq($n [label="$name&#92;n$v"];\n);
+    }
+
     for my $name (@names) {
         my @deps;
 
@@ -10380,12 +10393,16 @@ sub dot_graph {
             push @deps, keys %{$w->active_source->dependencies};
         }
 
+        my $n = $name;
+        $n =~ s/[^A-z0-9]//g;
+
         if(@deps) {
             for my $dep (@deps) {
-                print { $dot_f } qq(\t"$dep"->"$name";\n);
+                my $d = $dep;
+                $d =~ s/[^A-z0-9]//g;
+
+                print { $dot_f } qq(\t"$d"->"$n";\n);
             }
-        } else {
-            print { $dot_f } qq(\t"$name";\n);
         }
     }
 
@@ -13973,7 +13990,7 @@ __DATA__
                         "octave-4.2.1.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --disable-java --with-qhull-includedir=${VC3_ROOT_QHULL}/include --with-qhull-libdir=${VC3_ROOT_QHULL}/lib --with-z-includedir=${VC3_ROOT_ZLIB}/include --with-z-libdir={VC3_ROOT_ZLIB}/lib  --with-hdf5-includedir=${VC3_ROOT_HDF5}/include --with-hdf5-libdir=${VC3_ROOT_HDF5}/lib --with-fftw3-includedir=${VC3_ROOT_FFTW}/include --with-fftw3-libdir=${VC3_ROOT_FFTW}/lib --with-fftw3f-includedir=${VC3_ROOT_FFTW}/include --with-fftw3f-libdir=${VC3_ROOT_FFTW}/lib --with-glpk-includedir=${VC3_ROOT_GLPK}/include --with-glpk-libdir=${VC3_ROOT_GLPK}/lib --with-curl-includedir=${VC3_ROOT_CURL}/include --with-curl-libdir=${VC3_ROOT_CURL}/lib --with-magick=${VC3_ROOT_GRAPHICSMAGICK}/lib/... --without-x --without-opengl --without-qt --without-fltk --with-blas=${VC3_ROOT_OPENBLASS}/lib/libopenblas.so --with-lapack=${VC3_ROOT_LAPACK}/lib64/liblapack.so --with-qrupdate-includedir=${VC3_ROOT_QRUPDATE}/include --with-qrupdate-libdir=${VC3_ROOT_QRUPDATE}/lib --with-arpack-includedir=${VC3_ROOT_ARPACK}/includedir --with-arpack-libdir=${VC3_ROOT_ARPACK}/lib --with-openssl",
+                        "./configure --prefix ${VC3_PREFIX} --disable-java --with-qhull-includedir=${VC3_ROOT_QHULL}/include --with-qhull-libdir=${VC3_ROOT_QHULL}/lib --with-z-includedir=${VC3_ROOT_ZLIB}/include --with-z-libdir={VC3_ROOT_ZLIB}/lib  --with-hdf5-includedir=${VC3_ROOT_HDF5}/include --with-hdf5-libdir=${VC3_ROOT_HDF5}/lib --with-fftw3-includedir=${VC3_ROOT_FFTW}/include --with-fftw3-libdir=${VC3_ROOT_FFTW}/lib --with-fftw3f-includedir=${VC3_ROOT_FFTW}/include --with-fftw3f-libdir=${VC3_ROOT_FFTW}/lib --with-glpk-includedir=${VC3_ROOT_GLPK}/include --with-glpk-libdir=${VC3_ROOT_GLPK}/lib --with-curl-includedir=${VC3_ROOT_CURL}/include --with-curl-libdir=${VC3_ROOT_CURL}/lib --with-magick=${VC3_ROOT_GRAPHICSMAGICK}/lib/... --without-x --without-opengl --without-qt --without-fltk --with-blas=${VC3_ROOT_LAPACK}/lib64/libblas.so --with-lapack=${VC3_ROOT_LAPACK}/lib64/liblapack.so --with-qrupdate-includedir=${VC3_ROOT_QRUPDATE}/include --with-qrupdate-libdir=${VC3_ROOT_QRUPDATE}/lib --with-arpack-includedir=${VC3_ROOT_ARPACK}/includedir --with-arpack-libdir=${VC3_ROOT_ARPACK}/lib --with-openssl",
                         "make",
                         "make install"
                     ]
@@ -14256,6 +14273,7 @@ __DATA__
                         "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DCMAKE_BUILD_TYPE=RELEASE ..",
                         "make",
                         "make install",
+                        "cd ..",
                         "mkdir build-shared",
                         "cd build-shared",
                         "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON ..",

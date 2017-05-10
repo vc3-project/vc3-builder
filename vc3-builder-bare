@@ -2587,6 +2587,19 @@ sub dot_graph {
 
     print { $dot_f } "digraph {\n";
 
+    print { $dot_f } "node [shape=record];\n";
+
+    for my $name (@names) {
+        my $e = $self->elements->{$name};
+        my $w = $e->{widget};
+        my $v = $w->version->normal;
+
+        my $n = $name;
+        $n =~ s/[^A-z0-9]//g;
+
+        print { $dot_f } qq($n [label="$name&#92;n$v"];\n);
+    }
+
     for my $name (@names) {
         my @deps;
 
@@ -2601,12 +2614,16 @@ sub dot_graph {
             push @deps, keys %{$w->active_source->dependencies};
         }
 
+        my $n = $name;
+        $n =~ s/[^A-z0-9]//g;
+
         if(@deps) {
             for my $dep (@deps) {
-                print { $dot_f } qq(\t"$dep"->"$name";\n);
+                my $d = $dep;
+                $d =~ s/[^A-z0-9]//g;
+
+                print { $dot_f } qq(\t"$d"->"$n";\n);
             }
-        } else {
-            print { $dot_f } qq(\t"$name";\n);
         }
     }
 

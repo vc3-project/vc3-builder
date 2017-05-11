@@ -3360,9 +3360,6 @@
                 "curl":[
                     "v7.053"
                 ],
-                "openblas":[
-                    "v0.002"
-                ],
                 "lapack":[
                     "v3.007"
                 ],
@@ -3404,7 +3401,7 @@
                         "qrupdate-1.1.2.tar.gz"
                     ],
                     "recipe":[
-                        "sed -i Makeconf -e 's:^BLAS=-lblas.*:BLAS=-L${VC3_ROOT_OPENBLAS}/lib -lopenblas:'",
+                        "sed -i Makeconf -e 's:^BLAS=-lblas.*:BLAS=-L${VC3_ROOT_LAPACK}/lib -lblas:'",
                         "sed -i Makeconf -e 's:^LAPACK=-llapack.*:LAPACK=-L${VC3_ROOT_LAPACK}/lib64 -llapack:'",
                         "export CFLAGS=-fPIC",
                         "export FCFLAGS=-fPIC",
@@ -3414,9 +3411,6 @@
                 }
             ],
             "dependencies":{
-                "openblas":[
-                    "v0.002"
-                ],
                 "lapack":[
                     "v3.007"
                 ]
@@ -3585,9 +3579,6 @@
                         ],
                         "openmpi":[
                             "v1.010"
-                        ],
-                        "openblas":[
-                            "v0.002.019"
                         ],
                         "lapack":[
                             "v3.007.000"

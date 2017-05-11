@@ -545,12 +545,21 @@
             "version":"v6.000.016",
             "versioncmd":"parrot_run --version",
             "versionreg":"^parrot_run version ([0-9.]*)",
+            "phony":1,
             "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
-            "dependencies":{
-                "cctools":[
-                    "v6.000.016"
-                ]
-            }
+            "sources":[
+                {
+                    "type":"generic",
+                    "recipe":[
+                        "parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -M /hello-parrot=/bin -- /bin/ls /hello-parrot"
+                    ],
+                    "dependencies":{
+                        "cctools":[
+                            "v6.000.016"
+                        ]
+                    }
+                }
+            ]
         }
     ],
 

@@ -2698,6 +2698,13 @@ sub to_makeflow {
         $output =~ s/^\Q$target/\$(TRGT_DIR)/;
 
         print { $mflow_f } "$output: $builder_exec $local_database @inputs\n";
+
+        print { $mflow_f } "\t";
+
+        if($w->phony || ($w->active_source && $w->active_source->phony)) {
+            print { $mflow_f } "LOCAL "
+        }
+
         print { $mflow_f } "\t\$(BUILD_COMMAND) --require $name\n\n";
     }
 

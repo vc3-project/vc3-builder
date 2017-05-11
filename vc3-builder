@@ -10003,8 +10003,7 @@ sub new {
 
     unless($json_description->{recipe}) {
         my @steps;
-        push @steps, "cpanm --notest --mirror $vc3_distfiles/perl --mirror-only " . $json_description->{files}->[0];
-        #push @steps, "cpanm --notest --mirror $vc3_distfiles/perl -L foo " . $json_description->{files}->[0];
+        push @steps, "cpanm --notest --mirror \${VC3_MODULES_PERL_LOCAL_CPAN}/perl --mirror-only " . $json_description->{files}->[0];
         $json_description->{recipe} = \@steps;
     }
 
@@ -12237,12 +12236,6 @@ __DATA__
                     "value":"bin"
                 },
                 {
-                    "name":"VC3_MODULES_PERL", 
-                    "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
-                    "clobber":1,
-                    "absolute":1
-                },
-                {
                     "name":"PERL5LIB",
                     "value":"${VC3_MODULES_PERL}/lib/perl5",
                     "absolute":1
@@ -12284,9 +12277,24 @@ __DATA__
                     "recipe":[
                         ": cpanm --force -L none --save-dists /path/ --scandeps PACKAGE", 
                         ": orepan2-indexer /path/",
-                        "tar -C ${VC3_DISTFILES} -xf perl-vc3-modules-001.tar"
+                        "local_cpan=${VC3_ROOT}/${VC3_MACHINE_TARGET}/local_cpan",
+                        "tar -C local_cpan -xf perl-vc3-modules-001.tar"
                     ]
                 }
+            ],
+            "environment_variables":[
+            {
+                "name":"VC3_MODULES_PERL", 
+                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
+                "clobber":1,
+                "absolute":1
+            },
+            {
+                "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
+                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/local_cpan",
+                "clobber":1,
+                "absolute":1
+            }
             ]
         }
     ],

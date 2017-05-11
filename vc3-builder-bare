@@ -2224,8 +2224,7 @@ sub new {
 
     unless($json_description->{recipe}) {
         my @steps;
-        push @steps, "cpanm --notest --mirror $vc3_distfiles/perl --mirror-only " . $json_description->{files}->[0];
-        #push @steps, "cpanm --notest --mirror $vc3_distfiles/perl -L foo " . $json_description->{files}->[0];
+        push @steps, "cpanm --notest --mirror \${VC3_MODULES_PERL_LOCAL_CPAN}/perl --mirror-only " . $json_description->{files}->[0];
         $json_description->{recipe} = \@steps;
     }
 

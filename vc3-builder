@@ -8052,7 +8052,7 @@ sub main {
     }
 
     if(defined $parallel_dir) {
-        $bag->to_parallel($parallel_dir);
+        $bag->to_parallel($parallel_dir, $make_jobs);
         $bag->check_manual_requirements();
 
         $bag->set_plan_for('cctools-statics');
@@ -8621,7 +8621,7 @@ sub dot_graph {
 }
 
 sub to_parallel {
-    my ($self, $dir) = @_;
+    my ($self, $dir, $make_jobs) = @_;
 
     my $abs_dir;
     if(File::Spec->file_name_is_absolute($dir)) {
@@ -8657,7 +8657,7 @@ EOFF
     copy($self->builder_path, "$abs_dir/$builder_name");
     chmod 0755, "$abs_dir/$builder_name";
 
-    $self->plan->to_makeflow($abs_dir, $dag_name, $builder_name, $local_database);
+    $self->plan->to_makeflow($abs_dir, $dag_name, $builder_name, $local_database, $make_jobs);
 
     $self->check_manual_requirements();
     $self->plan->prestage();
@@ -10410,7 +10410,7 @@ sub dot_graph {
 }
 
 sub to_makeflow {
-    my ($self, $dir, $dag_name, $builder_exec, $local_database) = @_;
+    my ($self, $dir, $dag_name, $builder_exec, $local_database, $cores) = @_;
 
     $self->to_file("$dir/$local_database");
 
@@ -10420,8 +10420,8 @@ sub to_makeflow {
     || die "Could not open '$dir/$makeflow_name': $!";
 
     print { $mflow_f } ".MAKEFLOW CATEGORY builds\n";
-    print { $mflow_f } ".MAKEFLOW CORES    4\n";
-    print { $mflow_f } ".MAKEFLOW MEMORY   2048\n";     #  2 GB of RAM
+    print { $mflow_f } ".MAKEFLOW CORES    $cores\n";
+    print { $mflow_f } ".MAKEFLOW MEMORY   @{[$cores * 512]}\n";
     print { $mflow_f } ".MAKEFLOW DISK     20000\n";    # 20 GB of disk
     print { $mflow_f } "\n\n";
 

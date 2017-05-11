@@ -12277,8 +12277,9 @@ __DATA__
                     "recipe":[
                         ": cpanm --force -L none --save-dists /path/ --scandeps PACKAGE", 
                         ": orepan2-indexer /path/",
-                        "local_cpan=${VC3_ROOT}/${VC3_MACHINE_TARGET}/local_cpan",
-                        "tar -C local_cpan -xf perl-vc3-modules-001.tar"
+                        "local_cpan=${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules/local_cpan",
+                        "mkdir -p ${local_cpan}",
+                        "tar -C ${local_cpan} -xf perl-vc3-modules-001.tar"
                     ]
                 }
             ],
@@ -12291,7 +12292,7 @@ __DATA__
             },
             {
                 "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
-                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/local_cpan",
+                "value":"${VC3_MODULES_PERL}/local_cpan",
                 "clobber":1,
                 "absolute":1
             }

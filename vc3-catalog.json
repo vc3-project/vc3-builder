@@ -2,7 +2,6 @@
     "vc3-wq-factory":[
         {
             "version":"v0.000.001",
-            "phony":1,
             "dependencies":{
                 "cctools-statics":[
                     "v0.000.001"
@@ -14,8 +13,6 @@
         },
         {
             "version":"v0.000.001",
-            "phony":1,
-            "version":"v6.000.016",
             "dependencies":{
                 "cctools":[
                     "v6.000.016"
@@ -34,6 +31,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
@@ -78,7 +76,6 @@
     "vc3-services":[
         {
             "version":"v0.000.001",
-            "phony":1,
             "dependencies":{
                 "vc3-builder":[
                     "v0.000.001"
@@ -111,7 +108,6 @@
     "vc3-services-common-requirements":[
         {
             "version":"v0.000.001",
-            "phony":1,
             "dependencies":{
                 "python":[
                     "v2.007.012"
@@ -162,6 +158,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_SERVICES_HOME}/bin",
                         "name=$(basename $VC3_BUILDER_PATH)",
@@ -184,6 +181,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d vc3-master ] || git clone https://github.com/vc3-project/vc3-master.git",
@@ -208,6 +206,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d vc3-core ] || git clone https://github.com/vc3-project/vc3-core.git",
@@ -234,7 +233,6 @@
     "vc3-test-service":[
         {
             "version":"v0.001",
-            "phony":1,
             "dependencies":{
                 "vc3-wrappers":[
                     "v0.000.001"
@@ -250,6 +248,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d vc3-wrappers ] || git clone https://github.com/vc3-project/vc3-wrappers.git",
@@ -274,6 +273,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "if vc3-info-client --get 'hello-server'; then",
                         "   echo 'Server already installed and running'",
@@ -333,6 +333,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d credible ] || git clone https://github.com/vc3-project/credible.git",
@@ -406,6 +407,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd $HOME/git",
                         "[ -d plugin-manager ] || git clone https://github.com/bnl-sdcc/plugin-manager.git",
@@ -436,6 +438,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "files":[
                         "icecube-argonne-demo-01.tar.gz"
                     ],
@@ -466,7 +469,6 @@
     "icecube-environment":[
         {
             "version":"v1.000",
-            "phony":1,
             "prologue": [
                 "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"
             ],
@@ -487,6 +489,7 @@
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "files":[
                         "htcondor-glidein-wrapper"
                     ],
@@ -514,10 +517,10 @@
     "cvmfs":[
         {
             "version":"v2.000",
-            "phony":1,
             "sources":[
                 {
                     "type":"system",
+                    "local":1,
                     "prerequisites":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -527,6 +530,7 @@
                 },
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -543,23 +547,12 @@
     "parrot":[
         {
             "version":"v6.000.016",
-            "versioncmd":"parrot_run --version",
-            "versionreg":"^parrot_run version ([0-9.]*)",
-            "phony":1,
             "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
-            "sources":[
-                {
-                    "type":"generic",
-                    "recipe":[
-                        "parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -M /hello-parrot=/bin -- /bin/ls /hello-parrot"
-                    ],
-                    "dependencies":{
-                        "cctools":[
-                            "v6.000.016"
-                        ]
-                    }
-                }
-            ]
+            "dependencies":{
+                "cctools":[
+                    "v6.000.016"
+                ]
+            }
         }
     ],
 
@@ -588,6 +581,7 @@
             "sources":[
                 {
                     "type":"binary",
+                    "local":1,
                     "files":[
                         "cctools-statics-6.0.16-x86_64.tar.gz"
                     ],
@@ -612,8 +606,6 @@
     "cctools":[
         {
             "version":"v6.000.016",
-            "versioncmd":"parrot_run --version",
-            "versionreg":"^parrot_run version ([0-9.]*)",
             "sources":[
                 {
                     "type":"binary",
@@ -723,8 +715,6 @@
     "swig":[
         {
             "version":"v3.000.002",
-            "versioncmd":"swig -version",
-            "versionreg":"SWIG Version ([0-9.]*)",
             "sources":[
                 {
                     "type":"tarball",
@@ -822,8 +812,6 @@
     "cmake":[
         {
             "version":"v3.005.002",
-            "versioncmd":"cmake --version",
-            "versionreg":"cmake version ([0-9.]*)",
             "sources":[
                 {
                     "type":"tarball",

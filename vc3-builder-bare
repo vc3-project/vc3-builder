@@ -1180,6 +1180,16 @@ sub new {
 
     $self->add_widget_variable('VERSION', $majmin);
 
+    unless($self->sources) {
+        my $null_source = {};
+        $null_source->{type}   = 'generic';
+        $null_source->{phony}  = 1;
+        $null_source->{local}  = 1;
+        $null_source->{recipe} = ['echo "no explicit recipe given"'];
+
+        $self->sources([$null_source]);
+    }
+
     return $self;
 }
 
@@ -1769,15 +1779,23 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->prerequisites($json_description->{prerequisites});
 
+    # should always be executed
+    $self->phony($json_description->{phony});
+
+    # should recipe be executed locally when using parallel builds?
+    $self->local($json_description->{local});
+
     $self->{type} = $json_description->{type};
 
     return $self;
 }
 
 sub phony {
-    my ($self) = @_;
+    my ($self, $new_phony) = @_;
 
-    return 0;
+    $self->{phony} = $new_phony if($new_phony);
+
+    return $self->{phony};
 }
 
 sub widget {
@@ -1871,6 +1889,14 @@ sub dependencies {
     }
 
     return $self->{dependencies};
+}
+
+sub local {
+    my ($self, $new_local) = @_;
+
+    $self->{local} = $new_local if($new_local);
+
+    return $self->{local};
 }
 
 sub prerequisites {
@@ -2701,7 +2727,7 @@ sub to_makeflow {
 
         print { $mflow_f } "\t";
 
-        if($w->phony || ($w->active_source && $w->active_source->phony)) {
+        if(!$w->active_source || $w->active_source->local) {
             print { $mflow_f } "LOCAL "
         }
 

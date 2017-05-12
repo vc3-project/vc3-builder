@@ -8959,6 +8959,16 @@ sub new {
 
     $self->add_widget_variable('VERSION', $majmin);
 
+    unless($self->sources) {
+        my $null_source = {};
+        $null_source->{type}   = 'generic';
+        $null_source->{phony}  = 1;
+        $null_source->{local}  = 1;
+        $null_source->{recipe} = ['echo "no explicit recipe given"'];
+
+        $self->sources([$null_source]);
+    }
+
     return $self;
 }
 
@@ -9548,15 +9558,23 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->prerequisites($json_description->{prerequisites});
 
+    # should always be executed
+    $self->phony($json_description->{phony});
+
+    # should recipe be executed locally when using parallel builds?
+    $self->local($json_description->{local});
+
     $self->{type} = $json_description->{type};
 
     return $self;
 }
 
 sub phony {
-    my ($self) = @_;
+    my ($self, $new_phony) = @_;
 
-    return 0;
+    $self->{phony} = $new_phony if($new_phony);
+
+    return $self->{phony};
 }
 
 sub widget {
@@ -9650,6 +9668,14 @@ sub dependencies {
     }
 
     return $self->{dependencies};
+}
+
+sub local {
+    my ($self, $new_local) = @_;
+
+    $self->{local} = $new_local if($new_local);
+
+    return $self->{local};
 }
 
 sub prerequisites {
@@ -10480,7 +10506,7 @@ sub to_makeflow {
 
         print { $mflow_f } "\t";
 
-        if($w->phony || ($w->active_source && $w->active_source->phony)) {
+        if(!$w->active_source || $w->active_source->local) {
             print { $mflow_f } "LOCAL "
         }
 
@@ -10673,7 +10699,6 @@ __DATA__
     "vc3-wq-factory":[
         {
             "version":"v0.000.001",
-            "phony":1,
             "dependencies":{
                 "cctools-statics":[
                     "v0.000.001"
@@ -10685,8 +10710,6 @@ __DATA__
         },
         {
             "version":"v0.000.001",
-            "phony":1,
-            "version":"v6.000.016",
             "dependencies":{
                 "cctools":[
                     "v6.000.016"
@@ -10705,6 +10728,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
@@ -10749,7 +10773,6 @@ __DATA__
     "vc3-services":[
         {
             "version":"v0.000.001",
-            "phony":1,
             "dependencies":{
                 "vc3-builder":[
                     "v0.000.001"
@@ -10782,7 +10805,6 @@ __DATA__
     "vc3-services-common-requirements":[
         {
             "version":"v0.000.001",
-            "phony":1,
             "dependencies":{
                 "python":[
                     "v2.007.012"
@@ -10833,6 +10855,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_SERVICES_HOME}/bin",
                         "name=$(basename $VC3_BUILDER_PATH)",
@@ -10855,6 +10878,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d vc3-master ] || git clone https://github.com/vc3-project/vc3-master.git",
@@ -10879,6 +10903,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d vc3-core ] || git clone https://github.com/vc3-project/vc3-core.git",
@@ -10905,7 +10930,6 @@ __DATA__
     "vc3-test-service":[
         {
             "version":"v0.001",
-            "phony":1,
             "dependencies":{
                 "vc3-wrappers":[
                     "v0.000.001"
@@ -10921,6 +10945,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d vc3-wrappers ] || git clone https://github.com/vc3-project/vc3-wrappers.git",
@@ -10945,6 +10970,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "if vc3-info-client --get 'hello-server'; then",
                         "   echo 'Server already installed and running'",
@@ -11004,6 +11030,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd ${HOME}/git",
                         "[ -d credible ] || git clone https://github.com/vc3-project/credible.git",
@@ -11077,6 +11104,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "mkdir -p ${HOME}/git && cd $HOME/git",
                         "[ -d plugin-manager ] || git clone https://github.com/bnl-sdcc/plugin-manager.git",
@@ -11107,6 +11135,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "files":[
                         "icecube-argonne-demo-01.tar.gz"
                     ],
@@ -11137,7 +11166,6 @@ __DATA__
     "icecube-environment":[
         {
             "version":"v1.000",
-            "phony":1,
             "prologue": [
                 "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"
             ],
@@ -11158,6 +11186,7 @@ __DATA__
             "sources":[
                 {
                     "type":"generic",
+                    "local":1,
                     "files":[
                         "htcondor-glidein-wrapper"
                     ],
@@ -11185,10 +11214,10 @@ __DATA__
     "cvmfs":[
         {
             "version":"v2.000",
-            "phony":1,
             "sources":[
                 {
                     "type":"system",
+                    "local":1,
                     "prerequisites":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -11198,6 +11227,7 @@ __DATA__
                 },
                 {
                     "type":"generic",
+                    "local":1,
                     "recipe":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -11214,23 +11244,12 @@ __DATA__
     "parrot":[
         {
             "version":"v6.000.016",
-            "versioncmd":"parrot_run --version",
-            "versionreg":"^parrot_run version ([0-9.]*)",
-            "phony":1,
             "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
-            "sources":[
-                {
-                    "type":"generic",
-                    "recipe":[
-                        "parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -M /hello-parrot=/bin -- /bin/ls /hello-parrot"
-                    ],
-                    "dependencies":{
-                        "cctools":[
-                            "v6.000.016"
-                        ]
-                    }
-                }
-            ]
+            "dependencies":{
+                "cctools":[
+                    "v6.000.016"
+                ]
+            }
         }
     ],
 
@@ -11259,6 +11278,7 @@ __DATA__
             "sources":[
                 {
                     "type":"binary",
+                    "local":1,
                     "files":[
                         "cctools-statics-6.0.16-x86_64.tar.gz"
                     ],
@@ -11283,8 +11303,6 @@ __DATA__
     "cctools":[
         {
             "version":"v6.000.016",
-            "versioncmd":"parrot_run --version",
-            "versionreg":"^parrot_run version ([0-9.]*)",
             "sources":[
                 {
                     "type":"binary",
@@ -11394,8 +11412,6 @@ __DATA__
     "swig":[
         {
             "version":"v3.000.002",
-            "versioncmd":"swig -version",
-            "versionreg":"SWIG Version ([0-9.]*)",
             "sources":[
                 {
                     "type":"tarball",
@@ -11493,8 +11509,6 @@ __DATA__
     "cmake":[
         {
             "version":"v3.005.002",
-            "versioncmd":"cmake --version",
-            "versionreg":"cmake version ([0-9.]*)",
             "sources":[
                 {
                     "type":"tarball",

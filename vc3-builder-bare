@@ -1170,7 +1170,8 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->wrapper($json_description->{wrapper});
     $self->prologue($json_description->{prologue});
-    $self->environment_variables($json_description->{environment_variables});
+    $self->environment_variables($json_description->{'environment-variables'});
+    $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
 
     $self->add_widget_variable('ROOT',    $self->root_dir);
@@ -1330,6 +1331,34 @@ sub environment_variables {
     $self->{environment_variables} = $new_vars if($new_vars);
 
     return $self->{environment_variables};
+}
+
+sub environment_autovars {
+    my ($self, $new_autovars) = @_;
+
+    my %mappings;
+    $mappings{PATH}               = 'bin';
+    $mappings{LD_LIBRARY_PATH}    = 'lib';
+    $mappings{C_INCLUDE_PATH}     = 'include';
+    $mappings{CPLUS_INCLUDE_PATH} = 'include';
+    $mappings{PKG_CONFIG_PATH}    = 'lib/pkgconfig';
+    $mappings{PYTHONPATH}         = 'lib/python${VC3_VERSION_PYTHON}/site-packages';
+    $mappings{PERL5LIB}           = 'lib/perl5/site_perl';
+
+    $self->{environment_autovars} = $new_autovars if($new_autovars);
+    $self->{environment_variables} ||= [];
+
+    for my $var (@{$new_autovars}) {
+        my $target = $mappings{$var};
+
+        unless($target) {
+            die "Unrecognized auto-variable '$var'";
+        }
+
+        push @{$self->{environment_variables}}, { 'name' => $var, 'value' => $target };
+    }
+
+    return $self->{environment_autovars};
 }
 
 sub phony {

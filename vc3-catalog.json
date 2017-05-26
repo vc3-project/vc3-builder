@@ -52,7 +52,7 @@
                     "v8.006.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"APF_HOME",
                     "value":"${VC3_SERVICES_HOME}/apf",
@@ -116,7 +116,7 @@
                     "v2.012.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"VC3_SERVICES_HOME",
                     "value":"${HOME}/vc3-services",
@@ -303,7 +303,7 @@
                     "v2.007.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"VC3_SERVICES_INFOSERVICE_INFOHOST",
                     "value":"localhost",
@@ -371,7 +371,7 @@
                     "v0.000.001"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"VC3_SERVICES_CERTS_HOME",
                     "value":"${VC3_SERVICES_HOME}/etc/ssca/certs",
@@ -456,7 +456,7 @@
                     "v2.006"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"${HOME}/icecube-argonne-demo-01",
@@ -689,7 +689,7 @@
                     "v1.002"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PARROT_HTTP_PROXY",
                     "value":"http://cache01.hep.wisc.edu:3128",
@@ -739,7 +739,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -800,11 +800,8 @@
                     ]
                 }
             ],
-            "environment_variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-templates":[
+                "executable"
             ]
         }
     ],
@@ -876,7 +873,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib64"
@@ -1563,7 +1560,7 @@
                     "v0.001.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1616,19 +1613,19 @@
                     ]
                 }
             ],
-            "environment_variables":[
-            {
-                "name":"VC3_MODULES_PERL", 
-                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
-                "clobber":1,
-                "absolute":1
-            },
-            {
-                "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
-                "value":"${VC3_MODULES_PERL}/local_cpan",
-                "clobber":1,
-                "absolute":1
-            }
+            "environment-variables":[
+                {
+                    "name":"VC3_MODULES_PERL", 
+                    "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
+                    "value":"${VC3_MODULES_PERL}/local_cpan",
+                    "clobber":1,
+                    "absolute":1
+                }
             ]
         }
     ],
@@ -1746,7 +1743,7 @@
                     "v1.008"
                 ]
             },
-            "environment_variables":
+            "environment-variables":
             [
                 {
                     "name":"PATH",
@@ -1913,7 +1910,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2116,7 +2113,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"${VC3_ROOT_MASH}",
@@ -2202,7 +2199,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"clients/icommands/bin"
@@ -2797,7 +2794,7 @@
                     "v5.008"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"ZOE",
                     "value":"${VC3_ROOT_SNAP}/snap/Zoe",
@@ -2903,7 +2900,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"${VC3_ROOT_REPEATMASKER_COMMON}",
@@ -3080,7 +3077,7 @@
                     "v0.086"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"${VC3_ROOT_MAKER}/bin",
@@ -3195,7 +3192,7 @@
                     "v2.006.000"
                 ]
             },
-            "environment_variables":
+            "environment-variables":
             [
                 {
                     "name":"PATH",
@@ -3227,7 +3224,7 @@
                     "v1.010"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"CHARM_BASE",
                     "value":"$VC3_ROOT_CHARM/mpi-linux-x86_64",
@@ -3633,7 +3630,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib64"

@@ -2452,6 +2452,10 @@
                     "value":"lib"
                 },
                 {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
+                },
+                {
                     "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },

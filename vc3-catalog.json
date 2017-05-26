@@ -80,7 +80,7 @@
                 "vc3-builder":[
                     "v0.000.001"
                 ],
-                "vc3-pluginmanager":[
+                "vc3-plugin-manager":[
                     "v0.000.001"
                 ],
                 "vc3-certificates":[
@@ -217,7 +217,7 @@
                 }
             ],
             "dependencies":{
-                "vc3-pluginmanager":[
+                "vc3-plugin-manager":[
                     "v0.000.001"
                 ],
                 "vc3-info-service":[
@@ -290,7 +290,7 @@
                 }
             ],
             "dependencies":{
-                "vc3-pluginmanager":[
+                "vc3-plugin-manager":[
                     "v0.000.001"
                 ],
                 "vc3-certificates":[
@@ -400,7 +400,7 @@
         }
     ],
 
-    "vc3-pluginmanager":[
+    "vc3-plugin-manager":[
         {
             "version":"v0.001",
             "phony":1,

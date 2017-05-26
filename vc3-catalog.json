@@ -505,7 +505,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -594,7 +594,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -763,7 +763,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -822,7 +822,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -899,7 +899,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -939,7 +939,7 @@
                     "v1.002"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -982,7 +982,7 @@
                     "v1.000.002"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -1020,7 +1020,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1076,7 +1076,7 @@
                     "v1.008.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1141,7 +1141,7 @@
                     "v2.007"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1197,7 +1197,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1233,7 +1233,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -1267,7 +1267,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -1319,7 +1319,7 @@
                     "v2.005"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1367,7 +1367,7 @@
                     "v0.019"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1446,7 +1446,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1487,7 +1487,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1956,7 +1956,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -1998,7 +1998,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -2036,7 +2036,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2077,7 +2077,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2156,7 +2156,7 @@
                     "v2.009"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2236,7 +2236,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2483,7 +2483,7 @@
                     "v1.010"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2521,7 +2521,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2590,7 +2590,7 @@
                     "v3.013"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2664,7 +2664,7 @@
                     "v3.013"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2702,7 +2702,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2748,7 +2748,7 @@
                     "v2"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -2982,7 +2982,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -3112,7 +3112,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -3268,7 +3268,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -3306,7 +3306,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -3364,7 +3364,7 @@
                     "v3.004"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -3409,7 +3409,7 @@
                     "v3.007"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -3454,7 +3454,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -3496,7 +3496,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -3531,7 +3531,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -3580,7 +3580,7 @@
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -3664,7 +3664,7 @@
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"

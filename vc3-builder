@@ -10681,7 +10681,7 @@ sub to_file {
         }
 
         if($w->environment_variables) {
-            $n->{environment_variables} = $w->environment_variables;
+            $n->{'environment-variables'} = $w->environment_variables;
         }
 
         if($w->phony) {

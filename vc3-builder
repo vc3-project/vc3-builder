@@ -8949,7 +8949,8 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->wrapper($json_description->{wrapper});
     $self->prologue($json_description->{prologue});
-    $self->environment_variables($json_description->{environment_variables});
+    $self->environment_variables($json_description->{'environment-variables'});
+    $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
 
     $self->add_widget_variable('ROOT',    $self->root_dir);
@@ -9109,6 +9110,34 @@ sub environment_variables {
     $self->{environment_variables} = $new_vars if($new_vars);
 
     return $self->{environment_variables};
+}
+
+sub environment_autovars {
+    my ($self, $new_autovars) = @_;
+
+    my %mappings;
+    $mappings{PATH}               = 'bin';
+    $mappings{LD_LIBRARY_PATH}    = 'lib';
+    $mappings{C_INCLUDE_PATH}     = 'include';
+    $mappings{CPLUS_INCLUDE_PATH} = 'include';
+    $mappings{PKG_CONFIG_PATH}    = 'lib/pkgconfig';
+    $mappings{PYTHONPATH}         = 'lib/python${VC3_VERSION_PYTHON}/site-packages';
+    $mappings{PERL5LIB}           = 'lib/perl5/site_perl';
+
+    $self->{environment_autovars} = $new_autovars if($new_autovars);
+    $self->{environment_variables} ||= [];
+
+    for my $var (@{$new_autovars}) {
+        my $target = $mappings{$var};
+
+        unless($target) {
+            die "Unrecognized auto-variable '$var'";
+        }
+
+        push @{$self->{environment_variables}}, { 'name' => $var, 'value' => $target };
+    }
+
+    return $self->{environment_autovars};
 }
 
 sub phony {
@@ -9513,6 +9542,12 @@ sub new {
 
     if($source_raw->{type} eq 'generic') {
         $source = VC3::Source::Generic->new($widget, $source_raw);
+    }
+    elsif($source_raw->{type} eq 'configure') {
+        $source = VC3::Source::Configure->new($widget, $source_raw);
+    }
+    elsif($source_raw->{type} eq 'cmake') {
+        $source = VC3::Source::Cmake->new($widget, $source_raw);
     }
     elsif($source_raw->{type} eq 'tarball') {
         $source = VC3::Source::Tarball->new($widget, $source_raw);
@@ -9942,6 +9977,103 @@ sub prepare_files  {
     $self->SUPER::prepare_files($build_dir);
 }
 
+package VC3::Source::AutoRecipe;
+use base 'VC3::Source::Tarball';
+use Carp;
+
+sub new {
+    my ($class, $widget, $json_description) = @_;
+
+    if($json_description->{recipe}) {
+        die 'Recipe specified when not needed.'
+    }
+
+    # dummy recipe, so Tarball does not complain.
+    $json_description->{recipe} = ['dummy'];
+
+    my $self = VC3::Source::Tarball->new($widget, $json_description);
+    $self = bless $self, $class;
+
+    $self->preface($json_description->{preface});
+    $self->options($json_description->{options});
+    $self->epilogue($json_description->{epilogue});
+
+    my @steps;
+    if($self->preface) {
+        push @steps, @{$self->preface};
+    }
+
+    push @steps, @{$self->autorecipe};
+
+    if($self->epilogue) {
+        push @steps, @{$self->epilogue};
+    }
+
+    $self->recipe(\@steps);
+
+    return $self;
+}
+
+sub preface {
+    my ($self, $new_preface) = @_;
+
+    $self->{preface} = $new_preface if($new_preface);
+
+    return $self->{preface};
+}
+
+sub epilogue {
+    my ($self, $new_epilogue) = @_;
+
+    $self->{epilogue} = $new_epilogue if($new_epilogue);
+
+    return $self->{epilogue};
+}
+
+sub options {
+    my ($self, $new_options) = @_;
+
+    $self->{options} = $new_options if($new_options);
+
+    return $self->{options};
+}
+
+package VC3::Source::Configure;
+use base 'VC3::Source::AutoRecipe';
+use Carp;
+
+sub autorecipe {
+    my ($self) = @_;
+
+    my $conf = './configure --prefix ${VC3_PREFIX}';
+
+    if($self->options) {
+        $conf = join(' ', $conf, $self->options);
+    }
+
+    return [ $conf, 'make', 'make install' ];
+}
+
+package VC3::Source::Cmake;
+use base 'VC3::Source::AutoRecipe';
+use Carp;
+
+sub autorecipe {
+    my ($self) = @_;
+
+    $self->{dependencies}{'cmake'} ||= ['v3.5.0'];
+
+    my $conf = 'cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX}';
+    if($self->options) {
+        $conf = join(' ', $conf, $self->options);
+    }
+
+    $conf .= ' ..';
+
+    return [ 'mkdir -p build', 'cd build', $conf, 'make', 'make install' ];
+}
+
+
 package VC3::Source::ManualDist;
 use base 'VC3::Source::Generic';
 use Carp;
@@ -10044,7 +10176,6 @@ sub new {
     }
 
     $self->{dependencies}{'perl-cpanminus'} ||= [];
-
 
     $self = bless $self, $class;
 
@@ -10563,7 +10694,19 @@ sub to_file {
 
             $m->{type} = $s->{type};
 
-            if($s->recipe) {
+            if($s->isa('VC3::Source::AutoRecipe')) {
+                if($s->preface) {
+                    $m->{preface} = $s->preface;
+                }
+
+                if($s->epilogue) {
+                    $m->{epilogue} = $s->epilogue;
+                }
+
+                if($s->options) {
+                    $m->{options} = $s->options;
+                }
+            } elsif($s->recipe) {
                 $m->{recipe} = $s->recipe;
             }
 
@@ -10582,6 +10725,11 @@ sub to_file {
             if($s->prerequisites) {
                 $m->{prerequisites} = $s->prerequisites;
             }
+
+            if($s->local) {
+                $m->{local} = $s->local;
+            }
+
 
             $n->{sources} = [ $m ];
         }
@@ -10749,7 +10897,7 @@ __DATA__
                     "v8.006.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"APF_HOME",
                     "value":"${VC3_SERVICES_HOME}/apf",
@@ -10777,7 +10925,7 @@ __DATA__
                 "vc3-builder":[
                     "v0.000.001"
                 ],
-                "vc3-pluginmanager":[
+                "vc3-plugin-manager":[
                     "v0.000.001"
                 ],
                 "vc3-certificates":[
@@ -10813,7 +10961,7 @@ __DATA__
                     "v2.012.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"VC3_SERVICES_HOME",
                     "value":"${HOME}/vc3-services",
@@ -10914,7 +11062,7 @@ __DATA__
                 }
             ],
             "dependencies":{
-                "vc3-pluginmanager":[
+                "vc3-plugin-manager":[
                     "v0.000.001"
                 ],
                 "vc3-info-service":[
@@ -10987,7 +11135,7 @@ __DATA__
                 }
             ],
             "dependencies":{
-                "vc3-pluginmanager":[
+                "vc3-plugin-manager":[
                     "v0.000.001"
                 ],
                 "vc3-certificates":[
@@ -11000,7 +11148,7 @@ __DATA__
                     "v2.007.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"VC3_SERVICES_INFOSERVICE_INFOHOST",
                     "value":"localhost",
@@ -11068,7 +11216,7 @@ __DATA__
                     "v0.000.001"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"VC3_SERVICES_CERTS_HOME",
                     "value":"${VC3_SERVICES_HOME}/etc/ssca/certs",
@@ -11097,7 +11245,7 @@ __DATA__
         }
     ],
 
-    "vc3-pluginmanager":[
+    "vc3-plugin-manager":[
         {
             "version":"v0.001",
             "phony":1,
@@ -11153,7 +11301,7 @@ __DATA__
                     "v2.006"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"${HOME}/icecube-argonne-demo-01",
@@ -11202,7 +11350,7 @@ __DATA__
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11291,7 +11439,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11347,15 +11495,11 @@ __DATA__
                     }
                 },
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "cctools-6.0.16-source.tar.gz"
                     ],
-                    "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
-                        "make",
-                        "make install"
-                    ],
+                    "options":"--with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
                     "dependencies":{
                         "swig":[
                             "v3.000"
@@ -11386,7 +11530,7 @@ __DATA__
                     "v1.002"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PARROT_HTTP_PROXY",
                     "value":"http://cache01.hep.wisc.edu:3128",
@@ -11414,15 +11558,11 @@ __DATA__
             "version":"v3.000.002",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "swig-3.0.2.tar.gz"
                     ],
-                    "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib",
-                        "make",
-                        "make install"
-                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib",
                     "dependencies":{
                         "python":[
                             "v2.006"
@@ -11436,7 +11576,7 @@ __DATA__
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11460,7 +11600,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11486,18 +11626,13 @@ __DATA__
             "version":"v2.007.005",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "patch-2.7.5.tar.gz"
-                    ],
-                    "recipe":[
-                        "./configure --prefix=${VC3_PREFIX}",
-                        "make",
-                        "make install"
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11522,7 +11657,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11573,7 +11708,7 @@ __DATA__
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib64"
@@ -11587,19 +11722,17 @@ __DATA__
             "version":"v1.000.003",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "libuuid-1.0.3.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -11639,7 +11772,7 @@ __DATA__
                     "v1.002"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -11665,16 +11798,14 @@ __DATA__
             "version":"v1.008.000",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "libssh2-1.8.0.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --with-libssl-prefix=${VC3_ROOT_OPENSSL} --enable-static=yes --enable-shared=yes",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--with-libssl-prefix=${VC3_ROOT_OPENSSL} --enable-static=yes --enable-shared=yes"
                 }
             ],
             "dependencies":{
@@ -11682,7 +11813,7 @@ __DATA__
                     "v1.000.002"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -11708,19 +11839,17 @@ __DATA__
             "version":"v1.000.003",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "gss-1.0.3.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --enable-static=yes --enable-shared=yes",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--enable-static=yes --enable-shared=yes"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11750,16 +11879,14 @@ __DATA__
             "version":"v7.053.001",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "curl-7.53.1.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --enable-static=yes --enable-shared=yes --enable-http --enable-ftp --enable-file --enable-proxy --enable-tftp --with-ssl=${VC3_ROOT_OPENSSL} --with-libssh2=${VC3_ROOT_LIBSSH2} --with-zlib=${VC3_ROOT_ZLIB}  --with-gssapi=${VC3_ROOT_GSS}/bin --with-gssapi-libs=${VC3_ROOT_GSS}/lib",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--enable-static=yes --enable-shared=yes --enable-http --enable-ftp --enable-file --enable-proxy --enable-tftp --with-ssl=${VC3_ROOT_OPENSSL} --with-libssh2=${VC3_ROOT_LIBSSH2} --with-zlib=${VC3_ROOT_ZLIB}  --with-gssapi=${VC3_ROOT_GSS}/bin --with-gssapi-libs=${VC3_ROOT_GSS}/lib"
                 }
             ],
             "dependencies":{
@@ -11776,7 +11903,7 @@ __DATA__
                     "v1.008.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11806,16 +11933,14 @@ __DATA__
             "version":"v2.012.000",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "git-2.12.0.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --with-openssl=${VC3_ROOT_OPENSSL} --with-curl=${VC3_ROOT_CURL} --with-zlib=${VC3_ROOT_ZLIB} --with-perl=${VC3_ROOT_PERL}/bin/perl --with-python=${VC3_ROOT_PYTHON}/bin/python --without-tcltk",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--with-openssl=${VC3_ROOT_OPENSSL} --with-curl=${VC3_ROOT_CURL} --with-zlib=${VC3_ROOT_ZLIB} --with-perl=${VC3_ROOT_PERL}/bin/perl --with-python=${VC3_ROOT_PYTHON}/bin/python --without-tcltk"
                 }
             ],
             "dependencies":{
@@ -11841,7 +11966,7 @@ __DATA__
                     "v2.007"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11897,7 +12022,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -11933,7 +12058,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -11955,19 +12080,17 @@ __DATA__
             "version":"v6.003",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "readline-6.3.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -11989,17 +12112,15 @@ __DATA__
             "version":"v2.018.001",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "glib-2.48.1.tar.gz"
                     ],
-                    "recipe":[
+                    "preface":[
                         ": system pcre is not working! using internal",
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --with-python=${VC3_ROOT_PYTHON}/bin/python --with-pcre=internal",
-                        "make",
-                        "make install"
-                    ]
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --with-python=${VC3_ROOT_PYTHON}/bin/python --with-pcre=internal"
                 }
             ],
             "dependencies":{
@@ -12019,7 +12140,7 @@ __DATA__
                     "v2.005"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12049,15 +12170,16 @@ __DATA__
             "version":"v2.004.047",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "attr-2.4.47.src.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --enable-static --enable-shared",
-                        "make",
-                        "make install install-dev install-lib",
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--enable-static --enable-shared",
+                    "epilogue":[
+                        "make install-dev install-lib",
                         "chmod -v 755 ${VC3_PREFIX}/lib/libattr.so"
                     ]
                 }
@@ -12067,7 +12189,7 @@ __DATA__
                     "v0.019"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12097,34 +12219,14 @@ __DATA__
             "version":"v3.002.001",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "libffi-3.2.1.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary",
-                        "make",
-                        "make install"
-                    ]
-                }
-            ],
-            "environment_variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib64:lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary"
                 }
             ]
         }
@@ -12135,18 +12237,14 @@ __DATA__
             "version":"v8.039",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "pcre-8.39.tar.gz"
                     ],
-                    "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 ",
-                        "make",
-                        "make install"
-                    ]
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 "
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12176,18 +12274,14 @@ __DATA__
             "version":"v2.009.003",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "fuse-2.9.3.tar.gz"
                     ],
-                    "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib  --enable-lib --disable-util",
-                        "make",
-                        "make install"
-                    ]
+                    "options":"--libdir=${VC3_PREFIX}/lib  --enable-lib --disable-util"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12260,7 +12354,7 @@ __DATA__
                     "v0.001.000"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12313,19 +12407,19 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
-            {
-                "name":"VC3_MODULES_PERL", 
-                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
-                "clobber":1,
-                "absolute":1
-            },
-            {
-                "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
-                "value":"${VC3_MODULES_PERL}/local_cpan",
-                "clobber":1,
-                "absolute":1
-            }
+            "environment-variables":[
+                {
+                    "name":"VC3_MODULES_PERL", 
+                    "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
+                    "clobber":1,
+                    "absolute":1
+                },
+                {
+                    "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
+                    "value":"${VC3_MODULES_PERL}/local_cpan",
+                    "clobber":1,
+                    "absolute":1
+                }
             ]
         }
     ],
@@ -12443,7 +12537,7 @@ __DATA__
                     "v1.008"
                 ]
             },
-            "environment_variables":
+            "environment-variables":
             [
                 {
                     "name":"PATH",
@@ -12588,16 +12682,16 @@ __DATA__
                     ]
                 },
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "Python-2.7.12.tgz"
                     ],
-                    "recipe":[
+                    "preface":[
                         "sed -i Modules/Setup.dist -e \"217s:.*:_ssl _ssl.c -DUSE_SSL -I${VC3_ROOT_OPENSSL}/include -I${VC3_ROOT_OPENSSL}/include/openssl -L${VC3_ROOT_OPENSSL}/lib -lssl -lcrypto:\"",
-                        "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -lz:\"",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib",
-                        "make",
-                        "make install",
+                        "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -lz:\""
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib",
+                    "epilogue":[
                         "ln -s ${VC3_PREFIX}/bin/pydoc{,2}"
                     ],
                     "dependencies":{
@@ -12610,7 +12704,7 @@ __DATA__
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12644,19 +12738,17 @@ __DATA__
             "version":"v1.002.008",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "zlib-1.2.8.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --static",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --static"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12686,19 +12778,17 @@ __DATA__
             "version":"v2.001",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "gsl-2.1.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -12724,19 +12814,17 @@ __DATA__
             "version":"v0.019.008",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "gettext-0.19.8.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12777,7 +12865,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12813,7 +12901,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"${VC3_ROOT_MASH}",
@@ -12829,23 +12917,14 @@ __DATA__
             "version":"v4.003.000",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"cmake",
                     "files":[
                         "xrootd-4.3.0.tar.gz"
                     ],
-                    "recipe":[
-                        "mkdir -p build",
-                        "cd build",
-                        "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DCMAKE_INSTALL_LIBDIR=lib ..",
-                        "make",
-                        "make install",
+                    "options":"-DCMAKE_INSTALL_LIBDIR=lib",
+                    "epilogue":[
                         "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
-                    ],
-                    "dependencies":{
-                        "cmake":[
-                            "v3.001"
-                        ]
-                    }
+                    ]
                 }
             ],
             "dependencies":{
@@ -12856,7 +12935,7 @@ __DATA__
                     "v2.009"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -12899,7 +12978,7 @@ __DATA__
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"clients/icommands/bin"
@@ -12925,18 +13004,14 @@ __DATA__
             "version":"v1.043.003",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "help2man-1.43.3.tar.gz"
                     ],
-                    "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib",
-                        "make",
-                        "make install"
-                    ]
+                    "options":"--libdir=${VC3_PREFIX}/lib"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13167,15 +13242,11 @@ __DATA__
             "version":"v3.001",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "hmmer-3.1b2.tar.gz"
                     ],
-                    "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-mpi",
-                        "make",
-                        "make install"
-                    ]
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-mpi"
                 }
             ],
             "dependencies":{
@@ -13183,7 +13254,7 @@ __DATA__
                     "v1.010"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13209,19 +13280,17 @@ __DATA__
             "version":"v1.010",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "openmpi-1.10.3.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-shared --disable-dependency-tracking --with-sge --disable-debug",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-shared --disable-dependency-tracking --with-sge --disable-debug"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13229,6 +13298,10 @@ __DATA__
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
+                },
+                {
+                    "name":"PKG_CONFIG_PATH",
+                    "value":"lib/pkgconfig"
                 },
                 {
                     "name":"C_INCLUDE_PATH",
@@ -13257,20 +13330,18 @@ __DATA__
                     ]
                 },
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "ncbi-blast-2.2.28+-src.tar.gz"
                     ],
-                    "recipe":[
+                    "preface":[
                         "cd c++",
                         "export CFLAGS=-fpermissive", 
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
-                        "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug",
-                        "make",
-                        "make install"
-                    ]
+                        "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug"
                 }
             ],
             "dependencies":{
@@ -13290,7 +13361,7 @@ __DATA__
                     "v3.013"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13328,20 +13399,18 @@ __DATA__
                     ]
                 },
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "rmblastn-2.2.28+-src.tar.gz"
                     ],
-                    "recipe":[
+                    "preface":[
                         "cd c++",
                         "export CFLAGS=-fpermissive", 
                         "export CXXFLAGS=-fpermissive", 
                         ": patch ncbiconf so that blast compiles in RHEL6 with gcc4.4.7",
-                        "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h",
-                        "./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug",
-                        "make",
-                        "make install"
-                    ]
+                        "sed -i -e '36s/^/#include <string.h>/' include/ncbiconf.h"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --with-mt --with-z=${VC3_ROOT_ZLIB} --with-pcre=${VC3_ROOT_PCRE} --with-python=${VC3_ROOT_PYTHON} --with-sqlite3=${VC3_ROOT_SQLITE3} --without-debug"
                 }
             ],
             "dependencies":{
@@ -13364,7 +13433,7 @@ __DATA__
                     "v3.013"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13390,19 +13459,17 @@ __DATA__
             "version":"v3.013",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "sqlite-autoconf-3130000.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-static",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "export CFLAGS=-fPIC"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13428,19 +13495,17 @@ __DATA__
             "version":"v2.002.000",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "exonerate-2.2.0.tar.gz"
                     ],
-                    "recipe":[
+                    "preface":[
                         ": exonerate does not like parallel compilation",
                         "export MAKEFLAGS=-j1",
                         ": for old glibc we need to manually link librt",
-                        "export LDFLAGS=-lrt",
-                        "./configure --prefix ${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-glib2 --enable-utilities",
-                        "make",
-                        "make install"
-                    ]
+                        "export LDFLAGS=-lrt"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-glib2 --enable-utilities"
                 }
             ],
             "dependencies":{
@@ -13448,7 +13513,7 @@ __DATA__
                     "v2"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13494,7 +13559,7 @@ __DATA__
                     "v5.008"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"ZOE",
                     "value":"${VC3_ROOT_SNAP}/snap/Zoe",
@@ -13517,22 +13582,22 @@ __DATA__
                 {
                     "type":"manual-distribution",
                     "msg_manual_requirement":[
-"RepeatMasker libraries have a restrictive distribution license, and have to",
+"RepeatMasker library have a restrictive distribution license, and have to",
 "be downloaded manually. Please follow these steps:",
 "    1) On http://www.girinst.org, click on 'Downloads'.",
 "    2) Register for a free account.",
-"    3) Download the most recent libray repeatmaskerlibraries-YEARMONTDAY.tar.gz.",
+"    3) Download the most recent library repeatmaskerlibrary-YEARMONTDAY.tar.gz.",
 "    4) Copy the file into",
-"${VC3_DISTFILES}/manual-distribution/repeatmaskerlibraries-LATEST.tar.gz.",
+"${VC3_DISTFILES}/manual-distribution/repeatmaskerlibrary-LATEST.tar.gz.",
 "    For example:",
-"cp ~/Downloads/repeatmaskerlibraries-20150807.tar.gz ${VC3_DISTFILES}/manual-distribution/repeatmaskerlibraries-LATEST.tar.gz",
+"cp ~/Downloads/repeatmaskerlibrary-20150807.tar.gz ${VC3_DISTFILES}/manual-distribution/repeatmaskerlibrary-LATEST.tar.gz",
 "    5) Try again '${VC3_COMMAND_LINE}'."],
                     "files":[
-                        "repeatmaskerlibraries-LATEST.tar.gz"
+                        "repeatmaskerlibrary-LATEST.tar.gz"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_ROOT_REPEATMASKER_COMMON}",
-                        "tar -C ${VC3_ROOT_REPEATMASKER_COMMON} -xpf repeatmaskerlibraries-LATEST.tar.gz",
+                        "tar -C ${VC3_ROOT_REPEATMASKER_COMMON} -xpf repeatmaskerlibrary-LATEST.tar.gz",
                         "cd ${VC3_ROOT_REPEATMASKER_COMMON}",
                         "perl VC3_RepeatMasker-open-4-0-6.configure -re_exec_perl=${VC3_ROOT_PERL}/bin/perl -repeatmasker_dir=${VC3_ROOT_REPEATMASKER_COMMON} -trf_bin_path=${VC3_ROOT_TRF}/bin/trf -hmmer_bin_dir=${VC3_ROOT_HMMER}/bin -rmblast_bin_dir=${VC3_ROOT_NCBI_RMBLASTN}/bin -default_engine=rmblast"
                     ]
@@ -13600,7 +13665,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"${VC3_ROOT_REPEATMASKER_COMMON}",
@@ -13632,7 +13697,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"AUGUSTUS_CONFIG_PATH",
                     "value":"config",
@@ -13682,7 +13747,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13777,7 +13842,7 @@ __DATA__
                     "v0.086"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"${VC3_ROOT_MAKER}/bin",
@@ -13801,18 +13866,13 @@ __DATA__
                     ]
                 },
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "findutils-4.6.0.tar.gz"
-                    ],
-                    "recipe":[
-                        "./configure --prefix ${VC3_PREFIX}",
-                        "make",
-                        "make install"
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13892,7 +13952,7 @@ __DATA__
                     "v2.006.000"
                 ]
             },
-            "environment_variables":
+            "environment-variables":
             [
                 {
                     "name":"PATH",
@@ -13924,7 +13984,7 @@ __DATA__
                     "v1.010"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"CHARM_BASE",
                     "value":"$VC3_ROOT_CHARM/mpi-linux-x86_64",
@@ -13956,19 +14016,17 @@ __DATA__
             "version":"v8.005.09",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "tcl8.5.9-src.tar.gz"
                     ],
-                    "recipe":[
-                        "cd unix",
-                        "./configure --prefix ${VC3_PREFIX} --enable-threads --enable-64bit",
-                        "make",
-                        "make install"
-                    ]
+                    "preface":[
+                        "cd unix"
+                    ],
+                    "options":"--enable-threads --enable-64bit"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -13990,15 +14048,14 @@ __DATA__
             "version":"v3.003.006",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "fftw-3.3.6-pl2.tar.gz"
                     ],
-                    "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --enable-openmp --enable-mpi --enable-shared --enable-float",
-                        "make",
-                        "make install"
+                    "preface":[
+                        "export CFLAGS=-fPIC"
                     ],
+                    "options":"--enable-openmp --enable-mpi --enable-shared --enable-float",
                     "dependencies":{
                         "openmpi":[
                             "v1.010"
@@ -14006,7 +14063,7 @@ __DATA__
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -14024,15 +14081,11 @@ __DATA__
             "version":"v4.002.001",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "octave-4.2.1.tar.gz"
                     ],
-                    "recipe":[
-                        "./configure --prefix ${VC3_PREFIX} --disable-java --with-qhull-includedir=${VC3_ROOT_QHULL}/include --with-qhull-libdir=${VC3_ROOT_QHULL}/lib --with-z-includedir=${VC3_ROOT_ZLIB}/include --with-z-libdir=${VC3_ROOT_ZLIB}/lib  --with-hdf5-includedir=${VC3_ROOT_HDF5}/include --with-hdf5-libdir=${VC3_ROOT_HDF5}/lib --with-fftw3-includedir=${VC3_ROOT_FFTW}/include --with-fftw3-libdir=${VC3_ROOT_FFTW}/lib --with-fftw3f-includedir=${VC3_ROOT_FFTW}/include --with-fftw3f-libdir=${VC3_ROOT_FFTW}/lib --with-glpk-includedir=${VC3_ROOT_GLPK}/include --with-glpk-libdir=${VC3_ROOT_GLPK}/lib --with-curl-includedir=${VC3_ROOT_CURL}/include --with-curl-libdir=${VC3_ROOT_CURL}/lib --without-x --without-opengl --without-qt --without-fltk --with-blas=${VC3_ROOT_LAPACK}/lib64/libblas.so --with-lapack=${VC3_ROOT_LAPACK}/lib64/liblapack.so --with-qrupdate-includedir=${VC3_ROOT_QRUPDATE}/include --with-qrupdate-libdir=${VC3_ROOT_QRUPDATE}/lib --with-arpack-includedir=${VC3_ROOT_ARPACK}/includedir --with-arpack-libdir=${VC3_ROOT_ARPACK}/lib --with-openssl",
-                        "make",
-                        "make install"
-                    ]
+                    "options":"--prefix ${VC3_PREFIX} --disable-java --with-qhull-includedir=${VC3_ROOT_QHULL}/include --with-qhull-libdir=${VC3_ROOT_QHULL}/lib --with-z-includedir=${VC3_ROOT_ZLIB}/include --with-z-libdir=${VC3_ROOT_ZLIB}/lib  --with-hdf5-includedir=${VC3_ROOT_HDF5}/include --with-hdf5-libdir=${VC3_ROOT_HDF5}/lib --with-fftw3-includedir=${VC3_ROOT_FFTW}/include --with-fftw3-libdir=${VC3_ROOT_FFTW}/lib --with-fftw3f-includedir=${VC3_ROOT_FFTW}/include --with-fftw3f-libdir=${VC3_ROOT_FFTW}/lib --with-glpk-includedir=${VC3_ROOT_GLPK}/include --with-glpk-libdir=${VC3_ROOT_GLPK}/lib --with-curl-includedir=${VC3_ROOT_CURL}/include --with-curl-libdir=${VC3_ROOT_CURL}/lib --without-x --without-opengl --without-qt --without-fltk --with-blas=${VC3_ROOT_LAPACK}/lib64/libblas.so --with-lapack=${VC3_ROOT_LAPACK}/lib64/liblapack.so --with-qrupdate-includedir=${VC3_ROOT_QRUPDATE}/include --with-qrupdate-libdir=${VC3_ROOT_QRUPDATE}/lib --with-arpack-includedir=${VC3_ROOT_ARPACK}/includedir --with-arpack-libdir=${VC3_ROOT_ARPACK}/lib --with-openssl"
                 }
             ],
             "dependencies":{
@@ -14064,7 +14117,7 @@ __DATA__
                     "v3.004"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"
@@ -14109,7 +14162,7 @@ __DATA__
                     "v3.007"
                 ]
             },
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -14131,30 +14184,19 @@ __DATA__
             "version":"v1.008.018",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"cmake",
                     "files":[
                         "hdf5-1.8.18.tar.gz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "export FCFLAGS=-fPIC",
-                        "mkdir -p build",
-                        "cd build",
-                        "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
-                        "make",
-                        "make install"
-                    ],
+                    "options":"-DCMAKE_C_FLAGS=-fPIC -DCMAKE_Fortran_FLAGS=-fPIC",
                     "dependencies":{
                         "openmpi":[
                             "v1.010"
-                        ],
-                        "cmake":[
-                            "v3.000"
                         ]
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -14176,27 +14218,14 @@ __DATA__
             "version":"v7.002.000",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"cmake",
                     "files":[
                         "qhull-2015-src-7.2.0.tgz"
                     ],
-                    "recipe":[
-                        "export CFLAGS=-fPIC",
-                        "export FCFLAGS=-fPIC",
-                        "mkdir -p build",
-                        "cd build",
-                        "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
-                        "make",
-                        "make install"
-                    ],
-                    "dependencies":{
-                        "cmake":[
-                            "v3.000"
-                        ]
-                    }
+                    "options":"-DCMAKE_Fortran_FLAGS=-fPIC -DCMAKE_C_FLAGS=-fPIC"
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -14218,11 +14247,11 @@ __DATA__
             "version":"v4.061.000",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"configure",
                     "files":[
                         "glpk-4.61.tar.gz"
                     ],
-                    "recipe":[
+                    "preface":[
                         "export CFLAGS=-fPIC",
                         "export FCFLAGS=-fPIC",
                         "./configure --prefix ${VC3_PREFIX} --with-pic",
@@ -14231,7 +14260,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -14253,24 +14282,16 @@ __DATA__
             "version":"v3.004.000",
             "sources":[
                 {
-                    "type":"tarball",
+                    "type":"cmake",
                     "files":[
                         "arpack-ng-3.4.0.tar.gz"
                     ],
-                    "recipe":[
-                        "mkdir build",
-                        "cd build",
-                        "cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DMPI=ON -DBLAS_LIBRARIES=${VC3_ROOT_LAPACK} -DLAPACK_LIBRARIES=${VC3_ROOT_LAPACK} -DCMAKE_Fortran_FLAGS=-fPIC  ..",
-                        "export CFLAGS=-fPIC",
-                        "export FCFLAGS=-fPIC",
-                        "make",
+                    "options":"-DMPI=ON -DBLAS_LIBRARIES=${VC3_ROOT_LAPACK} -DLAPACK_LIBRARIES=${VC3_ROOT_LAPACK} -DCMAKE_Fortran_FLAGS=-fPIC -DCMAKE_C_FLAGS=-fPIC",
+                    "epilogue":[
                         "mkdir -p ${VC3_PREFIX}/lib",
                         "cp *.a ${VC3_PREFIX}/lib"
                     ],
                     "dependencies":{
-                        "cmake":[
-                            "v3.000.000"
-                        ],
                         "openmpi":[
                             "v1.010"
                         ],
@@ -14280,7 +14301,7 @@ __DATA__
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib"
@@ -14330,7 +14351,7 @@ __DATA__
                     }
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"LD_LIBRARY_PATH",
                     "value":"lib64"
@@ -14364,7 +14385,7 @@ __DATA__
                     ]
                 }
             ],
-            "environment_variables":[
+            "environment-variables":[
                 {
                     "name":"PATH",
                     "value":"bin"

@@ -787,8 +787,11 @@
                     ]
                 }
             ],
-            "environment-templates":[
-                "executable"
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
             ]
         }
     ],
@@ -1894,7 +1897,7 @@
                     "files":[
                         "zlib-1.2.8.tar.gz"
                     ],
-                    "epilogue":[
+                    "preface":[
                         "export CFLAGS=-fPIC"
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --static"

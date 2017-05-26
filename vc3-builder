@@ -14282,16 +14282,22 @@ __DATA__
             "version":"v3.004.000",
             "sources":[
                 {
-                    "type":"cmake",
+                    "type":"tarball",
                     "files":[
                         "arpack-ng-3.4.0.tar.gz"
                     ],
-                    "options":"-DMPI=ON -DBLAS_LIBRARIES=${VC3_ROOT_LAPACK} -DLAPACK_LIBRARIES=${VC3_ROOT_LAPACK} -DCMAKE_Fortran_FLAGS=-fPIC -DCMAKE_C_FLAGS=-fPIC",
-                    "epilogue":[
+                    "recipe":[
+                        "mkdir -p build",
+                        "cd build",
+                        "cmake -DMPI=ON -DBLAS_LIBRARIES=${VC3_ROOT_LAPACK} -DLAPACK_LIBRARIES=${VC3_ROOT_LAPACK} -DCMAKE_Fortran_FLAGS=-fPIC -DCMAKE_C_FLAGS=-fPIC ..",
+                        "make",
                         "mkdir -p ${VC3_PREFIX}/lib",
                         "cp *.a ${VC3_PREFIX}/lib"
                     ],
                     "dependencies":{
+                        "cmake":[
+                            "v3.000"
+                        ],
                         "openmpi":[
                             "v1.010"
                         ],

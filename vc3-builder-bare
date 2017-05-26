@@ -1735,6 +1735,9 @@ sub new {
     if($source_raw->{type} eq 'generic') {
         $source = VC3::Source::Generic->new($widget, $source_raw);
     }
+    elsif($source_raw->{type} eq 'configure') {
+        $source = VC3::Source::Configure->new($widget, $source_raw);
+    }
     elsif($source_raw->{type} eq 'tarball') {
         $source = VC3::Source::Tarball->new($widget, $source_raw);
     }
@@ -2163,6 +2166,83 @@ sub prepare_files  {
     $self->SUPER::prepare_files($build_dir);
 }
 
+package VC3::Source::AutoRecipe;
+use base 'VC3::Source::Tarball';
+use Carp;
+
+sub new {
+    my ($class, $widget, $json_description) = @_;
+
+    if($json_description->{recipe}) {
+        die 'Recipe specified when not needed.'
+    }
+
+    # dummy recipe, so Tarball does not complain.
+    $json_description->{recipe} = ['dummy'];
+
+    my $self = VC3::Source::Tarball->new($widget, $json_description);
+    $self = bless $self, $class;
+
+    $self->preface($json_description->{preface});
+    $self->options($json_description->{options});
+    $self->epilogue($json_description->{epilogue});
+
+    my @steps;
+    if($self->preface) {
+        push @steps, @{$self->preface};
+    }
+
+    push @steps, @{$self->autorecipe};
+
+    if($self->epilogue) {
+        push @steps, @{$self->epilogue};
+    }
+
+    $self->recipe(\@steps);
+
+    return $self;
+}
+
+sub preface {
+    my ($self, $new_preface) = @_;
+
+    $self->{preface} = $new_preface if($new_preface);
+
+    return $self->{preface};
+}
+
+sub epilogue {
+    my ($self, $new_epilogue) = @_;
+
+    $self->{epilogue} = $new_epilogue if($new_epilogue);
+
+    return $self->{epilogue};
+}
+
+sub options {
+    my ($self, $new_options) = @_;
+
+    $self->{options} = $new_options if($new_options);
+
+    return $self->{options};
+}
+
+package VC3::Source::Configure;
+use base 'VC3::Source::AutoRecipe';
+use Carp;
+
+sub autorecipe {
+    my ($self) = @_;
+
+    my $conf = './configure --prefix ${VC3_PREFIX}';
+
+    if($self->options) {
+        $conf = join(' ', $conf, $self->options);
+    }
+
+    return [ $conf, 'make', 'make install' ];
+}
+
 package VC3::Source::ManualDist;
 use base 'VC3::Source::Generic';
 use Carp;
@@ -2265,7 +2345,6 @@ sub new {
     }
 
     $self->{dependencies}{'perl-cpanminus'} ||= [];
-
 
     $self = bless $self, $class;
 
@@ -2784,7 +2863,19 @@ sub to_file {
 
             $m->{type} = $s->{type};
 
-            if($s->recipe) {
+            if($s->isa('VC3::Source::AutoRecipe')) {
+                if($s->preface) {
+                    $m->{preface} = $s->preface;
+                }
+
+                if($s->epilogue) {
+                    $m->{epilogue} = $s->epilogue;
+                }
+
+                if($s->options) {
+                    $m->{options} = $s->options;
+                }
+            } elsif($s->recipe) {
                 $m->{recipe} = $s->recipe;
             }
 
@@ -2803,6 +2894,11 @@ sub to_file {
             if($s->prerequisites) {
                 $m->{prerequisites} = $s->prerequisites;
             }
+
+            if($s->local) {
+                $m->{local} = $s->local;
+            }
+
 
             $n->{sources} = [ $m ];
         }

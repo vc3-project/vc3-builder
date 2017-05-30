@@ -6,9 +6,9 @@ vc3-builder: vc3-builder-bare vc3-catalog.json
 
 static: vc3-builder-static
 
-
-vc3-builder-static: builder-pack/static/vc3-builder-static
-	cp $^ $@
+vc3-builder-static: vc3-builder
+	$(MAKE) -C builder-pack/static vc3-builder-static
+	cp builder-pack/static/vc3-builder-static $@
 
 builder-pack/static/vc3-builder-static: vc3-builder-bare
 	$(MAKE) -C builder-pack/static vc3-builder-static
@@ -18,5 +18,5 @@ builder-pack/static/vc3-builder-static: vc3-builder-bare
 clean:
 	-$(MAKE) -C builder-pack clean
 	-$(MAKE) -C builder-pack/static clean
-	-rm -rf vc3-builder
+	-rm -rf vc3-builder vc3-builder-static
 

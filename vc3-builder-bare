@@ -319,14 +319,27 @@ sub print_modules_used {
 
     my @modules = grep { /\.pm$/ } keys %INC;
 
-    # add modules that %INC sometimes does not find:
-    @modules = (@modules, qw/strict PerlIO encoding Digest::Perl::MD5/);
-
     # turn :: into /
     map { s^/^::^g }   @modules;
 
     # remove .pm extension
     map { s^\.pm$^^g } @modules;
+
+    # add modules that %INC sometimes does not find:
+    my @manuals = 
+    qw(
+        encoding
+        strict
+        Cwd
+        Digest::Perl::MD5
+        English 
+        Getopt::Long
+        LockFile::Simple
+        PerlIO
+        Tie::RefHash );
+
+    @modules = (@manuals, @modules);
+
 
     # remove duplicates
     @modules = uniq_words(@modules);
@@ -348,7 +361,7 @@ sub uniq_words {
 package VC3::Bag; 
 
 use Carp qw/carp croak/;
-use English qw/-mo_match_vars/;
+#use English qw/-mo_match_vars/;
 use File::Copy;
 use File::Spec ();
 use File::Temp qw/tempfile/;
@@ -828,7 +841,7 @@ sub build_widget {
         eval { $exit_status = -1; $exit_status = $s->execute_recipe($force_rebuild, $ignore_locks) };
 
         if($exit_status) {
-            $widget->process_error($sh_on_error, $EVAL_ERROR, $exit_status);
+            $widget->process_error($sh_on_error, $English::EVAL_ERROR, $exit_status);
             exit 1;
         }
     }
@@ -1151,8 +1164,6 @@ use IO::Handle;
 use Digest::Perl::MD5 qw(md5_hex);
 use Cwd;
 use File::Temp qw/tempdir/;
-use Data::Dumper;
-
 
 use JSON::Tiny;
 

@@ -1,5 +1,5 @@
 EMAIL=btovar@nd.edu
-EXTRA_MODULES="HTTP::Tiny JSON::Tiny common::sense Pod::Strip"
+EXTRA_MODULES=
 STATICPERL=${PWD}/build
 DLCACHE=${PWD}/cache
 PERL_VERSION=5.24.0

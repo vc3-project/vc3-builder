@@ -1177,6 +1177,9 @@
             "dependencies":{
                 "zlib":[
                     "v1.002"
+                ],
+                "perl":[
+                    "v5.010"
                 ]
             },
             "environment-variables":[

@@ -243,6 +243,9 @@ sub main {
         exit 1;
     }
 
+    # add common builder environment
+    unshift @requires, 'vc3-builder-hands';
+
     # set defaults
     my @command_and_args = @ARGV;
     if(!@command_and_args) {

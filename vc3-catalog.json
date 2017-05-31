@@ -1,4 +1,256 @@
 {
+    "vc3-builder-hands":[
+        {
+            "version":"v1.000.000",
+            "sources":[
+                {
+                    "type":"generic",
+                    "local":1,
+                    "recipe":[
+                        "echo 'hello builder'"
+                    ],
+                    "dependencies":{
+                        "make":[
+                            "v3.082.000"
+                        ],
+                        "sed":[
+                            "v4.002.000"
+                        ],
+                        "awk":[
+                            "v4.001.001"
+                        ],
+                        "pkg-config":[
+                            "v0.023.000"
+                        ]
+                    }
+                }
+            ],
+            "dependencies":{
+                "tar":[
+                    "v1.002.000"
+                ]
+            }
+        }
+    ],
+
+    "static-get":[
+        {
+            "version":"v1.000.000",
+            "sources":[
+                {
+                    "type":"generic",
+                    "local":1,
+                    "files":[
+                        "static-get"
+                    ],
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "cp -L static-get ${VC3_PREFIX}/bin",
+                        "chmod 755 ${VC3_PREFIX}/bin/static-get"
+                    ]
+                }
+            ],
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "tar":[
+        {
+            "version":"v1.23.0",
+            "sources":[
+                {
+                    "type":"generic",
+                    "local":1,
+                    "files":[
+                        "tar-1.23"
+                    ],
+                    "recipe":[
+                        ": from static-get",
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "cp -L tar-1.23 ${VC3_PREFIX}/bin/tar",
+                        "chmod 755 ${VC3_PREFIX}/bin/tar"
+                    ]
+                }
+            ],
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "sharutils":[
+        {
+            "version":"v4.15.0",
+            "sources":[
+                {
+                    "type":"configure",
+                    "files":[
+                        "sharutils-4.15.tar.gz"
+                    ]
+                }
+            ],
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "gcc":[
+        {
+            "version":"v4.6.1",
+            "sources":[
+                {
+                    "type":"generic",
+                    "local":1,
+                    "files":[
+                        "gcc-4.6.1-2.tar.gz"
+                    ],
+                    "recipe":[
+                        ": from static-get",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf gcc-4.6.1-2.tar.gz"
+                    ]
+                }
+            ],
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                },
+                {
+                    "name":"LD_LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"lib/gcc/i586-linux-uclibc/4.6.1/include"
+                },
+                {
+                    "name":"C_INCLUDE_PATH",
+                    "value":"include"
+                },
+                {
+                    "name":"CPLUS_INCLUDE_PATH",
+                    "value":"include"
+                }
+            ]
+        }
+    ],
+
+    "make":[
+        {
+            "version":"v3.82",
+            "sources":[
+                {
+                    "type":"generic",
+                    "local":1,
+                    "files":[
+                        "make-3.82.tar.gz"
+                    ],
+                    "recipe":[
+                        ": from static-get",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf make-3.82.tar.gz"
+                    ]
+                }
+            ],
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+
+    "sed":[
+        {
+            "version":"v4.2",
+            "sources":[
+                {
+                    "type":"generic",
+                    "local":1,
+                    "files":[
+                        "sed-4.2.tar.gz"
+                    ],
+                    "recipe":[
+                        ": from static-get",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf sed-4.2.tar.gz"
+                    ]
+                }
+            ],
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "awk":[
+        {
+            "version":"v4.1.1",
+            "sources":[
+                {
+                    "type":"generic",
+                    "local":1,
+                    "files":[
+                        "gawk-4.1.1.tar.gz"
+                    ],
+                    "recipe":[
+                        ": from static-get",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf gawk-4.1.1.tar.gz"
+                    ]
+                }
+            ],
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
+    "pkg-config":[
+        {
+            "version":"v0.23",
+            "sources":[
+                {
+                    "type":"generic",
+                    "local":1,
+                    "files":[
+                        "pkg-config-0.23-1.tar.gz"
+                    ],
+                    "recipe":[
+                        ": from static-get",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf pkg-config-0.23-1.tar.gz"
+                    ]
+                }
+            ],
+            "environment-variables":[
+                {
+                    "name":"PATH",
+                    "value":"bin"
+                }
+            ]
+        }
+    ],
+
     "vc3-wq-factory":[
         {
             "version":"v0.000.001",
@@ -1991,43 +2243,6 @@
                 {
                     "name":"PKG_CONFIG_PATH",
                     "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
-            ]
-        }
-    ],
-
-    "cxx11": [
-        {
-            "version":"v4.009.002",
-            "sources":[
-                {
-                    "type":"binary",
-                    "files":[
-                       "crossx86-x86_64-linux-musl-1.1.6.tar.gz"
-                    ],
-                    "recipe":[
-                        "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf crossx86-x86_64-linux-musl-1.1.6.tar.gz",
-                        "cd ${VC3_ROOT_CXX11}/bin; for exe in x86_64-linux-musl-*; do short=${exe#x86_64-linux-musl-}; ln -sf ${exe} ${short}; done"
-                    ]
-                }
-            ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
                 },
                 {
                     "name":"C_INCLUDE_PATH",

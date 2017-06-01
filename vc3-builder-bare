@@ -1359,6 +1359,7 @@ sub environment_autovars {
     my %mappings;
     $mappings{PATH}               = 'bin';
     $mappings{LD_LIBRARY_PATH}    = 'lib';
+    $mappings{LIBRARY_PATH}       = 'lib';
     $mappings{C_INCLUDE_PATH}     = 'include';
     $mappings{CPLUS_INCLUDE_PATH} = 'include';
     $mappings{PKG_CONFIG_PATH}    = 'lib/pkgconfig';

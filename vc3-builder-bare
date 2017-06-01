@@ -473,7 +473,13 @@ sub set_builder_variables {
     $self->home_dir($vc3_user_home);
     $self->tmp_dir($tmp_dir);
 
-    $self->builder_path("$RealBin/$RealScript");
+    my $executable = $RealScript;
+    if($executable eq '-e') {
+        # this will break! BUG. How to know the name of static executable?
+        $executable = 'vc3-builder-static';
+    }
+
+    $self->builder_path("$RealBin/$executable");
 
     File::Path::make_path($self->root_dir);
     File::Path::make_path($vc3_distfiles);

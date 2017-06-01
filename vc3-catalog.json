@@ -1188,6 +1188,10 @@
                     "value":"lib"
                 },
                 {
+                    "name":"LIBRARY_PATH",
+                    "value":"lib"
+                },
+                {
                     "name":"C_INCLUDE_PATH",
                     "value":"include"
                 },

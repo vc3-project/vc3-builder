@@ -278,8 +278,8 @@ sub main {
     if(defined $parallel_dir) {
         $bag->to_parallel($parallel_dir, $make_jobs);
         $bag->check_manual_requirements();
-
-        $bag->set_plan_for('cctools-statics');
+ 
+        $bag->set_plan_for('vc3-builder-hands', 'cctools-statics');
         $ignore_locks = 1;
         $prestage     = 1;
     }

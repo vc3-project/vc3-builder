@@ -10846,8 +10846,8 @@ sub main {
     if(defined $parallel_dir) {
         $bag->to_parallel($parallel_dir, $make_jobs);
         $bag->check_manual_requirements();
-
-        $bag->set_plan_for('cctools-statics');
+ 
+        $bag->set_plan_for('vc3-builder-hands', 'cctools-statics');
         $ignore_locks = 1;
         $prestage     = 1;
     }
@@ -11927,6 +11927,7 @@ sub environment_autovars {
     my %mappings;
     $mappings{PATH}               = 'bin';
     $mappings{LD_LIBRARY_PATH}    = 'lib';
+    $mappings{LIBRARY_PATH}       = 'lib';
     $mappings{C_INCLUDE_PATH}     = 'include';
     $mappings{CPLUS_INCLUDE_PATH} = 'include';
     $mappings{PKG_CONFIG_PATH}    = 'lib/pkgconfig';
@@ -13707,11 +13708,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -13734,11 +13732,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -13754,11 +13749,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -13779,26 +13771,13 @@ __DATA__
                     ]
                 }
             ],
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+            ],
             "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
                 {
                     "name":"C_INCLUDE_PATH",
                     "value":"lib/gcc/i586-linux-uclibc/4.6.1/include"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
                 }
             ]
         }
@@ -13820,11 +13799,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -13846,11 +13822,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -13871,11 +13844,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -13896,11 +13866,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -14411,11 +14378,8 @@ __DATA__
                     }
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -14500,11 +14464,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -14591,24 +14552,15 @@ __DATA__
                     "v1.002"
                 ]
             },
+            "environment-autovars":[
+                "PATH", "PYTHONPATH", "PERL5LIB"
+            ],
             "environment-variables":[
                 {
                     "name":"PARROT_HTTP_PROXY",
                     "value":"http://cache01.hep.wisc.edu:3128",
                     "clobber":1,
                     "absolute":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"PYTHONPATH",
-                    "value":"lib/python${VC3_VERSION_PYTHON}/site-packages"
-                },
-                {
-                    "name":"PERL5LIB",
-                    "value":"lib/perl5/site_perl"
                 }
             ]
         }
@@ -14637,47 +14589,8 @@ __DATA__
                     }
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
-            ]
-        }
-    ],
-
-    "gcc":[
-        {
-            "version":"v4.006.001",
-            "sources":[
-                {
-                    "type":"binary",
-                    "files":[
-                        "gcc-4.6.1-2.tar.gz"
-                    ],
-                    "recipe":[
-                        "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=2 -xpf gcc-4.6.1-2.tar.gz"
-                    ]
-                }
-            ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -14693,11 +14606,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -14718,11 +14628,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -14793,19 +14700,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -14836,27 +14732,8 @@ __DATA__
                     "v5.010"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -14881,23 +14758,8 @@ __DATA__
                     "v1.000.002"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -14917,27 +14779,8 @@ __DATA__
                     "options":"--enable-static=yes --enable-shared=yes"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -14971,27 +14814,8 @@ __DATA__
                     "v1.008.000"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15034,27 +14858,8 @@ __DATA__
                     "v2.007"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15073,6 +14878,7 @@ __DATA__
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
+                        "mkdir -p ${HOME}/var/condor/{spool,log}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
                     ]
                 },
@@ -15086,18 +14892,18 @@ __DATA__
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
+                        "mkdir -p ${HOME}/var/condor/{spool,log}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
                     ]
                 }
             ],
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH"
+            ],
             "environment-variables":[
                 {
                     "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
+                    "value":"sbin"
                 },
                 {
                     "name":"PYTHONPATH",
@@ -15126,19 +14932,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15158,19 +14953,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15208,27 +14992,8 @@ __DATA__
                     "v2.005"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15257,27 +15022,8 @@ __DATA__
                     "v0.019"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15297,27 +15043,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15334,27 +15061,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 "
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15371,23 +15079,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib  --enable-lib --disable-util"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15838,27 +15531,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --static"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15878,23 +15552,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15914,27 +15573,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -15954,12 +15594,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"${VC3_ROOT_MASH}",
-                    "absolute":1
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -15988,23 +15624,8 @@ __DATA__
                     "v2.009"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -16064,11 +15685,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -16307,23 +15925,8 @@ __DATA__
                     "v1.010"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -16343,27 +15946,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-shared --disable-dependency-tracking --with-sge --disable-debug"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -16414,23 +15998,8 @@ __DATA__
                     "v3.013"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -16486,23 +16055,8 @@ __DATA__
                     "v3.013"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -16522,23 +16076,8 @@ __DATA__
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -16566,23 +16105,8 @@ __DATA__
                     "v2"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -16750,23 +16274,14 @@ __DATA__
                     ]
                 }
             ],
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+            ],
             "environment-variables":[
                 {
                     "name":"AUGUSTUS_CONFIG_PATH",
                     "value":"config",
                     "clobber":1
-                },
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                },
-                {
-                    "name":"CPLUS_INCLUDE_PATH",
-                    "value":"include"
                 }
             ]
         }
@@ -16800,11 +16315,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -16925,11 +16437,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                }
+            "environment-autovars":[
+                "PATH"
             ]
         }
     ],
@@ -17063,7 +16572,6 @@ __DATA__
         }
     ],
 
-
     "tcl":[
         {
             "version":"v8.005.09",
@@ -17079,19 +16587,8 @@ __DATA__
                     "options":"--enable-threads --enable-64bit"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -17116,15 +16613,8 @@ __DATA__
                     }
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -17170,23 +16660,8 @@ __DATA__
                     "v3.004"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -17215,19 +16690,8 @@ __DATA__
                     "v3.007"
                 ]
             },
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -17249,19 +16713,8 @@ __DATA__
                     }
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -17278,19 +16731,8 @@ __DATA__
                     "options":"-DCMAKE_Fortran_FLAGS=-fPIC -DCMAKE_C_FLAGS=-fPIC"
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -17313,19 +16755,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -17360,19 +16791,8 @@ __DATA__
                     }
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"PKG_CONFIG_PATH",
-                    "value":"lib/pkgconfig"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ],
@@ -17444,19 +16864,8 @@ __DATA__
                     ]
                 }
             ],
-            "environment-variables":[
-                {
-                    "name":"PATH",
-                    "value":"bin"
-                },
-                {
-                    "name":"LD_LIBRARY_PATH",
-                    "value":"lib"
-                },
-                {
-                    "name":"C_INCLUDE_PATH",
-                    "value":"include"
-                }
+            "environment-autovars":[
+                "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
             ]
         }
     ]

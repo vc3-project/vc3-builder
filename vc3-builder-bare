@@ -70,6 +70,8 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --no-sys=<package>    Do not use host system version of <package>. If
                         package is 'ALL', do not use system versions at
                         all. (Ignored if package specified with --sys.)
+                        CURRENTLY IS ALWAYS ALL. USE --sys FOR 
+                        DESIRED SYSTEM PACKAGES.
 
   --var NAME=VALUE      Add environment variable NAME with VALUE. 
                         May be specified several times.
@@ -390,6 +392,7 @@ sub new {
     $self->{sources} = $self->decode_bags($databases);
 
     $self->{no_system} = { map { ( $_ => 1 ), } @{$no_sys_locs} };
+    $self->{system}    = {};
 
     $self->add_manual_variables($extra_vars);
     $self->add_manual_packages($sys_locs);
@@ -624,10 +627,14 @@ sub add_manual_packages {
         $s->{version} = $version;
         $s->{sources} = [
             {
-                type => 'system',
-                'recipe' => [
+                type   => 'system',
+                recipe => [
                     "echo VC3_ROOT_SYSTEM: $dir"
+                ],
+                'environment-autovars' => [
+                    'PATH', 'LD_LIBRARY_PATH', 'LIBRARY_PATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'PKG_CONFIG_PATH', 'PYTHONPATH', 'PERL5LIB'
                 ]
+
             }
         ];
 
@@ -636,6 +643,8 @@ sub add_manual_packages {
         if($@) {
             die "Could not find specification to overwrite for '$name'\n";
         }
+
+        $self->{system}{$name} = 1;
 
         unshift @{$widgets}, VC3::Widget->new($self, $name, $s);
     }
@@ -2666,10 +2675,12 @@ sub add_sources {
     my $saved_state = $self->elements();
     for my $s (@{$sources}) {
 
-        if($self->bag->{no_system} && $s->isa('VC3::Source::System')) {
-            next if $self->bag->{no_system}{ALL};
-            next if $self->bag->{no_system}{$s->widget->name};
-        }
+        if($s->isa('VC3::Source::System')) {
+            unless($self->bag->{system}{$s->widget->name}) {
+                    next if $self->bag->{no_system}{ALL};
+                    next if $self->bag->{no_system}{$s->widget->name};
+                }
+            }
 
         if($self->add_source($s)) {
             return $s;

@@ -256,6 +256,8 @@ sub main {
     push @extra_vars, "MAKEFLAGS=-j${make_jobs}";
     push @extra_vars, "VC3_COMMAND_LINE=" . File::Spec->rel2abs(join(" ", $original_command));
 
+    unshift @re_vars, 'VC3_.*';
+
     for my $pat (@re_vars) {
         for my $name (keys %ENV) {
             next unless $name =~ /$pat/;

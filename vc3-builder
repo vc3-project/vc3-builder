@@ -10824,6 +10824,8 @@ sub main {
     push @extra_vars, "MAKEFLAGS=-j${make_jobs}";
     push @extra_vars, "VC3_COMMAND_LINE=" . File::Spec->rel2abs(join(" ", $original_command));
 
+    unshift @re_vars, 'VC3_.*';
+
     for my $pat (@re_vars) {
         for my $name (keys %ENV) {
             next unless $name =~ /$pat/;
@@ -14864,6 +14866,54 @@ __DATA__
         }
     ],
 
+    "condor-configure":[
+        {
+            "version":"v8.006.000",
+            "sources":[
+                {
+                    "type":"generic",
+                    "phony":1,
+                    "recipe":[
+                        "if [ -z \"${VC3_CONDOR_CONFIG_OPTIONS}\" ]; then",
+                        "cat <<EOF",
+                        "   No VC3_CONDOR_CONFIG_OPTIONS defined. Examples:",
+                        "   export VC3_CONDOR_CONFIG_OPTIONS='--type=submit,manager --central-manager \\$(hostname -i)'",   
+                        "   export VC3_CONDOR_CONFIG_OPTIONS='--type=submit --central-manager somewhere.net'",
+                        "   export VC3_CONDOR_CONFIG_OPTIONS='--type=execute --central-manager somewhere.net'",
+                        "EOF",
+                        "   exit 1",
+                        "fi",
+                        "export CONDOR_CONFIG=${VC3_ROOT_CONDOR}/etc/condor_config",
+                        ": rm -f ${CONDOR_CONFIG}",
+                        "cd ${VC3_ROOT_CONDOR}",
+                        "if [ ! -f ${VC3_CONDOR_LOCAL_DIR}/condor_config.local ]; then",
+                        "    echo ALLOW_WRITE = \\*               >> ${VC3_CONDOR_LOCAL_DIR}/condor_config.local",
+                        "    echo SCHEDD_NAME = $$.$(hostname)    >> ${VC3_CONDOR_LOCAL_DIR}/condor_config.local",
+                        "fi",
+                        "if [ -f \"${CONDOR_CONFIG}\" ]; then",
+			"    ./condor_configure $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS})",
+                        "else",
+			"    ./condor_install --local-dir=${VC3_CONDOR_LOCAL_DIR} $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS})",
+                        "fi"
+                    ]
+                }
+            ],
+            "dependencies":{
+                "condor":[
+                    "v8.006.000"
+                ]
+            },
+            "environment-variables":[
+                {
+                    "name":"CONDOR_CONFIG",
+                    "value":"${VC3_ROOT_CONDOR}/etc/condor_config",
+                    "absolute":1,
+                    "clobber":1
+                }
+            ]
+        }
+    ],
+
     "condor":[
         {
             "version":"v8.006.000",
@@ -14877,8 +14927,9 @@ __DATA__
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ],
                     "recipe":[
+                        "VC3_CONDOR_LOCAL_DIR=${HOME}/var/condor",
                         "mkdir -p ${VC3_PREFIX}",
-                        "mkdir -p ${HOME}/var/condor/{spool,log}",
+                        "mkdir -p ${VC3_CONDOR_LOCAL_DIR}/{config,log,spool}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
                     ]
                 },
@@ -14897,6 +14948,11 @@ __DATA__
                     ]
                 }
             ],
+            "dependencies":{
+                "perl":[
+                    "v5.010.000"
+                ]
+            },
             "environment-autovars":[
                 "PATH", "LD_LIBRARY_PATH"
             ],
@@ -14908,6 +14964,12 @@ __DATA__
                 {
                     "name":"PYTHONPATH",
                     "value":"lib/python"
+                },
+                {
+                    "name":"VC3_CONDOR_LOCAL_DIR",
+                    "value":"${HOME}/var/condor",
+                    "absolute":1,
+                    "clobber":1
                 }
             ]
         }

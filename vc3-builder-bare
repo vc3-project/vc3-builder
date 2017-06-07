@@ -389,7 +389,7 @@ sub new {
 
     $self->set_builder_variables();
 
-    $self->{sources} = $self->decode_bags($databases);
+    $self->{packages} = $self->decode_bags($databases);
 
     $self->{no_system} = { map { ( $_ => 1 ), } @{$no_sys_locs} };
     $self->{system}    = {};
@@ -630,23 +630,20 @@ sub add_manual_packages {
                 type   => 'system',
                 recipe => [
                     "echo VC3_ROOT_SYSTEM: $dir"
-                ],
-                'environment-autovars' => [
-                    'PATH', 'LD_LIBRARY_PATH', 'LIBRARY_PATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'PKG_CONFIG_PATH', 'PYTHONPATH', 'PERL5LIB'
                 ]
-
             }
         ];
 
-        my $widgets;
-        eval { $widgets = $self->widgets_of($name) };
-        if($@) {
+        my $pkg = $self->{packages}{$name};
+        unless($pkg) {
             die "Could not find specification to overwrite for '$name'\n";
         }
 
+
         $self->{system}{$name} = 1;
 
-        unshift @{$widgets}, VC3::Widget->new($self, $name, $s);
+        my $widgets = $pkg->widgets;
+        unshift @{$widgets}, VC3::Widget->new($self, $pkg, $s);
     }
 }
 
@@ -799,32 +796,32 @@ sub distribution {
 sub widgets_of {
     my ($self, $name) = @_;
 
-    my $widgets = $self->{sources}{$name}
+    my $pkg = $self->{packages}{$name}
     || die "I do not know anything about '$name' . \n";
 
-    return $widgets;
+    return $pkg->widgets;
 }
 
 sub decode_bags {
     my ($self, $databases) = @_;
 
-    my $sources = {};
+    my $packages = {};
 
     for my $filename (@{$databases}) {
-        $self->decode_bag($sources, $filename);
+        $self->decode_bag($packages, $filename);
     }
 
-    return $sources;
+    return $packages;
 }
 
 sub decode_bag {
-    my ($self, $sources, $filename) = @_;
+    my ($self, $packages, $filename) = @_;
 
     {
         no warnings;
         if($filename eq '<internal>' && tell(VC3::Builder::DATA) == -1) {
             $filename = './vc3-catalog.json';
-            return $sources unless -f $filename; 
+            return $packages unless -f $filename; 
         }
     }
 
@@ -841,12 +838,13 @@ sub decode_bag {
 
     my $bag_raw = JSON::Tiny::decode_json($contents);
 
-    for my $widget_name (keys %{$bag_raw}) {
-        my @versions = map { VC3::Widget->new($self, $widget_name, $_) } @{$bag_raw->{$widget_name}};
-        $sources->{$widget_name} = \@versions;
+    for my $package_name (keys %{$bag_raw}) {
+        my $pkg = VC3::Package->new($self, $package_name, $bag_raw->{$package_name});
+
+        $packages->{$package_name} = $pkg;
     }
 
-    return $sources;
+    return $packages;
 } 
 
 sub build_widget {
@@ -1176,6 +1174,128 @@ sub say {
     print( ('.' x (2*$self->{indent_level})), join(' ', @rest), "\n");
 }
 
+package VC3::Package;
+use Carp;
+
+sub new {
+    my ($class, $bag, $name, $json_description) = @_;
+
+    my $self = bless {}, $class;
+
+    $self->bag($bag);
+    $self->name($name);
+    $self->widgets($json_description->{versions});
+    $self->dependencies($json_description->{dependencies});
+    $self->wrapper($json_description->{wrapper});
+    $self->prologue($json_description->{prologue});
+    $self->environment_variables($json_description->{'environment-variables'});
+    $self->environment_autovars($json_description->{'environment-autovars'});
+    $self->phony($json_description->{phony});
+
+    return $self;
+}
+
+sub widgets {
+    my ($self, $new_widgets) = @_;
+
+    if($new_widgets) {
+        my @widgets = map { VC3::Widget->new($self, $_) } @{$new_widgets};
+
+        $self->{widgets} = \@widgets;
+    }
+
+    return $self->{widgets};
+}
+        
+
+sub bag {
+    my ($self, $new_bag) = @_;
+
+    $self->{bag} = $new_bag if($new_bag);
+
+    croak 'No bag given'
+    unless($self->{bag}); 
+
+    return $self->{bag};
+}
+
+sub name {
+    my ($self, $new_name) = @_;
+
+    if($new_name) {
+        # names can only contain letters, numbers, - and _.
+        my @badchars = ($new_name =~ /([^A-Za-z0-9-_])/g);
+        if(@badchars) {
+            die "The name '$new_name' containes the following disallowed charactares: " 
+            . join ', ', map { "'$_'" } @badchars;
+        } else {
+            $self->{name} = $new_name if($new_name);
+        }
+    }
+
+    die 'No name given'
+    unless($self->{name}); 
+
+    return $self->{name};
+}
+
+sub dependencies {
+    my ($self, $new_dependencies) = @_;
+
+    $self->{dependencies} = $new_dependencies if($new_dependencies);
+
+    return $self->{dependencies};
+}
+
+sub active_source {
+    my ($self, $source) = @_;
+
+    if($source) {
+        $self->{active_source} = $source;
+        $self->checksum($source);
+    }
+
+    return $self->{active_source};
+}
+
+sub prologue {
+    my ($self, $new_prologue) = @_;
+
+    $self->{prologue} = $new_prologue if($new_prologue);
+
+    return $self->{prologue};
+}
+
+sub wrapper {
+    my ($self, $new_wrapper) = @_;
+
+    $self->{wrapper} = $new_wrapper if($new_wrapper);
+
+    return $self->{wrapper};
+}
+
+sub environment_variables {
+    my ($self, $new_vars) = @_;
+
+    $self->{environment_variables} = $new_vars if($new_vars);
+
+    return $self->{environment_variables};
+}
+
+sub environment_autovars {
+    my ($self, $new_autovars) = @_;
+
+    $self->{environment_autovars} = $new_autovars if($new_autovars);
+    return $self->{environment_autovars};
+}
+
+sub phony {
+    my ($self, $new_phony) = @_;
+
+    $self->{phony} = $new_phony if($new_phony);
+
+    return $self->{phony};
+}
 
 package VC3::Widget;
 use Carp;
@@ -1188,14 +1308,14 @@ use File::Temp qw/tempdir/;
 use JSON::Tiny;
 
 # Attributes:
-# name, version, sources, dependencies, environment_variables
+# name, version, sources, dependencies, wrapper, prologue, environment_variables, environment_autovars, phony
 sub new {
-    my ($class, $bag, $name, $json_description) = @_;
+    my ($class, $pkg, $json_description) = @_;
 
     my $self = bless {}, $class;
 
-    $self->bag($bag);
-    $self->name($name);
+    $self->package($pkg);
+
     $self->version($json_description->{version});
     $self->sources($json_description->{sources});
     $self->dependencies($json_description->{dependencies});
@@ -1254,15 +1374,27 @@ sub widget_var {
     return $expanded;
 }
 
+sub package {
+    my ($self, $new_pkg) = @_;
+
+    $self->{package} = $new_pkg if($new_pkg);
+
+    croak 'No package given'
+    unless($self->{package}); 
+
+    return $self->{package};
+}
+
 sub bag {
-    my ($self, $new_bag) = @_;
+    my ($self) = @_;
 
-    $self->{bag} = $new_bag if($new_bag);
+    return $self->package->bag;
+}
 
-    croak 'No bag given'
-    unless($self->{bag}); 
+sub name {
+    my ($self, $new_name) = @_;
 
-    return $self->{bag};
+    return $self->package->name;
 }
 
 sub ribbon {
@@ -1273,26 +1405,6 @@ sub ribbon {
     }
 
     return $self->{ribbon};
-}
-
-sub name {
-    my ($self, $new_name) = @_;
-
-    if($new_name) {
-        # names can only contain letters, numbers, - and _.
-        my @badchars = ($new_name =~ /([^A-Za-z0-9-_])/g);
-        if(@badchars) {
-            die "The name '$new_name' containes the following disallowed charactares: " 
-            . join ', ', map { "'$_'" } @badchars;
-        } else {
-            $self->{name} = $new_name if($new_name);
-        }
-    }
-
-    die 'No name given'
-    unless($self->{name}); 
-
-    return $self->{name};
 }
 
 sub version {
@@ -1312,7 +1424,19 @@ sub version {
 sub dependencies {
     my ($self, $new_dependencies) = @_;
 
-    $self->{dependencies} = $new_dependencies if($new_dependencies);
+    if($new_dependencies) {
+        my %deps;
+
+        if($self->package->dependencies) {
+            %deps = %{$self->package->dependencies};
+        }
+
+        for my $d (keys %{$new_dependencies}) {
+            $deps{$d} = $new_dependencies->{$d};
+        }
+
+        $self->{dependencies} = \%deps;
+    }
 
     return $self->{dependencies};
 }
@@ -1344,7 +1468,9 @@ sub prologue {
 
     $self->{prologue} = $new_prologue if($new_prologue);
 
-    return $self->{prologue};
+    my $prologue = $self->{prologue} || $self->package->prologue;
+
+    return $prologue;
 }
 
 sub wrapper {
@@ -1352,14 +1478,25 @@ sub wrapper {
 
     $self->{wrapper} = $new_wrapper if($new_wrapper);
 
-    return $self->{wrapper};
+    my $wrapper = $self->{wrapper} || $self->package->wrapper;
+
+    return $wrapper;
 }
 
 
 sub environment_variables {
     my ($self, $new_vars) = @_;
 
-    $self->{environment_variables} = $new_vars if($new_vars);
+    if($new_vars) {
+        my @vars = ();
+
+        if($self->package->environment_variables) {
+            push @vars, @{$self->package->environment_variables};
+        }
+
+        push @vars, @{$new_vars};
+        $self->{environment_variables} = \@vars;
+    }
 
     return $self->{environment_variables};
 }
@@ -1377,7 +1514,17 @@ sub environment_autovars {
     $mappings{PYTHONPATH}         = 'lib/python${VC3_VERSION_PYTHON}/site-packages';
     $mappings{PERL5LIB}           = 'lib/perl5/site_perl';
 
-    $self->{environment_autovars} = $new_autovars if($new_autovars);
+    if($new_autovars) {
+        my @autovars = ();
+
+        if($self->package->environment_autovars) {
+            push @autovars, @{$self->package->environment_autovars};
+        }
+
+        push @autovars, @{$new_autovars};
+        $self->{environment_autovars} = \@autovars;
+    }
+
     $self->{environment_variables} ||= [];
 
     for my $var (@{$new_autovars}) {
@@ -1398,7 +1545,9 @@ sub phony {
 
     $self->{phony} = $new_phony if($new_phony);
 
-    return $self->{phony};
+    my $phony = $self->{phony} || $self->package->phony;
+
+    return $phony;
 }
 
 sub root_dir {

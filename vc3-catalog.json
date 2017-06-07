@@ -55,11 +55,11 @@
                             "chmod 755 ${VC3_PREFIX}/bin/static-get"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 

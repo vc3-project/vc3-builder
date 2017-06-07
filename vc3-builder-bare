@@ -1184,13 +1184,14 @@ sub new {
 
     $self->bag($bag);
     $self->name($name);
-    $self->widgets($json_description->{versions});
     $self->dependencies($json_description->{dependencies});
     $self->wrapper($json_description->{wrapper});
     $self->prologue($json_description->{prologue});
     $self->environment_variables($json_description->{'environment-variables'});
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
+
+    $self->widgets($json_description->{versions});
 
     return $self;
 }
@@ -1286,6 +1287,7 @@ sub environment_autovars {
     my ($self, $new_autovars) = @_;
 
     $self->{environment_autovars} = $new_autovars if($new_autovars);
+
     return $self->{environment_autovars};
 }
 
@@ -1515,19 +1517,20 @@ sub environment_autovars {
     $mappings{PERL5LIB}           = 'lib/perl5/site_perl';
 
     if($new_autovars) {
-        my @autovars = ();
+        $self->{environment_autovars} = $new_autovars;
+    }
 
-        if($self->package->environment_autovars) {
-            push @autovars, @{$self->package->environment_autovars};
-        }
+    my @autovars;
+    if($self->package->environment_autovars) {
+        push @autovars, @{$self->package->environment_autovars};
+    }
 
-        push @autovars, @{$new_autovars};
-        $self->{environment_autovars} = \@autovars;
+    if($self->{environment_autovars}) {
+        push @autovars, @{$self->{environment_autovars}};
     }
 
     $self->{environment_variables} ||= [];
-
-    for my $var (@{$new_autovars}) {
+    for my $var (@autovars) {
         my $target = $mappings{$var};
 
         unless($target) {
@@ -1537,7 +1540,7 @@ sub environment_autovars {
         push @{$self->{environment_variables}}, { 'name' => $var, 'value' => $target };
     }
 
-    return $self->{environment_autovars};
+    return @autovars;
 }
 
 sub phony {

@@ -81,11 +81,11 @@
                             "chmod 755 ${VC3_PREFIX}/bin/tar"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -100,11 +100,11 @@
                             "sharutils-4.15.tar.gz"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -125,9 +125,6 @@
                         ]
                     }
                 ],
-                "environment-autovars":[
-                    "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
-                ],
                 "environment-variables":[
                     {
                         "name":"C_INCLUDE_PATH",
@@ -135,6 +132,9 @@
                     }
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ]
     },
 
@@ -154,11 +154,11 @@
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xf make-3.82.tar.gz"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -179,11 +179,11 @@
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xf sed-4.2.tar.gz"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -203,11 +203,11 @@
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xf gawk-4.1.1.tar.gz"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -227,11 +227,11 @@
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xf pkg-config-0.23-1.tar.gz"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -290,25 +290,25 @@
                     "condor":[
                         "v8.006.000"
                     ]
-                },
-                "environment-variables":[
-                    {
-                        "name":"APF_HOME",
-                        "value":"${VC3_SERVICES_HOME}/apf",
-                        "absolute":1,
-                        "clobber":1
-                    },
-                    {
-                        "name":"PYTHONPATH",
-                        "value":"${APF_HOME}/lib/python",
-                        "absolute":1
-                    },
-                    {
-                        "name":"PATH",
-                        "value":"${APF_HOME}/bin",
-                        "absolute":1
-                    }
-                ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"APF_HOME",
+                "value":"${VC3_SERVICES_HOME}/apf",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"PYTHONPATH",
+                "value":"${APF_HOME}/lib/python",
+                "absolute":1
+            },
+            {
+                "name":"PATH",
+                "value":"${APF_HOME}/bin",
+                "absolute":1
             }
         ]
     },
@@ -358,25 +358,25 @@
                     "git":[
                         "v2.012.000"
                     ]
-                },
-                "environment-variables":[
-                    {
-                        "name":"VC3_SERVICES_HOME",
-                        "value":"${HOME}/vc3-services",
-                        "absolute":1,
-                        "clobber":1
-                    },
-                    {
-                        "name":"PATH",
-                        "value":"${VC3_SERVICES_HOME}/bin",
-                        "absolute":1
-                    },
-                    {
-                        "name":"PYTHONPATH",
-                        "value":"${VC3_SERVICES_HOME}/lib/python",
-                        "absolute":1
-                    }
-                ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_SERVICES_HOME",
+                "value":"${HOME}/vc3-services",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"PATH",
+                "value":"${VC3_SERVICES_HOME}/bin",
+                "absolute":1
+            },
+            {
+                "name":"PYTHONPATH",
+                "value":"${VC3_SERVICES_HOME}/lib/python",
+                "absolute":1
             }
         ]
     },
@@ -559,27 +559,27 @@
                     "python-requests":[
                         "v2.007.000"
                     ]
-                },
-                "environment-variables":[
-                    {
-                        "name":"VC3_SERVICES_INFOSERVICE_INFOHOST",
-                        "value":"localhost",
-                        "absolute":1,
-                        "clobber":1
-                    },
-                    {
-                        "name":"VC3_SERVICES_INFOSERVICE_HTTP_PORT",
-                        "value":"20333",
-                        "absolute":1,
-                        "clobber":1
-                    },
-                    {
-                        "name":"VC3_SERVICES_INFOSERVICE_HTTPS_PORT",
-                        "value":"20334",
-                        "absolute":1,
-                        "clobber":1
-                    }
-                ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_SERVICES_INFOSERVICE_INFOHOST",
+                "value":"localhost",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_INFOSERVICE_HTTP_PORT",
+                "value":"20333",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_INFOSERVICE_HTTPS_PORT",
+                "value":"20334",
+                "absolute":1,
+                "clobber":1
             }
         ]
     },
@@ -629,33 +629,33 @@
                     "vc3-services-common-requirements":[
                         "v0.000.001"
                     ]
-                },
-                "environment-variables":[
-                    {
-                        "name":"VC3_SERVICES_CERTS_HOME",
-                        "value":"${VC3_SERVICES_HOME}/etc/ssca/certs",
-                        "absolute":1,
-                        "clobber":1
-                    },
-                    {
-                        "name":"VC3_SERVICES_CERTS_CHAINFILE",
-                        "value":"${VC3_SERVICES_CERTS_HOME}/ca-chain.cert.pem",
-                        "absolute":1,
-                        "clobber":1
-                    },
-                    {
-                        "name":"VC3_SERVICES_CERTS_CERTFILE",
-                        "value":"${VC3_SERVICES_CERTS_HOME}/VC3Admin.cert.pem",
-                        "absolute":1,
-                        "clobber":1
-                    },
-                    {
-                        "name":"VC3_SERVICES_CERTS_KEYFILE",
-                        "value":"${VC3_SERVICES_CERTS_HOME}/private/VC3Admin.keynopw.pem",
-                        "absolute":1,
-                        "clobber":1
-                    }
-                ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_SERVICES_CERTS_HOME",
+                "value":"${VC3_SERVICES_HOME}/etc/ssca/certs",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_CERTS_CHAINFILE",
+                "value":"${VC3_SERVICES_CERTS_HOME}/ca-chain.cert.pem",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_CERTS_CERTFILE",
+                "value":"${VC3_SERVICES_CERTS_HOME}/VC3Admin.cert.pem",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_CERTS_KEYFILE",
+                "value":"${VC3_SERVICES_CERTS_HOME}/private/VC3Admin.keynopw.pem",
+                "absolute":1,
+                "clobber":1
             }
         ]
     },
@@ -771,11 +771,11 @@
                             ]
                         }
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -865,11 +865,11 @@
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-statics-6.0.16-x86_64.tar.gz"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -950,23 +950,23 @@
                             ]
                         }
                     }
-                ],
-                "dependencies":{
-                    "zlib":[
-                        "v1.002"
-                    ]
-                },
-                "environment-autovars":[
-                    "PATH", "PYTHONPATH", "PERL5LIB"
-                ],
-                "environment-variables":[
-                    {
-                        "name":"PARROT_HTTP_PROXY",
-                        "value":"http://cache01.hep.wisc.edu:3128",
-                        "clobber":1,
-                        "absolute":1
-                    }
                 ]
+            }
+        ],
+        "dependencies":{
+            "zlib":[
+                "v1.002"
+            ]
+        },
+        "environment-autovars":[
+            "PATH", "PYTHONPATH", "PERL5LIB"
+        ],
+        "environment-variables":[
+            {
+                "name":"PARROT_HTTP_PROXY",
+                "value":"http://cache01.hep.wisc.edu:3128",
+                "clobber":1,
+                "absolute":1
             }
         ]
     },
@@ -994,11 +994,11 @@
                             ]
                         }
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -1013,11 +1013,11 @@
                             "patch-2.7.5.tar.gz"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -1037,11 +1037,11 @@
                             "make install"
                         ]
                     }
-                ],
-                "environment-autovars":[
-                    "PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 
@@ -1113,11 +1113,11 @@
                         ],
                         "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
                     }
-                ],
-                "environment-autovars":[
-                    "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
                 ]
             }
+        ],
+        "environment-autovars":[
+            "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ]
     },
 
@@ -1147,11 +1147,11 @@
                     "perl":[
                         "v5.010"
                     ]
-                },
-                "environment-autovars":[
-                    "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
-                ]
+                }
             }
+        ],
+        "environment-autovars":[
+            "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ]
     },
 
@@ -1373,31 +1373,31 @@
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
                         ]
                     }
-                ],
-                "dependencies":{
-                    "perl":[
-                        "v5.010.000"
-                    ]
-                },
-                "environment-autovars":[
-                    "PATH", "LD_LIBRARY_PATH"
-                ],
-                "environment-variables":[
-                    {
-                        "name":"PATH",
-                        "value":"sbin"
-                    },
-                    {
-                        "name":"PYTHONPATH",
-                        "value":"lib/python"
-                    },
-                    {
-                        "name":"VC3_CONDOR_LOCAL_DIR",
-                        "value":"${HOME}/var/condor",
-                        "absolute":1,
-                        "clobber":1
-                    }
                 ]
+            }
+        ],
+        "dependencies":{
+            "perl":[
+                "v5.010.000"
+            ]
+        },
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH"
+        ],
+        "environment-variables":[
+            {
+                "name":"PATH",
+                "value":"sbin"
+            },
+            {
+                "name":"PYTHONPATH",
+                "value":"lib/python"
+            },
+            {
+                "name":"VC3_CONDOR_LOCAL_DIR",
+                "value":"${HOME}/var/condor",
+                "absolute":1,
+                "clobber":1
             }
         ]
     },
@@ -1635,6 +1635,8 @@
                             "mkdir -p ${VC3_PREFIX}/local_modules"
                         ]
                     }
+                ]
+            }
             ],
             "dependencies":{
                 "perl-vc3-modules":[
@@ -1673,8 +1675,6 @@
                     "absolute":1
                 }
             ]
-            }
-        ]
     },
 
     "perl-vc3-modules":{
@@ -1775,43 +1775,40 @@
                             "setuptools-24.0.2.tar.gz"
                         ],
                         "recipe":[
-                            ": brokenfix dir=${VC3_MODULES_PYTHON}",
-                            "dir=${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",
-                            "export PYTHONPATH=$dir/lib/python${VC3_VERSION_PYTHON}/site-packages:$PYTHONPATH",
+                            "dir=${VC3_MODULES_PYTHON}",
                             "mkdir -p $dir",
-                            ": brokenfix python setup.py install --prefix=${VC3_MODULES_PYTHON}",
                             "python setup.py install --prefix=${dir}"
                         ]
                     }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.006"
-                    ]
-                },
-                "environment-variables":[
-                    {
-                        "name":"PYTHONPATH",
-                        "value":"${VC3_ROOT_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                        "absolute":1
-                    },
-                    {
-                        "name":"VC3_MODULES_PYTHON",
-                        "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",
-                        "clobber":1,
-                        "absolute":1
-                    },
-                    {
-                        "name":"PATH",
-                        "value":"${VC3_MODULES_PYTHON}/bin",
-                        "absolute":1
-                    },
-                    {
-                        "name":"PYTHONPATH",
-                        "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                        "absolute":1
-                    }
                 ]
+            }
+        ],
+        "dependencies":{
+            "python":[
+                "v2.006"
+            ]
+        },
+        "environment-variables":[
+            {
+                "name":"PYTHONPATH",
+                "value":"${VC3_ROOT_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                "absolute":1
+            },
+            {
+                "name":"VC3_MODULES_PYTHON",
+                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",
+                "clobber":1,
+                "absolute":1
+            },
+            {
+                "name":"PATH",
+                "value":"${VC3_MODULES_PYTHON}/bin",
+                "absolute":1
+            },
+            {
+                "name":"PYTHONPATH",
+                "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                "absolute":1
             }
         ]
     },
@@ -2038,33 +2035,33 @@
                             ]
                         }
                     }
-                ],
-                "environment-variables":[
-                    {
-                        "name":"PATH",
-                        "value":"bin"
-                    },
-                    {
-                        "name":"PYTHONPATH",
-                        "value":"lib/python${VC3_VERSION_PYTHON}/site-packages"
-                    },
-                    {
-                        "name":"VC3_MODULES_PYTHON",
-                        "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",
-                        "clobber":1,
-                        "absolute":1
-                    },
-                    {
-                        "name":"PATH",
-                        "value":"${VC3_MODULES_PYTHON}/bin",
-                        "absolute":1
-                    },
-                    {
-                        "name":"PYTHONPATH",
-                        "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                        "absolute":1
-                    }
                 ]
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"PATH",
+                "value":"bin"
+            },
+            {
+                "name":"PYTHONPATH",
+                "value":"lib/python${VC3_VERSION_PYTHON}/site-packages"
+            },
+            {
+                "name":"VC3_MODULES_PYTHON",
+                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",
+                "clobber":1,
+                "absolute":1
+            },
+            {
+                "name":"PATH",
+                "value":"${VC3_MODULES_PYTHON}/bin",
+                "absolute":1
+            },
+            {
+                "name":"PYTHONPATH",
+                "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                "absolute":1
             }
         ]
     },
@@ -2597,11 +2594,11 @@
                     "sqlite3":[
                         "v3.013"
                     ]
-                },
-                "environment-autovars":[
-                    "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
-                ]
+                }
             }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ]
     },
 
@@ -2656,11 +2653,11 @@
                     "sqlite3":[
                         "v3.013"
                     ]
-                },
-                "environment-autovars":[
-                    "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
-                ]
+                }
             }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ]
     },
 

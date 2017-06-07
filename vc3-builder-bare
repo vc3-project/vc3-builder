@@ -643,7 +643,7 @@ sub add_manual_packages {
         $self->{system}{$name} = 1;
 
         my $widgets = $pkg->widgets;
-        unshift @{$widgets}, VC3::Widget->new($self, $pkg, $s);
+        unshift @{$widgets}, VC3::Widget->new($pkg, $s);
     }
 }
 

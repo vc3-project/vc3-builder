@@ -11995,20 +11995,19 @@ sub dependencies {
     my ($self, $new_dependencies) = @_;
 
     if($new_dependencies) {
-        my %deps;
-
-        if($self->package->dependencies) {
-            %deps = %{$self->package->dependencies};
-        }
-
-        for my $d (keys %{$new_dependencies}) {
-            $deps{$d} = $new_dependencies->{$d};
-        }
-
-        $self->{dependencies} = \%deps;
+        $self->{dependencies} = $new_dependencies;
     }
 
-    return $self->{dependencies};
+    my %deps;
+    if($self->package->dependencies) {
+        %deps = %{$self->package->dependencies};
+    }
+
+    for my $d (keys %{$self->{dependencies}}) {
+        $deps{$d} = $self->{dependencies}->{$d};
+    }
+
+    return \%deps;
 }
 
 sub sources {
@@ -12656,7 +12655,12 @@ sub dependencies {
             }
 
             if($max_version) {
-                $max_version = version->declare($max_version);
+                $max_version = version->parse($max_version);
+
+                my $num = $max_version->numify();
+                my $fix = ($num * 1000000) % 1000;
+                $num   += 0.000999 unless($fix);
+                $max_version = version->declare($num);
 
                 unless($min_version) {
                     $min_version = version->declare('v0.0.0');
@@ -13794,18 +13798,11 @@ sub refine {
         return undef;
     }
 
-    if($max) {
-        my $v   = version->declare($max);
-        my $num = $v->numify();
-        my $fix = ($num * 1000000) % 1000;
-        $num   += 0.000999 unless($fix);
-        $v      = version->parse($num);
-        
-        if($v lt $self->{widget}->version) { 
-            return undef;
-        }
-    }
 
+    if($max && $max lt $self->{widget}->version) {
+        return undef;
+    }
+        
     return VC3::Plan::Element->new($self->{widget}, $min, $max);
 }
 
@@ -13830,7 +13827,7 @@ __DATA__
                         "recipe":[
                             "echo 'hello builder'"
                         ],
-                        "dependencies":{
+                        "dependencies-disabled":{
                             "make":[
                                 "v3.082.000"
                             ],
@@ -13846,7 +13843,7 @@ __DATA__
                         }
                     }
                 ],
-                "dependencies":{
+                "dependencies-disabled":{
                     "tar":[
                         "v1.002.000"
                     ]
@@ -14210,7 +14207,7 @@ __DATA__
                         "v0.000.001"
                     ],
                     "perl":[
-                        "v2.024.000"
+                        "v5.010.000"
                     ]
                 }
             }
@@ -14712,7 +14709,7 @@ __DATA__
                         ],
                         "dependencies":{
                             "perl":[
-                                "v5.016.000", "v5.016.003"
+                                "v5.16", "v5.16.3"
                             ],
                             "python":[
                                 "v2.007.000", "v2.007.012"
@@ -15435,7 +15432,7 @@ __DATA__
                 ]
             },
             {
-                "version":"v5.024.000",
+                "version":"v5.024",
                 "sources":[
                     {
                         "type":"system",
@@ -15515,21 +15512,21 @@ __DATA__
                             "tar -C ${local_cpan} -xf perl-vc3-modules-001.tar"
                         ]
                     }
-                ],
-                "environment-variables":[
-                    {
-                        "name":"VC3_MODULES_PERL", 
-                        "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
-                        "clobber":1,
-                        "absolute":1
-                    },
-                    {
-                        "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
-                        "value":"${VC3_MODULES_PERL}/local_cpan",
-                        "clobber":1,
-                        "absolute":1
-                    }
                 ]
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_MODULES_PERL", 
+                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
+                "clobber":1,
+                "absolute":1
+            },
+            {
+                "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
+                "value":"${VC3_MODULES_PERL}/local_cpan",
+                "clobber":1,
+                "absolute":1
             }
         ]
     },

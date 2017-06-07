@@ -10,7 +10,7 @@
                         "recipe":[
                             "echo 'hello builder'"
                         ],
-                        "dependencies":{
+                        "dependencies-disabled":{
                             "make":[
                                 "v3.082.000"
                             ],
@@ -26,7 +26,7 @@
                         }
                     }
                 ],
-                "dependencies":{
+                "dependencies-disabled":{
                     "tar":[
                         "v1.002.000"
                     ]
@@ -390,7 +390,7 @@
                         "v0.000.001"
                     ],
                     "perl":[
-                        "v2.024.000"
+                        "v5.010.000"
                     ]
                 }
             }
@@ -892,7 +892,7 @@
                         ],
                         "dependencies":{
                             "perl":[
-                                "v5.016.000", "v5.016.003"
+                                "v5.16", "v5.16.3"
                             ],
                             "python":[
                                 "v2.007.000", "v2.007.012"
@@ -1615,7 +1615,7 @@
                 ]
             },
             {
-                "version":"v5.024.000",
+                "version":"v5.024",
                 "sources":[
                     {
                         "type":"system",
@@ -1695,21 +1695,21 @@
                             "tar -C ${local_cpan} -xf perl-vc3-modules-001.tar"
                         ]
                     }
-                ],
-                "environment-variables":[
-                    {
-                        "name":"VC3_MODULES_PERL", 
-                        "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
-                        "clobber":1,
-                        "absolute":1
-                    },
-                    {
-                        "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
-                        "value":"${VC3_MODULES_PERL}/local_cpan",
-                        "clobber":1,
-                        "absolute":1
-                    }
                 ]
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_MODULES_PERL", 
+                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules",
+                "clobber":1,
+                "absolute":1
+            },
+            {
+                "name":"VC3_MODULES_PERL_LOCAL_CPAN", 
+                "value":"${VC3_MODULES_PERL}/local_cpan",
+                "clobber":1,
+                "absolute":1
             }
         ]
     },

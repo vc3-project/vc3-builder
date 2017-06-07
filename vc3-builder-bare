@@ -1427,20 +1427,19 @@ sub dependencies {
     my ($self, $new_dependencies) = @_;
 
     if($new_dependencies) {
-        my %deps;
-
-        if($self->package->dependencies) {
-            %deps = %{$self->package->dependencies};
-        }
-
-        for my $d (keys %{$new_dependencies}) {
-            $deps{$d} = $new_dependencies->{$d};
-        }
-
-        $self->{dependencies} = \%deps;
+        $self->{dependencies} = $new_dependencies;
     }
 
-    return $self->{dependencies};
+    my %deps;
+    if($self->package->dependencies) {
+        %deps = %{$self->package->dependencies};
+    }
+
+    for my $d (keys %{$self->{dependencies}}) {
+        $deps{$d} = $self->{dependencies}->{$d};
+    }
+
+    return \%deps;
 }
 
 sub sources {
@@ -2088,7 +2087,12 @@ sub dependencies {
             }
 
             if($max_version) {
-                $max_version = version->declare($max_version);
+                $max_version = version->parse($max_version);
+
+                my $num = $max_version->numify();
+                my $fix = ($num * 1000000) % 1000;
+                $num   += 0.000999 unless($fix);
+                $max_version = version->declare($num);
 
                 unless($min_version) {
                     $min_version = version->declare('v0.0.0');
@@ -3226,18 +3230,11 @@ sub refine {
         return undef;
     }
 
-    if($max) {
-        my $v   = version->declare($max);
-        my $num = $v->numify();
-        my $fix = ($num * 1000000) % 1000;
-        $num   += 0.000999 unless($fix);
-        $v      = version->parse($num);
-        
-        if($v lt $self->{widget}->version) { 
-            return undef;
-        }
-    }
 
+    if($max && $max lt $self->{widget}->version) {
+        return undef;
+    }
+        
     return VC3::Plan::Element->new($self->{widget}, $min, $max);
 }
 

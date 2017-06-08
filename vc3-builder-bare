@@ -24,6 +24,8 @@ my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
 my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
 my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/builder-files";
 
+my $shell          = '/bin/sh';
+
 my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;
 my @cleanups;     # functions to call on exit.
 
@@ -36,7 +38,7 @@ sub usage {
     return <<EOF;
 $script_name [options] --require package[:min_version[:max_version]] --require ... [-- command-and-args]
 
-  command-and-args      defaults to /bin/sh
+  command-and-args      defaults to $shell
 
   options are:
 
@@ -60,7 +62,7 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
 
   --make-jobs <n>       Concurrent make jobs. Default is 4.
-  --sh-on-error         On building error, run /bin/sh on the partially-built
+  --sh-on-error         On building error, run $shell on the partially-built
                         environment.
 
   --sys package:version=<dir>
@@ -251,7 +253,7 @@ sub main {
     # set defaults
     my @command_and_args = @ARGV;
     if(!@command_and_args) {
-        @command_and_args = ('/bin/sh',);
+        @command_and_args = ($shell,);
         $interactive_run = 1;
     }
 
@@ -505,6 +507,7 @@ sub set_builder_variables {
     $self->add_builder_variable('HOME',             $self->home_dir);
     $self->add_builder_variable('TMP',              $self->tmp_dir);
     $self->add_builder_variable('TERM',             'linux');
+    $self->add_builder_variable('SHELL',            $shell);
     $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
 }
 
@@ -890,7 +893,7 @@ sub to_parallel {
 
     open my $script_f, '>', "$abs_dir/build" || die "Could not open '$abs_dir/build' for writing: $!";
     print { $script_f } <<EOFF;
-#! /bin/sh
+#! $shell
 set -e
 
 makeflow --shared-fs @{[$self->root_dir]} -r 5 $dag_name "\$@"
@@ -1003,7 +1006,7 @@ sub set_wrapper {
 
     my $env = $self->active_widgets();
 
-    my $payload = "/bin/sh -c '. $profile_file'";
+    my $payload = "$shell -c '. $profile_file'";
     for my $w (@{$self->{order}}) {
         next unless $env->{$w};
 
@@ -1024,7 +1027,7 @@ sub set_wrapper {
     open(my $sh_f, '>', "$wrapper_file")
     || die "Could not open file $wrapper_file: $!";
 
-    print { $sh_f } "#!/usr/bin/env -i /bin/sh\n\n";
+    print { $sh_f } "#!/usr/bin/env -i $shell\n\n";
 
     $self->set_environment_variables($sh_f);
 
@@ -1058,7 +1061,7 @@ sub set_profile {
     open(my $profile_f, '>', $profile_file)
     || die "Could not open file '$profile_file': $!";
 
-    print { $profile_f } "#!/bin/sh\n\n";
+    print { $profile_f } "#!$shell\n\n";
 
     my $prologue = $self->consolidate_prologue();
     for my $line (@{$prologue}) {
@@ -1093,7 +1096,7 @@ sub execute {
         my @args = (
             '/usr/bin/env',
             '-i',
-            '/bin/sh',
+            $shell,
             '-c',
             ". " . $self->sh_profile);
 
@@ -1138,7 +1141,7 @@ sub bring_to_foreground {
 sub shell {
     my ($self, $payload) = @_;
 
-    $payload |= '/bin/sh';
+    $payload |= $shell;
     $self->set_environment($self->sh_profile, $payload);
 
     my $pid = open(my $input, '|-');
@@ -1146,7 +1149,7 @@ sub shell {
         my @args = (
             '/usr/bin/env',
             '-i',
-            '/bin/sh',
+            $shell,
             '-c',
             ". " . $self->sh_profile);
         exec { $args[0] } @args;
@@ -1163,7 +1166,7 @@ sub shell {
 
 sub shell_user {
     my ($self) = @_;
-    return $self->execute('/bin/sh');
+    return $self->execute($shell);
 }
 
 sub say {
@@ -1829,7 +1832,7 @@ sub setup_build_shell {
     # a non-zero status.
     my ($pid, $build_in) = $self->bag->shell();
 
-    croak 'Could not open /bin/sh for building.'
+    croak "Could not open $shell for building."
     unless $build_in;
 
     # redirect all output to our log file.

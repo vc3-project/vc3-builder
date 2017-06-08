@@ -339,6 +339,9 @@
                     "vc3-master":[
                         "v0.000.001"
                     ],
+                    "vc3-client":[
+                        "v0.000.001"
+                    ],
                     "vc3-wq-factory":[
                         "v0.000.001"
                     ]
@@ -416,6 +419,36 @@
                 "dependencies":{
                     "vc3-services-common-requirements":[
                         "v0.000.001"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "vc3-client":{
+        "versions":[
+            {
+                "version":"v0.001",
+                "phony":1,
+                "sources":[
+                    {
+                        "type":"generic",
+                        "local":1,
+                        "recipe":[
+                            "mkdir -p ${HOME}/git && cd ${HOME}/git",
+                            "[ -d vc3-client ] || git clone https://github.com/vc3-project/vc3-client.git",
+                            "cd vc3-client",
+                            "rm -rf build",
+                            "python setup.py install --home=${VC3_SERVICES_HOME}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "vc3-info-service":[
+                        "v0.000.001"
+                    ],
+                    "python-yaml":[
+                        "v3.12"
                     ]
                 }
             }
@@ -1871,6 +1904,33 @@
         ]
     },
 
+    "python-yaml":{
+        "versions":[
+            {
+                "version":"v3.12",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "PyYAML-3.12.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
     "python-cryptography":{
         "versions":[
             {
@@ -1889,9 +1949,6 @@
                 "dependencies":{
                     "python":[
                         "v2.006"
-                    ],
-                    "python-setuptools":[
-                        "v24.000.000"
                     ],
                     "libffi":[
                         "v3.002.001"

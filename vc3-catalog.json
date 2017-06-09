@@ -1574,8 +1574,18 @@
                         "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary"
                     }
                 ],
+                "environment-variables":[
+                    {
+                        "name":"LD_LIBRARY_PATH",
+                        "value":"lib64"
+                    },
+                    {
+                        "name":"LIBRARY_PATH",
+                        "value":"lib64"
+                    }
+                ],
                 "environment-autovars":[
-                    "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+                    "PKG_CONFIG_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
                 ]
             }
         ]
@@ -2089,6 +2099,9 @@
                             ],
                             "openssl":[
                                 "v1.000"
+                            ],
+                            "libffi":[
+                                "v3.002.001"
                             ]
                         }
                     }

@@ -15639,7 +15639,7 @@ __DATA__
                         ],
                         "recipe":[
                             "dir=${VC3_MODULES_PYTHON}",
-                            "mkdir -p $dir",
+                            "mkdir -p ${dir}/lib/python${VC3_VERSION_PYTHON}/site-packages",
                             "python setup.py install --prefix=${dir}"
                         ]
                     }
@@ -15650,30 +15650,7 @@ __DATA__
             "python":[
                 "v2.006"
             ]
-        },
-        "environment-variables":[
-            {
-                "name":"PYTHONPATH",
-                "value":"${VC3_ROOT_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                "absolute":1
-            },
-            {
-                "name":"VC3_MODULES_PYTHON",
-                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",
-                "clobber":1,
-                "absolute":1
-            },
-            {
-                "name":"PATH",
-                "value":"${VC3_MODULES_PYTHON}/bin",
-                "absolute":1
-            },
-            {
-                "name":"PYTHONPATH",
-                "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                "absolute":1
-            }
-        ]
+        }
     },
 
     "python-pip":{
@@ -15928,15 +15905,10 @@ __DATA__
                 ]
             }
         ],
+        "environment-autovars":[
+            "PATH", "PYTHONPATH"
+        ],
         "environment-variables":[
-            {
-                "name":"PATH",
-                "value":"bin"
-            },
-            {
-                "name":"PYTHONPATH",
-                "value":"lib/python${VC3_VERSION_PYTHON}/site-packages"
-            },
             {
                 "name":"VC3_MODULES_PYTHON",
                 "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",

@@ -1967,11 +1967,11 @@
                     }
                 ],
                 "dependencies":{
-                    "python":[
-                        "v2.006"
-                    ],
                     "python-pyOpenSSL":[
                         "v17.000.000"
+                    ],
+                    "python-setuptools":[
+                        "v24.000"
                     ]
                 }
             }
@@ -1996,6 +1996,9 @@
                 "dependencies":{
                     "python-cryptography":[
                         "v1.008.000"
+                    ],
+                    "python-setuptools":[
+                        "v24.000"
                     ]
                 }
             }
@@ -2018,8 +2021,8 @@
                     }
                 ],
                 "dependencies":{
-                    "python":[
-                        "v2.006"
+                    "python-setuptools":[
+                        "v24.000"
                     ]
                 }
             }

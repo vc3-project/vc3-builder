@@ -11074,7 +11074,7 @@ sub set_builder_variables {
     $self->add_builder_variable('VC3_BUILDER_PATH', $self->builder_path);
     $self->add_builder_variable('HOME',             $self->home_dir);
     $self->add_builder_variable('TMP',              $self->tmp_dir);
-    $self->add_builder_variable('TERM',             'linux');
+    $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'linux';
     $self->add_builder_variable('SHELL',            $shell);
     $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
 }
@@ -14655,7 +14655,7 @@ __DATA__
                         ],
                         "dependencies":{
                             "parrot":[
-                                "v6.000.016"
+                                "v6.0.16"
                             ]
                         }
                     }
@@ -14667,11 +14667,11 @@ __DATA__
     "parrot":{
         "versions":[
             {
-                "version":"v6.000.016",
+                "version":"v6.1.1",
                 "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
                 "dependencies":{
                     "cctools":[
-                        "v6.000.016"
+                        "v6.1.1"
                     ]
                 }
             }
@@ -14681,7 +14681,7 @@ __DATA__
     "cctools-catalog-server":{
         "versions":[
             {
-                "version":"v6.000.016",
+                "version":"v6.0.16",
                 "dependencies":{
                     "cctools-statics":[
                         "v0.000.001"
@@ -14689,10 +14689,10 @@ __DATA__
                 }
             },
             {
-                "version":"v6.000.016",
+                "version":"v6.1.1",
                 "dependencies":{
                     "cctools":[
-                        "v6.000.016"
+                        "v6.1.1"
                     ]
                 }
             }
@@ -14729,19 +14729,19 @@ __DATA__
     "cctools":{
         "versions":[
             {
-                "version":"v6.000.016",
+                "version":"v6.1.1",
                 "sources":[
                     {
                         "type":"binary",
                         "files":[
-                            "cctools-6.0.16-x86_64-redhat7.tar.gz"
+                            "cctools-6.1.1-x86_64-redhat7.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.0.16-x86_64-redhat7.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.1.1-x86_64-redhat7.tar.gz"
                         ],
                         "dependencies":{
                             "perl":[
@@ -14755,14 +14755,14 @@ __DATA__
                     {
                         "type":"binary",
                         "files":[
-                            "cctools-6.0.16-x86_64-redhat6.tar.gz"
+                            "cctools-6.1.1-x86_64-redhat6.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.0.16-x86_64-redhat6.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.1.1-x86_64-redhat6.tar.gz"
                         ],
                         "dependencies":{
                             "perl":[
@@ -14776,7 +14776,7 @@ __DATA__
                     {
                         "type":"configure",
                         "files":[
-                            "cctools-6.0.16-source.tar.gz"
+                            "cctools-6.1.1-source.tar.gz"
                         ],
                         "options":"--with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
                         "dependencies":{

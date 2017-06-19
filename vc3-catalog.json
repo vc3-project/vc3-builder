@@ -1673,7 +1673,7 @@
                             "perl-5.24.0.tar.gz"
                         ],
                         "recipe":[
-                            "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -des -A ccflags=-fPIC make",
+                            "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -Dcc=gcc -des -A ccflags=-fPIC make",
                             "make install",
                             "mkdir -p ${VC3_PREFIX}/local_modules"
                         ]

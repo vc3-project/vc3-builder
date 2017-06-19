@@ -11074,7 +11074,7 @@ sub set_builder_variables {
     $self->add_builder_variable('VC3_BUILDER_PATH', $self->builder_path);
     $self->add_builder_variable('HOME',             $self->home_dir);
     $self->add_builder_variable('TMP',              $self->tmp_dir);
-    $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'linux');
+    $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'xterm');
     $self->add_builder_variable('SHELL',            $shell);
     $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
 }
@@ -15493,7 +15493,7 @@ __DATA__
                             "perl-5.24.0.tar.gz"
                         ],
                         "recipe":[
-                            "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -des -A ccflags=-fPIC make",
+                            "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -Dcc=gcc -des -A ccflags=-fPIC make",
                             "make install",
                             "mkdir -p ${VC3_PREFIX}/local_modules"
                         ]

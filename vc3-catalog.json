@@ -2105,6 +2105,11 @@
             },
             {
                 "name":"PYTHONPATH",
+                "value":"${VC3_MODULES_PYTHON}/lib64/python${VC3_VERSION_PYTHON}/site-packages",
+                "absolute":1
+            },
+            {
+                "name":"PYTHONPATH",
                 "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
                 "absolute":1
             }

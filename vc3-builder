@@ -15640,6 +15640,7 @@ __DATA__
                         "recipe":[
                             "dir=${VC3_MODULES_PYTHON}",
                             "mkdir -p ${dir}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                            "mkdir -p ${dir}/lib64/python${VC3_VERSION_PYTHON}/site-packages",
                             "python setup.py install --prefix=${dir}"
                         ]
                     }

@@ -15910,7 +15910,7 @@ __DATA__
             }
         ],
         "environment-autovars":[
-            "PATH", "PYTHONPATH"
+            "PATH", "PYTHONPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"
         ],
         "environment-variables":[
             {

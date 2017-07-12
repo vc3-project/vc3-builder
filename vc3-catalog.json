@@ -324,7 +324,7 @@
                     "vc3-plugin-manager":[
                         "v0.000.001"
                     ],
-                    "vc3-certificates":[
+                    "vc3-credible":[
                         "v0.000.001"
                     ],
                     "vc3-info-service":[
@@ -583,7 +583,7 @@
                     "vc3-plugin-manager":[
                         "v0.000.001"
                     ],
-                    "vc3-certificates":[
+                    "vc3-credible":[
                         "v0.000.001"
                     ],
                     "python-cherrypy":[
@@ -617,7 +617,7 @@
         ]
     },
 
-    "vc3-certificates":{
+    "vc3-credible":{
         "versions":[
             {
                 "version":"v0.001",
@@ -651,8 +651,8 @@
                             "   cp -f $credroot/certs/VC3Admin.cert.pem  $srvroot",
                             "   cp -f $credroot/private/localhost.keynopw.pem $srvroot/private",
                             "   cp -f $credroot/private/VC3Admin.keynopw.pem $srvroot/private",
-                            "   ~/vc3-services/bin/credible ~/git/credible/etc/credible.conf -d hostcert localhost > /dev/null",
-                            "   ~/vc3-services/bin/credible ~/git/credible/etc/credible.conf -d usercert VC3Admin > /dev/null",
+                            "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d hostcert localhost > /dev/null",
+                            "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d usercert VC3Admin > /dev/null",
 
                             "fi"
                         ]

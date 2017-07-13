@@ -512,7 +512,7 @@ sub set_builder_variables {
     $self->add_builder_variable('TMP',              $self->tmp_dir);
     $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'xterm');
     $self->add_builder_variable('CC',               $ENV{'CC'}   || 'gcc');
-    $self->add_builder_variable('CXX',              $ENV{'CXX'   || 'g++');
+    $self->add_builder_variable('CXX',              $ENV{'CXX'}  || 'g++');
     $self->add_builder_variable('SHELL',            $shell);
     $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
 }

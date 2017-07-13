@@ -11080,7 +11080,7 @@ sub set_builder_variables {
     $self->add_builder_variable('TMP',              $self->tmp_dir);
     $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'xterm');
     $self->add_builder_variable('CC',               $ENV{'CC'}   || 'gcc');
-    $self->add_builder_variable('CXX',              $ENV{'CXX'   || 'g++');
+    $self->add_builder_variable('CXX',              $ENV{'CXX'}  || 'g++');
     $self->add_builder_variable('SHELL',            $shell);
     $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
 }
@@ -14774,7 +14774,7 @@ __DATA__
                         "files":[
                             "cctools-6.1.1-source.tar.gz"
                         ],
-                        "options":"--with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
+                        "options":"--without-system-umbrella --without-system-prune --without-system-doc --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
                         "dependencies":{
                             "swig":[
                                 "v3.000"
@@ -14912,8 +14912,9 @@ __DATA__
                             "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_LIBRARIES:PATH=${VC3_ROOT_OPENSSL}/lib -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
                             "make libpacparser",
                             "cd cvmfs",
-                            "make",
-                            "make install"
+                            "make libcvmfs",
+                            "cp libcvmfs.a ${VC3_PREFIX}/lib",
+                            "cp ../../cvmfs/libcvmfs*.h ${VC3_PREFIX}/include"
                         ],
                         "dependencies":{
                             "uuid":[
@@ -14981,8 +14982,8 @@ __DATA__
                             "openssl-1.0.2h.tar.gz"
                         ],
                         "recipe":[
-                            "./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
-                            ": ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic",
+                            ": ./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
+                            "./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib no-shared",
                             "make depend",
                             "make",
                             "make install"
@@ -15017,7 +15018,7 @@ __DATA__
                         "preface":[
                             "export CFLAGS=-fPIC"
                         ],
-                        "options":"--with-libssl-prefix=${VC3_ROOT_OPENSSL} --enable-static=yes --enable-shared=yes"
+                        "options":"--with-libssl-prefix=${VC3_ROOT_OPENSSL} --enable-static=yes --enable-shared=no"
                     }
                 ],
                 "dependencies":{
@@ -15045,7 +15046,7 @@ __DATA__
                         "preface":[
                             "export CFLAGS=-fPIC"
                         ],
-                        "options":"--enable-static=yes --enable-shared=yes"
+                        "options":"--enable-static=yes --enable-shared=no"
                     }
                 ],
                 "environment-autovars":[
@@ -15061,14 +15062,17 @@ __DATA__
                 "version":"v7.053.001",
                 "sources":[
                     {
-                        "type":"configure",
+                        "type":"tarball",
                         "files":[
                             "curl-7.53.1.tar.gz"
                         ],
-                        "preface":[
-                            "export CFLAGS=-fPIC"
-                        ],
-                        "options":"--enable-static=yes --enable-shared=yes --enable-http --enable-ftp --enable-file --enable-proxy --enable-tftp --with-ssl=${VC3_ROOT_OPENSSL} --with-libssh2=${VC3_ROOT_LIBSSH2} --with-zlib=${VC3_ROOT_ZLIB}  --with-gssapi=${VC3_ROOT_GSS}/bin --with-gssapi-libs=${VC3_ROOT_GSS}/lib"
+                        "recipe":[
+                            "export CFLAGS=-fPIC",
+                            "export LIBS=-ldl",
+                            "./configure --prefix=${VC3_PREFIX} --enable-static=yes --enable-shared=no --enable-http --enable-ftp --enable-file --enable-proxy --enable-tftp --disable-ldap --disable-ldaps --with-ssl=${VC3_ROOT_OPENSSL}/bin --with-libssh2=${VC3_ROOT_LIBSSH2} --with-zlib=${VC3_ROOT_ZLIB}  --with-gssapi=${VC3_ROOT_GSS}/bin --with-gssapi-libs=${VC3_ROOT_GSS}/lib",
+                            "make LDFLAGS=-all-static",
+                            "make install"
+                        ]
                     }
                 ],
                 "dependencies":{

@@ -10572,6 +10572,10 @@ use v5.009;
 use strict;
 use warnings;
 
+
+# load module path, for bare, if needed
+use lib "$ENV{PWD}/builder-pack/fatlib";
+
 package VC3::Builder;
 
 use English qw/-mo_match_vars/;

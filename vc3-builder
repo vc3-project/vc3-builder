@@ -11075,6 +11075,8 @@ sub set_builder_variables {
     $self->add_builder_variable('HOME',             $self->home_dir);
     $self->add_builder_variable('TMP',              $self->tmp_dir);
     $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'xterm');
+    $self->add_builder_variable('CC',               $ENV{'CC'}   || 'gcc');
+    $self->add_builder_variable('CXX',              $ENV{'CXX'   || 'g++');
     $self->add_builder_variable('SHELL',            $shell);
     $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
 }
@@ -14453,24 +14455,14 @@ __DATA__
                             "rm -rf build",
                             "python setup.py install --home=${VC3_SERVICES_HOME}",
                             "credroot=${HOME}/var/credible/ssca/defaultca/intermediate",
-                            "srvroot=${HOME}/vc3-services/etc/certs",
                             "missing=0",
-                            "[ -f $svroot/localhost.cert.pem ]            || missing=1",
-                            "[ -f $svroot/ca-chain.cert.pem ]             || missing=1",
-                            "[ -f $svroot/certs/VC3Admin.cert.pem ]             || missing=1",
-                            "[ -f $svroot/private/localhost.keynopw.pem ] || missing=1",
-                            "[ -f $svroot/private/VC3Admin.keynopw.pem ]  || missing=1",
+                            "[ -f $credroot/certs/localhost.cert.pem ]      || missing=1",
+                            "[ -f $credroot/certs/ca-chain.cert.pem ]       || missing=1",
+                            "[ -f $credroot/certs/VC3Admin.cert.pem ]       || missing=1",
+                            "[ -f $credroot/private/localhost.keynopw.pem ] || missing=1",
+                            "[ -f $credroot/private/VC3Admin.keynopw.pem ]  || missing=1",
                             "if [ \"$missing\" = 1 ]; then",
-                            "   exe=\"python ${HOME}/vc3-services/lib/python/credible/credible.py\"",
-                            "   $exe -c ${HOME}/git/credible/etc/credible.conf hostcert localhost",
-                            "   $exe -c ${HOME}/git/credible/etc/credible.conf certchain",
-                            "   $exe -c ${HOME}/git/credible/etc/credible.conf usercert VC3Admin",
                             "   mkdir -p $srvroot/private",
-                            "   cp -f $credroot/certs/localhost.cert.pem $srvroot",
-                            "   cp -f $credroot/certs/ca-chain.cert.pem  $srvroot",
-                            "   cp -f $credroot/certs/VC3Admin.cert.pem  $srvroot",
-                            "   cp -f $credroot/private/localhost.keynopw.pem $srvroot/private",
-                            "   cp -f $credroot/private/VC3Admin.keynopw.pem $srvroot/private",
                             "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d hostcert localhost > /dev/null",
                             "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d usercert VC3Admin > /dev/null",
 
@@ -15493,7 +15485,7 @@ __DATA__
                             "perl-5.24.0.tar.gz"
                         ],
                         "recipe":[
-                            "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -Dcc=gcc -des -A ccflags=-fPIC make",
+                            "CFLAGS='-m64 -mtune=nocona' ./Configure -Dprefix=${VC3_PREFIX} -Dcc=${CC} -des -A ccflags=-fPIC make",
                             "make install",
                             "mkdir -p ${VC3_PREFIX}/local_modules"
                         ]

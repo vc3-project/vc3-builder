@@ -2065,8 +2065,8 @@
                             "Python-2.7.12.tgz"
                         ],
                         "preface":[
-                            "sed -i Modules/Setup.dist -e \"217s:.*:_ssl _ssl.c -DUSE_SSL -I${VC3_ROOT_OPENSSL}/include -I${VC3_ROOT_OPENSSL}/include/openssl -L${VC3_ROOT_OPENSSL}/lib -lssl -lcrypto:\"",
-                            "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -lz:\""
+                            "sed -i Modules/Setup.dist -e \"217s:.*:_ssl _ssl.c -DUSE_SSL -I${VC3_ROOT_OPENSSL}/include -I${VC3_ROOT_OPENSSL}/include/openssl -L${VC3_ROOT_OPENSSL}/lib -Wl,-Bstatic -lssl -lcrypto -Wl,-Bdynamic:\"",
+                            "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -Wl,-Bstatic -lz -Wl,-Bdynamic:\""
                         ],
                         "options":"--libdir=${VC3_PREFIX}/lib",
                         "epilogue":[

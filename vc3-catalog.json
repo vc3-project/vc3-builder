@@ -640,8 +640,10 @@
                             "[ -f $credroot/private/localhost.keynopw.pem ] || missing=1",
                             "[ -f $credroot/private/VC3Admin.keynopw.pem ]  || missing=1",
                             "if [ \"$missing\" = 1 ]; then",
-                            "   mkdir -p $srvroot/private",
+                            "   mkdir -p $credroot/private",
                             "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d hostcert localhost > /dev/null",
+                            "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf certchain",
+
                             "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d usercert VC3Admin > /dev/null",
 
                             "fi"

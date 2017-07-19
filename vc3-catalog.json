@@ -1323,6 +1323,7 @@
                         "type":"generic",
                         "phony":1,
                         "recipe":[
+                            ": run as condor_master -dyn -f",
                             "if [ -z \"${VC3_CONDOR_CONFIG_OPTIONS}\" ]; then",
                             "cat <<EOF",
                             "   No VC3_CONDOR_CONFIG_OPTIONS defined. Examples:",

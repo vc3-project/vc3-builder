@@ -14630,6 +14630,34 @@ __DATA__
         ]
     },
 
+   "vc3-glidein":{
+        "versions": [
+            {
+                "version":"v1.000.000",
+                "sources":[
+                    {
+                        "type":"generic",
+                        "files":[
+                            "vc3-glidein-v1.0.0.tar.gz"
+                        ],
+                        "recipe":[
+                            "mkdir -p ${VC3_PREFIX}/bin",
+                            "tar -C ${VC3_PREFIX}/bin -xf vc3-glidein-v1.0.0.tar.gz vc3-glidein"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "dependencies":{
+            "python":[
+                "v2.006"
+            ]
+        },
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
     "cvmfs":{
         "versions":[
             {

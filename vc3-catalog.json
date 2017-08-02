@@ -275,6 +275,7 @@
                             "mkdir -p ${HOME}/git && cd ${HOME}/git",
                             "[ -d autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
                             "cd autopyfactory",
+                            "exit 0",
                             "rm -rf build",
                             "python setup.py install --home=${VC3_SERVICES_HOME}/apf"
                         ]
@@ -331,9 +332,6 @@
                         "v0.000.001"
                     ],
                     "vc3-wrappers":[
-                        "v0.000.001"
-                    ],
-                    "vc3-core":[
                         "v0.000.001"
                     ],
                     "vc3-master":[
@@ -439,7 +437,8 @@
                             "[ -d vc3-client ] || git clone https://github.com/vc3-project/vc3-client.git",
                             "cd vc3-client",
                             "rm -rf build",
-                            "python setup.py install --home=${VC3_SERVICES_HOME}"
+                            "python setup.py install --home=${VC3_SERVICES_HOME}",
+                            "cp etc/*.conf ${VC3_SERVICES_HOME}/etc"
                         ]
                     }
                 ],
@@ -469,45 +468,13 @@
                             "[ -d vc3-master ] || git clone https://github.com/vc3-project/vc3-master.git",
                             "cd vc3-master",
                             "rm -rf build",
-                            "python setup.py install --home=${VC3_SERVICES_HOME}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "vc3-core":[
-                        "v0.000.001"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "vc3-core":{
-        "versions":[
-            {
-                "version":"v0.001",
-                "phony":1,
-                "sources":[
-                    {
-                        "type":"generic",
-                        "local":1,
-                        "recipe":[
-                            "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                            "[ -d vc3-core ] || git clone https://github.com/vc3-project/vc3-core.git",
-                            "cd vc3-core",
-                            "rm -rf build",
-                            "python setup.py install --home=${VC3_SERVICES_HOME}"
+                            "python setup.py install --home=${VC3_SERVICES_HOME}",
+                            "cp etc/*.conf ${VC3_SERVICES_HOME}/etc"
                         ]
                     }
                 ],
                 "dependencies":{
                     "vc3-plugin-manager":[
-                        "v0.000.001"
-                    ],
-                    "vc3-info-service":[
-                        "v0.000.001"
-                    ],
-                    "vc3-wrappers":[
                         "v0.000.001"
                     ]
                 }
@@ -574,8 +541,8 @@
                             "cd vc3-info-service",
                             "rm -rf build",
                             "python setup.py install --home=${VC3_SERVICES_HOME}",
-                            "ln -sf ${VC3_SERVICES_HOME}/lib/python/vc3/infoclient.py ${VC3_SERVICES_HOME}/lib/python"
-
+                            "ln -sf ${VC3_SERVICES_HOME}/lib/python/vc3/infoclient.py ${VC3_SERVICES_HOME}/lib/python",
+                            "cp etc/*.conf ${VC3_SERVICES_HOME}/etc"
                         ]
                     }
                 ],
@@ -645,7 +612,8 @@
                             "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf certchain",
 
                             "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d usercert VC3Admin > /dev/null",
-
+                            "   cp etc/credible.conf{,.sample} etc/openssl.cnf.*.template ${VC3_SERVICES_HOME}/etc",
+                                
                             "fi"
                         ]
                     }

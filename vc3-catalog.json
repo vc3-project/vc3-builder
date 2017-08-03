@@ -946,7 +946,7 @@
                         "files":[
                             "cctools-6.1.1-source.tar.gz"
                         ],
-                        "options":"--with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --without-system-umbrella  --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE}",
+                        "options":"--without-system-umbrella --without-system-prune --without-system-doc --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
                         "dependencies":{
                             "swig":[
                                 "v3.000"
@@ -1081,11 +1081,16 @@
                             "cd build",
                             ": set NO_INTERNET to stop parcparser tests",
                             "export NO_INTERNET=1",
-                            "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_LIBRARIES:PATH=${VC3_ROOT_OPENSSL}/lib -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
+                            ": to force openssl static, nullify PKG_CONFIG_PATH",
+                            "export PKG_CONFIG_PATH=invalid",
+                            "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_CRYPTO_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libcrypto.a -DOPENSSL_SSL_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libssl.a -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
                             "make libpacparser",
+                            "sed -i 's@cc -x@${CC:-cc} -x@' externals/build_sha3/makeHook.sh",
                             "cd cvmfs",
-                            "make",
-                            "make install"
+                            "make libcvmfs",
+                            "mkdir -p ${VC3_PREFIX}/{lib,include}",
+                            "cp libcvmfs.a ${VC3_PREFIX}/lib",
+                            "cp ../../cvmfs/libcvmfs*.h ${VC3_PREFIX}/include"
                         ],
                         "dependencies":{
                             "uuid":[
@@ -1153,8 +1158,9 @@
                             "openssl-1.0.2h.tar.gz"
                         ],
                         "recipe":[
-                            "./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
-                            ": ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic",
+                            ": ./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
+                            ": ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib no-shared",
+                            "./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib -Wl,-rpath=${VC3_PREFIX}/lib",
                             "make depend",
                             "make",
                             "make install"
@@ -1217,7 +1223,7 @@
                         "preface":[
                             "export CFLAGS=-fPIC"
                         ],
-                        "options":"--enable-static=yes --enable-shared=yes"
+                        "options":"--enable-static=yes --enable-shared=no"
                     }
                 ],
                 "environment-autovars":[
@@ -1233,14 +1239,17 @@
                 "version":"v7.053.001",
                 "sources":[
                     {
-                        "type":"configure",
+                        "type":"tarball",
                         "files":[
                             "curl-7.53.1.tar.gz"
                         ],
-                        "preface":[
-                            "export CFLAGS=-fPIC"
-                        ],
-                        "options":"--enable-static=yes --enable-shared=yes --enable-http --enable-ftp --enable-file --enable-proxy --enable-tftp --with-ssl=${VC3_ROOT_OPENSSL} --with-libssh2=${VC3_ROOT_LIBSSH2} --with-zlib=${VC3_ROOT_ZLIB}  --with-gssapi=${VC3_ROOT_GSS}/bin --with-gssapi-libs=${VC3_ROOT_GSS}/lib"
+                        "recipe":[
+                            "export CFLAGS=-fPIC",
+                            "export LIBS='-ldl -lz'",
+                            "./configure --prefix=${VC3_PREFIX} --enable-static=yes --enable-shared=yes --enable-http --enable-ftp --enable-file --enable-proxy --enable-tftp --disable-ldap --disable-ldaps --with-ssl=${VC3_ROOT_OPENSSL} --with-libssh2=${VC3_ROOT_LIBSSH2} --with-zlib=${VC3_ROOT_ZLIB}  --with-gssapi=${VC3_ROOT_GSS}/bin --with-gssapi-libs=${VC3_ROOT_GSS}/lib",
+                            "make",
+                            "make install"
+                        ]
                     }
                 ],
                 "dependencies":{
@@ -2077,8 +2086,8 @@
                             "Python-2.7.12.tgz"
                         ],
                         "preface":[
-                            "sed -i Modules/Setup.dist -e \"217s:.*:_ssl _ssl.c -DUSE_SSL -I${VC3_ROOT_OPENSSL}/include -I${VC3_ROOT_OPENSSL}/include/openssl -L${VC3_ROOT_OPENSSL}/lib -lssl -lcrypto:\"",
-                            "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -lz:\""
+                            "sed -i Modules/Setup.dist -e \"217s:.*:_ssl _ssl.c -DUSE_SSL -I${VC3_ROOT_OPENSSL}/include -I${VC3_ROOT_OPENSSL}/include/openssl -L${VC3_ROOT_OPENSSL}/lib -Wl,-Bstatic -lssl -lcrypto -Wl,-Bdynamic:\"",
+                            "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -Wl,-Bstatic -lz -Wl,-Bdynamic:\""
                         ],
                         "options":"--libdir=${VC3_PREFIX}/lib",
                         "epilogue":[

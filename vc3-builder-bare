@@ -2096,7 +2096,7 @@ sub dependencies {
             }
 
             if($max_version) {
-                $max_version = version->parse($max_version);
+                $max_version = version->declare($max_version);
 
                 my $num = $max_version->numify();
                 my $fix = ($num * 1000000) % 1000;
@@ -2696,7 +2696,7 @@ sub add_target {
 sub add_main_targets {
     my ($self, @requires) = @_;
 
-    my $root_entry = { version => 'v0.0.1', phony => 1, dependencies => {} };
+    my $root_entry = { version => version->declare('v0.0.1'), phony => 1, dependencies => {} };
 
     for my $req (@requires) {
         my ($name, $min, $max) = $self->parse_requirement($req);
@@ -2771,7 +2771,7 @@ sub add_widget {
 
     my $success;
     if($p && !$e) {
-        $self->say("conflicting versions: @{[$widget->name]} [@{[$p->{min}->normal || '']}, @{[$p->{max}->normal || '']}] <=> [@{[$min->normal || '']}, @{[$max->normal || '']}]");
+        $self->say("conflicting versions: @{[$widget->name]} [@{[ $self->version_str($p->{min}) ]}, @{[ $self->version_str($p->{max})]} <=> [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
         $success = 0;
     } elsif($p && $e) {
         # already in plan, simple refinenment of versions
@@ -2795,7 +2795,7 @@ sub add_widget {
                 $success = 1;
             }
         } else {
-            $self->say("could not set dependencies for: @{[$widget->name]} $version->normal => [@{[$min->normal || '']}, @{[$max->normal || '']}]");
+            $self->say("could not set dependencies for: @{[$widget->name]} @{[$version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
             $success = 0;
         }
     }

@@ -339,9 +339,6 @@
                     ],
                     "vc3-client":[
                         "v0.000.001"
-                    ],
-                    "vc3-wq-factory":[
-                        "v0.000.001"
                     ]
                 }
             }
@@ -1938,6 +1935,259 @@
         ]
     },
 
+    "python-pycparser":{
+        "versions":[
+            {
+                "version":"v2.18.0",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "pycparser-2.18.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-cffi":{
+        "versions":[
+            {
+                "version":"v1.10.0",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "cffi-1.10.0.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "libffi":[
+                        "v3.002.001"
+                    ],
+                    "python-pycparser":[
+                        "v2.18.0"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-ipaddress":{
+        "versions":[
+            {
+                "version":"v1.0.18",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "ipaddress-1.0.18.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-enum34":{
+        "versions":[
+            {
+                "version":"v1.1.6",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "enum34-1.1.6.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-six":{
+        "versions":[
+            {
+                "version":"v1.10.0",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "six-1.10.0.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-pyparsing":{
+        "versions":[
+            {
+                "version":"v2.2.0",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "pyparsing-2.2.0.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-packaging":{
+        "versions":[
+            {
+                "version":"v16.8.0",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "packaging-16.8.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-pyparsing":[
+                        "v2.2.0"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-asn1crypto":{
+        "versions":[
+            {
+                "version":"v0.22.0",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "asn1crypto-0.22.0.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-idna":{
+        "versions":[
+            {
+                "version":"v2.5",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "idna-2.5.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python":[
+                        "v2.006"
+                    ],
+                    "python-setuptools":[
+                        "v24.000.000"
+                    ]
+                }
+            }
+        ]
+    },
+
+
     "python-cryptography":{
         "versions":[
             {
@@ -1959,6 +2209,27 @@
                     ],
                     "libffi":[
                         "v3.002.001"
+                    ],
+                    "python-cffi":[
+                        "v1.10.0"
+                    ],
+                    "python-ipaddress":[
+                        "v1.0.18"
+                    ],
+                    "python-enum34":[
+                        "v1.1.6"
+                    ],
+                    "python-six":[
+                        "v1.10.0"
+                    ],
+                    "python-packaging":[
+                        "v16.8.0"
+                    ],
+                    "python-asn1crypto":[
+                        "v0.22.0"
+                    ],
+                    "python-idna":[
+                        "v2.5.0"
                     ],
                     "openssl":[
                         "v1.000.000"

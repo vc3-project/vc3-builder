@@ -14175,6 +14175,18 @@ __DATA__
         "versions":[
             {
                 "version":"v0.000.001",
+                "sources":[
+                    {
+                        "type":"generic",
+                        "phony":1,
+                        "recipe":[
+                            "mkdir -p ${HOME}/vc3-services/lib/python",
+                            "mkdir -p ${HOME}/vc3-services/bin",
+                            "mkdir -p ${HOME}/vc3-services/etc",
+                            "mkdir -p ${HOME}/var"
+                        ]
+                    }
+                ],
                 "dependencies":{
                     "python":[
                         "v2.007.012"

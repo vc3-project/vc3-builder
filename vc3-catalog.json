@@ -1,4 +1,13 @@
 {
+    "noop":{
+        "versions":[
+            {
+                "version":"v0.000.001",
+                "phony":1
+            }
+        ]
+    },
+
     "vc3-builder-hands":{
         "versions":[
             {

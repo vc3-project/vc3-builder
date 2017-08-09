@@ -10815,8 +10815,7 @@ sub main {
     }
 
     unless(@requires) {
-        print "At least one --require option should be given.\n\n" . usage($script_name);
-        exit 1;
+        push @requires, 'noop';
     }
 
     # add common builder environment
@@ -13825,6 +13824,15 @@ sub TO_JSON {
 package VC3::Builder;
 __DATA__
 {
+    "noop":{
+        "versions":[
+            {
+                "version":"v0.000.001",
+                "phony":1
+            }
+        ]
+    },
+
     "vc3-builder-hands":{
         "versions":[
             {

@@ -247,8 +247,7 @@ sub main {
     }
 
     unless(@requires) {
-        print "At least one --require option should be given.\n\n" . usage($script_name);
-        exit 1;
+        push @requires, 'noop';
     }
 
     # add common builder environment

@@ -14101,9 +14101,8 @@ __DATA__
                             "mkdir -p ${HOME}/git && cd ${HOME}/git",
                             "[ -d autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
                             "cd autopyfactory",
-                            "exit 0",
                             "rm -rf build",
-                            "python setup.py install --home=${VC3_SERVICES_HOME}/apf"
+                            "python setup.py install --home=${VC3_SERVICES_HOME}"
                         ]
                     }
                 ],

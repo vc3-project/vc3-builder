@@ -17174,7 +17174,15 @@ __DATA__
                                 "cd ${VC3_PREFIX}/src",
                                 ": y to activate MPI support",
                                 "/bin/echo -e 'y\n\n' | perl Build.PL",
-                                "./Build install"
+                                "./Build install",
+                                "cd ${VC3_PREFIX}/bin",
+                                "echo '#! /bin/sh' > maker_mpi",
+                                "echo 'if [ -n \"$LD_PRELOAD\" ]; then' >> maker_mpi",
+                                "echo ' LD_PRELOAD=${VC3_ROOT_OPENMPI}/lib/libmpi.so:${LD_PRELOAD} mpiexec $* maker' >> maker_mpi", 
+                                "echo else >> maker_mpi",
+                                "echo ' LD_PRELOAD=${VC3_ROOT_OPENMPI}/lib/libmpi.so mpiexec $* maker' >> maker_mpi", 
+                                "echo fi >> maker_mpi",
+                                "chmod 755 maker_mpi"
                             ]
                     }
                 ],

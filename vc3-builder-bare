@@ -18,6 +18,7 @@ use Cwd;
 use Carp qw( confess );
 $SIG{TERM} = \&cleanup_signal_handler;
 $SIG{INT}  = \&cleanup_signal_handler;
+$SIG{ALRM} = \&cleanup_signal_handler;
 
 # disable stdout buffering
 select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
@@ -92,6 +93,9 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --silent              Do not print dependency information.
   --no-run              Set up environment, but do not execute any payload.
 
+  --timeout SECONDS     Terminate after SECONDS have elapased. 
+                        If 0, then the timeout is not activated (default).
+
   --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.cmd},
                         but do not execute the payload.
 
@@ -113,11 +117,21 @@ EOF
 
 }
 
+sub select_sleep {
+    my ($seconds) = @_;
+
+    select(undef, undef, undef, $seconds);
+}
+
 sub cleanup_signal_handler {
     my ($signal) = @_;
 
     if($signal) {
         warn("Got signal!: $signal");
+
+        if($signal eq 'ALRM') {
+            warn("Timeout!");
+        }
     }
 
     for my $fn (@cleanups) {
@@ -150,6 +164,7 @@ sub main {
     my $silent             = 0;
     my $force_rebuild      = 0;
     my $prestage           = 0;
+    my $timeout;
 
     my $ignore_locks       = 0;
 
@@ -202,6 +217,8 @@ sub main {
 
         "interactive" => \$interactive_run,
 
+        "timeout=i"   => \$timeout,
+
         "sys=s"    => \@sys_locs,
         "no-sys=s" => \@no_sys_locs,
         "var=s"    => \@extra_vars,
@@ -237,6 +254,14 @@ sub main {
     if(defined $dot_output) {
         push @no_sys_locs, 'ALL';
         $dry_run = 1;
+    }
+
+    if(defined $timeout) {
+        if($timeout < 0) {
+            die 'timeout cannot be less than 0';
+        } else {
+            alarm $timeout;
+        }
     }
     
     #disable system deps for now:
@@ -697,7 +722,7 @@ sub cleanup {
 
     if($self->{child_pid}) {
         $self->say('Cleaning payload with pid: ' . $self->{child_pid});
-        kill 'TERM', -$self->{child_pid};
+        kill 'HUP', -($self->{child_pid});
     }
 
     if(-f $self->sh_profile) {
@@ -710,15 +735,15 @@ sub cleanup {
     }
 
     if($self->{child_pid}) {
-        # give 10 seconds for child to cleanup TERM, then REDRUM
-        for my $i (1..5) {
-            my $n = kill 0, -$self->{child_pid};
-            if($n) {
-                $self->say('Waiting for payload with pid: ' . $self->{child_pid} . "  $n");
-                sleep(2);
-            } else {
+        # give 10 seconds for child to cleanup HUP, then REDRUM
+        for my $i (1..10) {
+            my $n = waitpid(-1, POSIX::WNOHANG);
+            if($n < 0) {
                 $self->{child_pid} = undef;
                 return;
+            } else {
+                $self->say('Waiting for payload with pid: ' . $self->{child_pid} . "  $n");
+                VC3::Builder::select_sleep(1);
             }
         }
         $self->say('Hard terminating for payload with pid: ' . $self->{child_pid});
@@ -1112,7 +1137,6 @@ sub execute {
     } elsif($pid > 0) {
 
         close(STDIN);
-        close(STDOUT);
         POSIX::setpgid($pid, $pid);
 
         if($self->{interactive_run}) {
@@ -2219,7 +2243,7 @@ sub get_file {
                 print "$response->{content}\n" if $response->{content};
                 print "Retrying @{[$retries - $i]} more time(s)\n"; 
 
-                sleep $sleep_before_retry;
+                VC3::Builder::select_sleep($sleep_before_retry);
 
                 next;
             }

@@ -2977,7 +2977,7 @@
                             "mkdir -p ${VC3_PREFIX}",
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz",
                             "cd ${VC3_PREFIX}/bin",
-                            "for file in $VC3_ROOT_NCBI_BLAST/bin/*; do ln -s ../../${file#${VC3_ROOT}/${VC3_MACHINE_TARGET}/}; done"
+                            "for file in $VC3_ROOT_NCBI_BLAST/bin/*; do ln -s ../../../${file#${VC3_ROOT}/${VC3_MACHINE_TARGET}/}; done"
                         ]
                     },
                     {

@@ -16826,7 +16826,7 @@ __DATA__
                             "mkdir -p ${VC3_PREFIX}",
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf ncbi-rmblastn-2.2.28-x64-linux.tar.gz",
                             "cd ${VC3_PREFIX}/bin",
-                            "for file in $VC3_ROOT_NCBI_BLAST/bin/*; do ln -s ../../../${file#${VC3_ROOT}/${VC3_MACHINE_TARGET}/}; done"
+                            "for file in ${VC3_ROOT_NCBI_BLAST}/bin/*; do ln -s ../../../${file#${VC3_ROOT}/${VC3_MACHINE_TARGET}/}; done"
                         ]
                     },
                     {
@@ -17173,7 +17173,7 @@ __DATA__
                                 "tar -C ${VC3_PREFIX} --strip-components=1 -xpf maker-2.31.8.tgz",
                                 "cd ${VC3_PREFIX}/src",
                                 ": y to activate MPI support",
-                                "/bin/echo 'y' | perl Build.PL",
+                                "/bin/echo -e 'y\n\n' | perl Build.PL",
                                 "./Build install"
                             ]
                     }

@@ -14196,6 +14196,9 @@ __DATA__
                     ],
                     "vc3-client":[
                         "v0.000.001"
+                    ],
+                    "vc3-resource-tool":[
+                        "v0.000.001"
                     ]
                 }
             }
@@ -14348,12 +14351,39 @@ __DATA__
         ]
     },
 
+    "vc3-resource-tool":{
+        "versions":[
+            {
+                "version":"v0.001",
+                "phony":1,
+                "sources":[
+                    {
+                        "type":"generic",
+                        "local":1,
+                        "recipe":[
+                            "mkdir -p ${HOME}/git && cd ${HOME}/git",
+                            "[ -d vc3-resource-tool ] || git clone https://github.com/vc3-project/vc3-resource-tool.git",
+                            "cd vc3-resource-tool",
+                            "rm -rf build",
+                            "python setup.py install --home=${VC3_SERVICES_HOME}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "vc3-plugin-manager":[
+                        "v0.000.001"
+                    ]
+                }
+            }
+        ]
+    },
+
     "vc3-test-service":{
         "versions":[
             {
                 "version":"v0.001",
                 "dependencies":{
-                    "vc3-wrappers":[
+                    "vc3-info-service":[
                         "v0.000.001"
                     ]
                 }

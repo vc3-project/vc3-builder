@@ -361,7 +361,8 @@
                             "mkdir -p ${HOME}/git && cd ${HOME}/git",
                             "[ -d vc3-factory-plugins ] || git clone https://github.com/vc3-project/vc3-factory-plugins.git",
                             "cd vc3-factory-plugins",
-                            "find . autopyfactory/plugins -name '*.py' | pax -r -w ${VC3_SERVICES_HOME}/lib/python/"
+                            "find . autopyfactory/plugins -name '*.py' | pax -r -w ${VC3_SERVICES_HOME}/lib/python/",
+                            "cp -r etc/*.conf ${VC3_SERVICES_HOME}/etc"
                         ]
                     }
                 ],
@@ -1473,7 +1474,8 @@
                             "    ./condor_configure $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS})",
                             "else",
                             "    ./condor_install --local-dir=${VC3_CONDOR_LOCAL_DIR} $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS})",
-                            "fi"
+                            "fi",
+                            ": condor_master -dyn -f -r 120"
                         ]
                     }
                 ],

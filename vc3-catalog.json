@@ -282,10 +282,12 @@
                         "local":1,
                         "recipe":[
                             "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                            "[ -d autopyfactory ] || git clone https://github.com/btovar/autopyfactory.git",
+                            "[ -d autopyfactory ] || git clone https://github.com/PanDAWMS/autopyfactory.git",
                             "cd autopyfactory",
                             "rm -rf build",
-                            "python setup.py install --home=${VC3_SERVICES_HOME}"
+                            "python setup.py install --home=${VC3_SERVICES_HOME}",
+                            "mkdir -p ${VC3_SERVICES_HOME}/etc",
+                            "cp -r etc ${VC3_SERVICES_HOME}/etc/autopyfactory"
                         ]
                     }
                 ],
@@ -305,7 +307,7 @@
         "environment-variables":[
             {
                 "name":"APF_HOME",
-                "value":"${VC3_SERVICES_HOME}/apf",
+                "value":"${VC3_SERVICES_HOME}",
                 "absolute":1,
                 "clobber":1
             },
@@ -321,6 +323,34 @@
             }
         ]
     },
+
+    "vc3-factory-plugins":{
+        "versions":[
+            {
+                "version":"v0.001",
+                "phony":1,
+                "sources":[
+                    {
+                        "type":"generic",
+                        "local":1,
+                        "recipe":[
+                            "mkdir -p ${HOME}/git && cd ${HOME}/git",
+                            "[ -d vc3-factory-plugins ] || git clone https://github.com/vc3-project/vc3-factory-plugins.git",
+                            "cd vc3-factory-plugins",
+                            "rm -rf build",
+                            "python setup.py install --home=${VC3_SERVICES_HOME}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "vc3-factory":[
+                        "v0.000.001"
+                    ]
+                }
+            }
+        ]
+    },
+
 
     "vc3-services":{
         "versions":[
@@ -521,7 +551,7 @@
                     }
                 ],
                 "dependencies":{
-                    "vc3-plugin-manager":[
+                    "vc3-client":[
                         "v0.000.001"
                     ]
                 }
@@ -711,8 +741,8 @@
                         "local":1,
                         "recipe":[
                             "mkdir -p ${HOME}/git && cd $HOME/git",
-                            "[ -d plugin-manager ] || git clone https://github.com/bnl-sdcc/plugin-manager.git",
-                            "cd ${HOME}/git/plugin-manager",
+                            "[ -d sdcc-pluginmanager ] || git clone https://github.com/bnl-sdcc/sdcc-pluginmanager.git",
+                            "cd ${HOME}/git/sdcc-pluginmanager",
                             "rm -rf build",
                             "python setup.py install --home=${VC3_SERVICES_HOME}"
                         ]

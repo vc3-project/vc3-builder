@@ -98,6 +98,30 @@
         ]
     },
 
+    "pax":{
+        "versions":[
+            {
+                "version":"v2016.11.04",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "pax-20161104.tar.gz"
+                        ],
+                        "recipe":[
+                            "${CC} -O2 -o pax  -DPAX_SAFE_PATH=\\\"/bin\\\" *.c",
+                            "mkdir -p ${VC3_PREFIX}/bin",
+                            "cp pax ${VC3_PREFIX}/bin"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
     "sharutils":{
         "versions":[
             {
@@ -337,14 +361,16 @@
                             "mkdir -p ${HOME}/git && cd ${HOME}/git",
                             "[ -d vc3-factory-plugins ] || git clone https://github.com/vc3-project/vc3-factory-plugins.git",
                             "cd vc3-factory-plugins",
-                            "rm -rf build",
-                            "python setup.py install --home=${VC3_SERVICES_HOME}"
+                            "find . autopyfactory/plugins -name '*.py' | pax -r -w ${VC3_SERVICES_HOME}/lib/python/"
                         ]
                     }
                 ],
                 "dependencies":{
                     "vc3-factory":[
                         "v0.000.001"
+                    ],
+                    "pax":[
+                        "v2016.000.000"
                     ]
                 }
             }

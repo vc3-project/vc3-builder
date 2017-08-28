@@ -14228,11 +14228,16 @@ __DATA__
     },
 
     "vc3-factory":{
-        "dependencies":{
-            "vc3-factory-plugins":[
-                "v0.000.001"
-            ]
-        }
+        "versions":[
+            {
+                "version":"v0.000.001",
+                "dependencies":{
+                    "vc3-factory-plugins":[
+                        "v0.000.001"
+                    ]
+                }
+            }
+        ]
     },
 
     "vc3-services":{

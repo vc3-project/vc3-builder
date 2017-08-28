@@ -14144,7 +14144,7 @@ __DATA__
         ]
     },
 
-    "vc3-factory":{
+    "autopyfactory":{
         "versions":[
             {
                 "version":"v0.000.001",
@@ -14216,7 +14216,7 @@ __DATA__
                     }
                 ],
                 "dependencies":{
-                    "vc3-factory":[
+                    "autopyfactory":[
                         "v0.000.001"
                     ],
                     "pax":[
@@ -14227,6 +14227,13 @@ __DATA__
         ]
     },
 
+    "vc3-factory":{
+        "dependencies":{
+            "vc3-factory-plugins":[
+                "v0.000.001"
+            ]
+        }
+    },
 
     "vc3-services":{
         "versions":[

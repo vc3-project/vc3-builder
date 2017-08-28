@@ -14231,6 +14231,7 @@ __DATA__
         "versions":[
             {
                 "version":"v0.000.001",
+                "phony":1,
                 "dependencies":{
                     "vc3-factory-plugins":[
                         "v0.000.001"

@@ -6,7 +6,9 @@ use warnings;
 
 
 # load module path, for bare, if needed
-use lib "$ENV{PWD}/builder-pack/fatlib";
+if(defined $ENV{PWD}) {
+    use lib "$ENV{PWD}/builder-pack/fatlib";
+}
 
 package VC3::Builder;
 

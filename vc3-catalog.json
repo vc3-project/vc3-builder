@@ -323,7 +323,7 @@
                         "v0.000.001"
                     ],
                     "condor":[
-                        "v8.006.000"
+                        "v8.6"
                     ]
                 }
             }
@@ -1464,7 +1464,7 @@
                             "   echo \"[Error]: Could not find:  \"${VC3_CONDOR_PASSWORD}\"\"",
                             "   exit 1",
                             "fi",
-                            "export CONDOR_CONFIG=${VC3_ROOT_CONDOR}/etc/condor_config",
+                            "export CONDOR_CONFIG=${VC3_CONDOR_LOCAL_DIR}/etc/condor_config",
                             ": rm -f ${CONDOR_CONFIG}",
                             "cd ${VC3_ROOT_CONDOR}",
                             "if [ ! -f ${VC3_CONDOR_LOCAL_DIR}/condor_config.local ]; then",
@@ -1486,7 +1486,7 @@
                             "if [ -f \"${CONDOR_CONFIG}\" ]; then",
                             "    ./condor_configure $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS})",
                             "else",
-                            "    ./condor_install --local-dir=${VC3_CONDOR_LOCAL_DIR} $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS})",
+                            "    ./condor_configure --install --local-dir=${VC3_CONDOR_LOCAL_DIR} $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS}) --make-personal-condor --overwrite",
                             "fi",
                             ": condor_master -dyn -f -r 120"
                         ]
@@ -1495,12 +1495,32 @@
                 "dependencies":{
                     "condor":[
                         "v8.006.000"
+                    ],
+                    "perl":[
+                        "v5.010.000"
                     ]
                 },
+                "environment-autovars":[
+                    "PATH", "LD_LIBRARY_PATH"
+                ],
                 "environment-variables":[
                     {
                         "name":"CONDOR_CONFIG",
                         "value":"${VC3_ROOT_CONDOR}/etc/condor_config",
+                        "absolute":1,
+                        "clobber":1
+                    },
+                    {
+                        "name":"PATH",
+                        "value":"sbin"
+                    },
+                    {
+                        "name":"PYTHONPATH",
+                        "value":"lib/python"
+                    },
+                    {
+                        "name":"VC3_CONDOR_LOCAL_DIR",
+                        "value":"${HOME}/var/condor",
                         "absolute":1,
                         "clobber":1
                     }
@@ -1546,13 +1566,8 @@
                 ]
             }
         ],
-        "dependencies":{
-            "perl":[
-                "v5.010.000"
-            ]
-        },
         "environment-autovars":[
-            "PATH", "LD_LIBRARY_PATH"
+            "LD_LIBRARY_PATH", "PATH"
         ],
         "environment-variables":[
             {
@@ -1561,13 +1576,8 @@
             },
             {
                 "name":"PYTHONPATH",
-                "value":"lib/python"
-            },
-            {
-                "name":"VC3_CONDOR_LOCAL_DIR",
-                "value":"${HOME}/var/condor",
-                "absolute":1,
-                "clobber":1
+                "value":"${VC3_ROOT_CONDOR}/lib/python",
+                "absolute":1
             }
         ]
     },

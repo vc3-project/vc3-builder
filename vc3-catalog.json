@@ -1445,15 +1445,18 @@
                         "type":"generic",
                         "phony":1,
                         "recipe":[
+                            "echo BROKEN FOR NOW",
+                            "exit 1",
                             ": run as condor_master -dyn -f",
                             "if [ -z \"${VC3_CONDOR_CONFIG_OPTIONS}\" ]; then",
+                            "export VC3_CONDOR_CONFIG_OPTIONS='--make-personal-condor --type=submit,manager,execute'",
                             "cat <<EOF",
                             "   No VC3_CONDOR_CONFIG_OPTIONS defined. Examples:",
                             "   export VC3_CONDOR_CONFIG_OPTIONS='--type=submit,manager --central-manager \\$(hostname -i)'",   
                             "   export VC3_CONDOR_CONFIG_OPTIONS='--type=submit --central-manager somewhere.net'",
                             "   export VC3_CONDOR_CONFIG_OPTIONS='--type=execute --central-manager somewhere.net'",
+                            "   using: ${VC3_CONDOR_CONFIG_OPTIONS}",
                             "EOF",
-                            "   exit 1",
                             "fi",
                             "if [ -z \"${VC3_CONDOR_PASSWORD}\" ]; then",
                             "cat <<EOF",
@@ -1467,7 +1470,7 @@
                             "export CONDOR_CONFIG=${VC3_CONDOR_LOCAL_DIR}/etc/condor_config",
                             ": rm -f ${CONDOR_CONFIG}",
                             "cd ${VC3_ROOT_CONDOR}",
-                            "if [ ! -f ${VC3_CONDOR_LOCAL_DIR}/condor_config.local ]; then",
+                            "if [ ! -f ${VC3_CONDOR_LOCAL_DIR}/etc/condor_config.local ]; then",
                             "    echo SCHEDD_NAME = $$.$(hostname)    >> ${VC3_CONDOR_LOCAL_DIR}/condor_config.local",
                             "    echo ALLOW_WRITE = \\*               >> ${VC3_CONDOR_LOCAL_DIR}/condor_config.local",
                             "    if [ -n \"${VC3_CONDOR_PASSWORD}\" ]; then",
@@ -1484,9 +1487,9 @@
                             "    fi",
                             "fi",
                             "if [ -f \"${CONDOR_CONFIG}\" ]; then",
-                            "    ./condor_configure $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS})",
+                            "    ./condor_configure $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS}) --overwrite",
                             "else",
-                            "    ./condor_configure --install --local-dir=${VC3_CONDOR_LOCAL_DIR} $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS}) --make-personal-condor --overwrite",
+                            "    ./condor_configure --install --local-dir=${VC3_CONDOR_LOCAL_DIR} $(eval echo ${VC3_CONDOR_CONFIG_OPTIONS}) --overwrite",
                             "fi",
                             ": condor_master -dyn -f -r 120"
                         ]
@@ -1500,31 +1503,51 @@
                         "v5.010.000"
                     ]
                 },
-                "environment-autovars":[
-                    "PATH", "LD_LIBRARY_PATH"
-                ],
                 "environment-variables":[
                     {
                         "name":"CONDOR_CONFIG",
                         "value":"${VC3_ROOT_CONDOR}/etc/condor_config",
                         "absolute":1,
                         "clobber":1
-                    },
-                    {
-                        "name":"PATH",
-                        "value":"sbin"
-                    },
-                    {
-                        "name":"PYTHONPATH",
-                        "value":"lib/python"
-                    },
-                    {
-                        "name":"VC3_CONDOR_LOCAL_DIR",
-                        "value":"${HOME}/var/condor",
-                        "absolute":1,
-                        "clobber":1
                     }
                 ]
+            }
+        ]
+    },
+
+    "condor-personal":{
+        "versions":[
+            {
+                "version":"v8.006.000",
+                "sources":[
+                    {
+                        "type":"generic",
+                        "phony":1,
+                        "recipe":[
+                            ": run as condor_master -f",
+                            "cd ${VC3_ROOT_CONDOR}",
+                            "[ -f etc/condor_config ] && rm etc/condor_config",
+                            "if [ ! -f ${VC3_ROOT_CONDOR}/etc/condor_config.local ]; then",
+                            "    echo SCHEDD_NAME = $$.$(hostname)    >> ${VC3_ROOT_CONDOR}/condor_config.local",
+                            "    echo ALLOW_WRITE = \\*               >> ${VC3_ROOT_CONDOR}/condor_config.local",
+                            "fi",
+                            "./condor_install --make-personal-condor"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "dependencies":{
+            "condor":[
+                "v8.006.000"
+            ]
+        },
+        "environment-variables":[
+            {
+                "name":"CONDOR_CONFIG",
+                "value":"${VC3_ROOT_CONDOR}/etc/condor_config",
+                "absolute":1,
+                "clobber":1
             }
         ]
     },
@@ -1543,9 +1566,8 @@
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                         ],
                         "recipe":[
-                            "VC3_CONDOR_LOCAL_DIR=${HOME}/var/condor",
                             "mkdir -p ${VC3_PREFIX}",
-                            "mkdir -p ${VC3_CONDOR_LOCAL_DIR}/{config,log,spool}",
+                            "mkdir -p ${VC3_PREFIX}/{config,log,spool}",
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
                         ]
                     },
@@ -1576,8 +1598,7 @@
             },
             {
                 "name":"PYTHONPATH",
-                "value":"${VC3_ROOT_CONDOR}/lib/python",
-                "absolute":1
+                "value":"lib/python"
             }
         ]
     },

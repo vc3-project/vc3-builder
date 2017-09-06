@@ -14269,6 +14269,9 @@ __DATA__
                     "vc3-client":[
                         "v0.000.001"
                     ],
+                    "vc3-builder":[
+                        "v0.000.001"
+                    ],
                     "vc3-resource-tool":[
                         "v0.000.001"
                     ]
@@ -14349,9 +14352,11 @@ __DATA__
                         "type":"generic",
                         "local":1,
                         "recipe":[
+                            "mkdir -p ${HOME}/git && cd ${HOME}/git",
+                            "[ -d vc3-builder ] || git clone https://github.com/vc3-project/vc3-builder.git",
+                            "cd vc3-builder",
                             "mkdir -p ${VC3_SERVICES_HOME}/bin",
-                            "name=$(basename $VC3_BUILDER_PATH)",
-                            "cmp $VC3_BUILDER_PATH ${VC3_SERVICES_HOME}/bin/$name || cp $VC3_BUILDER_PATH ${VC3_SERVICES_HOME}/bin"
+                            "cp vc3-builder ${VC3_SERVICES_HOME}/bin"
                         ]
                     }
                 ],

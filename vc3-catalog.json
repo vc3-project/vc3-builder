@@ -420,9 +420,6 @@
                     ],
                     "vc3-builder":[
                         "v0.000.001"
-                    ],
-                    "vc3-resource-tool":[
-                        "v0.000.001"
                     ]
                 }
             }
@@ -2462,6 +2459,33 @@
                         "type":"tarball",
                         "files":[
                             "requests-2.7.0.tar.gz"
+                        ],
+                        "recipe":[
+                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "python-setuptools":[
+                        "v24.000"
+                    ],
+                    "python-urllib3":[
+                        "v1.22"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "python-urllib3":{
+        "versions":[
+            {
+                "version":"v1.22.0",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "urllib3-1.22.tar.gz"
                         ],
                         "recipe":[
                             "python setup.py install --prefix=${VC3_MODULES_PYTHON}"

@@ -2560,6 +2560,9 @@
                 ]
             }
         ],
+        "auto-version":[
+            "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
+        ],
         "environment-autovars":[
             "PATH", "PYTHONPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"
         ],

@@ -10994,8 +10994,11 @@ sub new {
     $self->{no_system} = { map { ( $_ => 1 ), } @{$no_sys_locs} };
     $self->{system}    = {};
 
+    $self->{indent_level} = 0;
+
     $self->add_manual_variables($extra_vars);
     $self->add_manual_packages($sys_locs);
+
 
     return $self;
 }
@@ -11214,17 +11217,32 @@ sub add_manual_packages {
     my ($self, $specs) = @_;
 
     for my $spec (@{$specs}) {
-        $spec =~ m/
-        ^
-        (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
-        :
-        (?<version>([0-9]+(\.?[0-9]){0,2}))
-        =
-        (?<dir>.*)
-        $
-        /x or die "Malformed manual specification: '$spec'\n";
+        my ($name, $version, $dir);
 
-        my ($name, $version, $dir) = @+{qw(name version dir)};
+        if(
+            $spec =~ m/
+            ^
+            (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
+            :
+            (?<version>(([0-9]+(\.?[0-9]){0,2})|auto))
+            =
+            (?<dir>.*)
+            $
+            /x
+        ) {
+            ($name, $version, $dir) = @+{qw(name version dir)};
+        } else {
+            die "Malformed manual specification: '$spec'\n";
+        }
+
+        my $pkg = $self->{packages}{$name};
+        unless($pkg) {
+            die "Could not find specification to overwrite for '$name'\n";
+        }
+
+        if($version eq 'auto') {
+            $version = $pkg->compute_auto_version();
+        }
 
         my $s = {};
         $s->{version} = $version;
@@ -11236,12 +11254,6 @@ sub add_manual_packages {
                 ]
             }
         ];
-
-        my $pkg = $self->{packages}{$name};
-        unless($pkg) {
-            die "Could not find specification to overwrite for '$name'\n";
-        }
-
 
         $self->{system}{$name} = 1;
 
@@ -11778,6 +11790,7 @@ sub say {
 
 package VC3::Package;
 use Carp;
+use File::Temp;
 
 sub new {
     my ($class, $bag, $name, $json_description) = @_;
@@ -11792,6 +11805,7 @@ sub new {
     $self->environment_variables($json_description->{'environment-variables'});
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
+    $self->auto_version($json_description->{'auto-version'});
 
     $self->widgets($json_description->{versions});
 
@@ -11892,6 +11906,68 @@ sub environment_autovars {
 
     return $self->{environment_autovars};
 }
+
+sub auto_version {
+    my ($self, $new_auto_version) = @_;
+
+    $self->{auto_version} = $new_auto_version if($new_auto_version);
+
+    return $self->{auto_version};
+}
+
+sub compute_auto_version {
+    my ($self) = @_;
+
+    unless($self->auto_version) {
+        die "I don't know how to compute the version of '" . $self->name . "'\n";
+    }
+
+    my ($pid, $auto_in) = $self->bag->shell();
+
+    croak "Could not open $shell for auto-version."
+    unless $auto_in;
+
+    my $template = $self->bag->tmp_dir . '/' . $self->name . 'XXXXXX';
+    my $fh = File::Temp->new(template => $template, unlink => 1);
+    close($fh);
+    
+    my $fname = $fh->filename;
+
+    eval {
+        # redirect all output to our log file.
+        print { $auto_in } 'exec 1>> ' . $fname . "\n";
+        print { $auto_in } "exec 2>&1\n";
+        print { $auto_in } "set -ex\n";
+
+        for my $step (@{$self->auto_version}) {
+            print { $auto_in } "$step\n";
+        }
+
+        close($auto_in);
+    };
+
+    if($@) {
+        die $@;
+    }
+
+    open(my $f, '<', $fname) || die 'Did not produce auto-version file';
+    my $version;
+    while( my $line = <$f>) {
+        if($line =~ m/^VC3_VERSION_SYSTEM:\s*(?<version>([0-9]+(\.?[0-9]){0,2}))$/) {
+            $version = $+{version};
+            chomp($version);
+            last;
+        }
+    }
+    close $f;
+    if(!$version) {
+        die 'Did not produce version information.';
+    }
+
+    return $version;
+}
+
+
 
 sub phony {
     my ($self, $new_phony) = @_;
@@ -13139,7 +13215,7 @@ sub execute_recipe_unlocked {
         open(my $f, '<', $output_filename) || die 'Did not produce root directory file';
         my $root;
         while( my $line = <$f>) {
-            if($line =~ m/^VC3_ROOT_SYSTEM:\s+(?<root>.*)$/) {
+            if($line =~ m/^VC3_ROOT_SYSTEM:\s*(?<root>.*)$/) {
                 $root = $+{root};
                 chomp($root);
                 # update root from widget with the new information:
@@ -16410,6 +16486,9 @@ __DATA__
                     }
                 ]
             }
+        ],
+        "auto-version":[
+            "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
         ],
         "environment-autovars":[
             "PATH", "PYTHONPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"

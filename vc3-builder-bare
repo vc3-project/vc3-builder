@@ -656,7 +656,7 @@ sub add_manual_packages {
             ^
             (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
             :
-            (?<version>(([0-9]+(\.?[0-9]){0,2})|auto))
+            (?<version>(([0-9]+(\.?[0-9]){0,3})|auto))
             =
             (?<dir>.*)
             $
@@ -1360,7 +1360,7 @@ sub compute_auto_version {
     unless $auto_in;
 
     my $template = $self->bag->tmp_dir . '/' . $self->name . 'XXXXXX';
-    my $fh = File::Temp->new(template => $template, unlink => 1);
+    my $fh = File::Temp->new(template => $template, unlink => 0);
     close($fh);
     
     my $fname = $fh->filename;
@@ -1383,17 +1383,22 @@ sub compute_auto_version {
     }
 
     open(my $f, '<', $fname) || die 'Did not produce auto-version file';
+    my @lines;
     my $version;
     while( my $line = <$f>) {
-        if($line =~ m/^VC3_VERSION_SYSTEM:\s*(?<version>([0-9]+(\.?[0-9]){0,2}))$/) {
+        push @lines, $line;
+        if($line =~ m/^VC3_VERSION_SYSTEM:\s*v?(?<version>([0-9]+(\.?[0-9]){0,3}))$/) {
             $version = $+{version};
             chomp($version);
             last;
         }
+        else {
+            warn $line;
+        }
     }
     close $f;
     if(!$version) {
-        die 'Did not produce version information.';
+        die "Did not produce version information:\n" . join(@lines, "\n");
     }
 
     return $version;

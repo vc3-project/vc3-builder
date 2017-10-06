@@ -1856,6 +1856,9 @@
                     "v0.001.000"
                 ]
             },
+            "auto-version":[
+                "perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
+            ],
             "environment-variables":[
                 {
                     "name":"PATH",

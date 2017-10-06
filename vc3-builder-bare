@@ -673,7 +673,7 @@ sub add_manual_packages {
         }
 
         if($version eq 'auto') {
-            $version = $pkg->compute_auto_version();
+            $version = $pkg->compute_auto_version($dir);
         }
 
         my $s = {};
@@ -1348,38 +1348,39 @@ sub auto_version {
 }
 
 sub compute_auto_version {
-    my ($self) = @_;
+    my ($self, $root) = @_;
 
     unless($self->auto_version) {
         die "I don't know how to compute the version of '" . $self->name . "'\n";
     }
 
+    $self->bag->add_builder_variable('VC3_PREFIX', $root);
     my ($pid, $auto_in) = $self->bag->shell();
+    $self->bag->del_builder_variable('VC3_PREFIX');
 
     croak "Could not open $shell for auto-version."
     unless $auto_in;
 
     my $template = $self->bag->tmp_dir . '/' . $self->name . 'XXXXXX';
-    my $fh = File::Temp->new(template => $template, unlink => 0);
+    my $fh = File::Temp->new(template => $template, unlink => 1);
     close($fh);
     
     my $fname = $fh->filename;
 
-    eval {
-        # redirect all output to our log file.
-        print { $auto_in } 'exec 1>> ' . $fname . "\n";
-        print { $auto_in } "exec 2>&1\n";
-        print { $auto_in } "set -ex\n";
+    # redirect all output to our log file.
+    print { $auto_in } 'exec 1> ' . $fname . "\n";
+    print { $auto_in } "exec 2>&1\n";
+    print { $auto_in } "set -ex\n";
+    for my $step (@{$self->auto_version}) {
+        print { $auto_in } "$step\n";
+    }
+    print { $auto_in } "exit 0\n";
 
-        for my $step (@{$self->auto_version}) {
-            print { $auto_in } "$step\n";
-        }
-
-        close($auto_in);
-    };
+    my $status = -1;
+    eval { close $auto_in; $status = $? };
 
     if($@) {
-        die $@;
+        carp $@;
     }
 
     open(my $f, '<', $fname) || die 'Did not produce auto-version file';
@@ -1392,13 +1393,10 @@ sub compute_auto_version {
             chomp($version);
             last;
         }
-        else {
-            warn $line;
-        }
     }
     close $f;
     if(!$version) {
-        die "Did not produce version information:\n" . join(@lines, "\n");
+        die "Did not produce version information:\n" . join("\n", @lines);
     }
 
     return $version;

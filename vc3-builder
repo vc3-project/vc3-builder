@@ -14249,7 +14249,7 @@ __DATA__
                     "vc3-services-common-requirements":[
                         "v0.000.001"
                     ],
-                    "vc3-info-service":[
+                    "vc3-infoservice":[
                         "v0.000.001"
                     ],
                     "condor":[
@@ -14336,7 +14336,7 @@ __DATA__
                     "vc3-credible":[
                         "v0.000.001"
                     ],
-                    "vc3-info-service":[
+                    "vc3-infoservice":[
                         "v0.000.001"
                     ],
                     "vc3-wrappers":[
@@ -14465,7 +14465,7 @@ __DATA__
                     }
                 ],
                 "dependencies":{
-                    "vc3-info-service":[
+                    "vc3-infoservice":[
                         "v0.000.001"
                     ],
                     "python-yaml":[
@@ -14536,7 +14536,7 @@ __DATA__
             {
                 "version":"v0.001",
                 "dependencies":{
-                    "vc3-info-service":[
+                    "vc3-infoservice":[
                         "v0.000.001"
                     ]
                 }
@@ -14563,7 +14563,7 @@ __DATA__
                     }
                 ],
                 "dependencies":{
-                    "vc3-info-service":[
+                    "vc3-infoservice":[
                         "v0.000.001"
                     ]
                 }
@@ -14571,7 +14571,7 @@ __DATA__
         ]
     },
 
-    "vc3-info-service":{
+    "vc3-infoservice":{
         "versions":[
             {
                 "version":"v0.001",
@@ -14586,8 +14586,8 @@ __DATA__
                             "   exit 0",
                             "fi",
                             "mkdir -p ${HOME}/git && cd ${HOME}/git",
-                            "[ -d vc3-info-service ] || git clone https://github.com/vc3-project/vc3-info-service.git",
-                            "cd vc3-info-service",
+                            "[ -d vc3-infoservice ] || git clone https://github.com/vc3-project/vc3-infoservice.git",
+                            "cd vc3-infoservice",
                             "rm -rf build",
                             "python setup.py install --home=${VC3_SERVICES_HOME}",
                             "ln -sf ${VC3_SERVICES_HOME}/lib/python/vc3/infoclient.py ${VC3_SERVICES_HOME}/lib/python",
@@ -17977,6 +17977,30 @@ __DATA__
                 ],
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+                ]
+            }
+        ]
+    },
+
+    "musl":{
+        "versions":[
+            {
+                "version":"v1.1.15",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "musl-1.1.15.tar.gz"
+                        ],
+                        "recipe":[
+                            "./configure --prefix=${VC3_PREFIX} x86_64",
+                            "make",
+                            "make install"
+                        ]
+                    }
+                ],
+                "environment-autovars":[
+                    "PATH"
                 ]
             }
         ]

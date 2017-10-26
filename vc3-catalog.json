@@ -986,33 +986,6 @@
         ]
     },
 
-    "cctools-statics":{
-        "versions":[
-            {
-                "version":"v6.000.016",
-                "sources":[
-                    {
-                        "type":"binary",
-                        "local":1,
-                        "files":[
-                            "cctools-statics-6.0.16-x86_64.tar.gz"
-                        ],
-                        "prerequisites":[
-                            "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                        ],
-                        "recipe":[
-                            "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-statics-6.0.16-x86_64.tar.gz"
-                        ]
-                    }
-                ]
-            }
-        ],
-        "environment-autovars":[
-            "PATH"
-        ]
-    },
-
     "cctools":{
         "versions":[
             {
@@ -4073,6 +4046,82 @@
                     "PATH"
                 ]
             }
+        ]
+    },
+
+    "musl-zlib": {
+        "versions":[
+            {
+                "version":"v1.002.008",
+                "sources":[
+                    {
+                        "type":"configure",
+                        "files":[
+                            "zlib-1.2.8.tar.gz"
+                        ],
+                        "preface":[
+                            "export CC=musl-gcc CFLAGS=-fPIC"
+                        ],
+                        "options":"--libdir=${VC3_PREFIX}/lib --static"
+                    }
+                ],
+                "environment-autovars":[
+                    "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+                ]
+            }
+        ],
+        "dependencies":{
+            "musl":[
+                "v1.0"
+            ]
+        }
+    },
+
+    "cctools-statics":{
+        "versions":[
+            {
+                "version":"v6.0.16",
+                "sources":[
+                    {
+                        "type":"binary",
+                        "local":1,
+                        "files":[
+                            "cctools-statics-6.0.16-x86_64.tar.gz"
+                        ],
+                        "prerequisites":[
+                            "exit 1 || [ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
+                        ],
+                        "recipe":[
+                            "mkdir -p ${VC3_PREFIX}",
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-statics-6.0.16-x86_64.tar.gz"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version":"v6.2",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "cctools-6.2.1-source.tar.gz"
+                        ],
+                        "recipe":[
+                            "CFLAGS=-D__MUSL__ CC=musl-gcc ./configure --prefix ${VC3_PREFIX} --without-system-{doc,apps} --with-readline-path=no --static --with-zlib-path=${VC3_ROOT_MUSL_ZLIB}",
+                            "make",
+                            "make install"
+                        ],
+                        "dependencies":{
+                            "musl-zlib":[
+                                "v1.2.0"
+                            ]
+                        }
+                    }
+                ]
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     }
 }

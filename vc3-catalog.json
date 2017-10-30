@@ -4089,7 +4089,7 @@
                             "cctools-statics-6.0.16-x86_64.tar.gz"
                         ],
                         "prerequisites":[
-                            "exit 1 || [ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
+                            "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",

@@ -13379,7 +13379,7 @@ sub add_main_targets {
 
         $root_entry->{dependencies}{$name} = $versions;
         
-        unless($self->add_target($name)) {
+        unless($self->add_target($name, $min, $max)) {
             die "Could not find plan for $req.\n";
         }
 
@@ -18019,7 +18019,7 @@ __DATA__
                             "cctools-statics-6.0.16-x86_64.tar.gz"
                         ],
                         "prerequisites":[
-                            "exit 1 || [ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
+                            "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",

@@ -439,7 +439,7 @@ sub check_manual_requirements() {
     my ($self) = @_;
 
     my @restricted_unmet;
-    for my $w (@{$self->{order}}) {
+    for my $w (@{$self->plan->order}) {
         my $msg = $w->msgs_manual_requirements();
         if($msg) {
             $self->activate_widget($w);
@@ -715,17 +715,14 @@ sub set_plan_for {
         die("Could not find an installation plan.\n");
     }
 
-    $self->{ords} = $plan->order();
-    my @ordered = sort { ($self->{ords}{$a} <=> $self->{ords}{$b}) || ($a cmp $b) } keys %{$self->{ords}};
-    $self->{order} = [ map { $plan->elements->{$_}{widget} } @ordered ];
+    $plan->order(1);
 
-    return $plan;
 }
 
 sub execute_plan {
     my ($self, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
 
-    for my $w (@{$self->{order}}) {
+    for my $w (@{$self->plan->order}) {
         $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
         $self->activate_widget($w);
     }
@@ -973,7 +970,7 @@ sub set_environment_variables {
         $expansion->{$var->{name}} = [$var->{value}];
     }
 
-    for my $wid (@{$self->{order}}) {
+    for my $wid (@{$self->plan->order}) {
         next unless $env->{$wid};
         $wid->consolidate_environment_variables($expansion);
     }
@@ -1051,7 +1048,7 @@ sub set_wrapper {
     my $env = $self->active_widgets();
 
     my $payload = "$shell -c '. $profile_file'";
-    for my $w (@{$self->{order}}) {
+    for my $w (@{$self->plan->order}) {
         next unless $env->{$w};
 
         my $wrap = $w->wrapper;
@@ -1087,7 +1084,7 @@ sub consolidate_prologue {
 
     my @progs = ("cd '" . $self->home_dir . "'");
 
-    for my $w (@{$self->{order}}) {
+    for my $w (@{$self->plan->order}) {
         next unless $env->{$w};
 
         if($w->prologue) {
@@ -2985,6 +2982,18 @@ sub refine {
 }
 
 sub order {
+    my ($self, $set) = @_;
+
+    if($set) {
+        my $ordinals = $self->order_aux();
+        my @ordered = sort { ($ordinals->{$a} <=> $ordinals->{$b}) || ($a cmp $b) } keys %{$ordinals};
+        $self->{order} = [ map { $self->elements->{$_}{widget} } @ordered ];
+    }
+
+    return $self->{order};
+}
+
+sub order_aux {
     my ($self) = @_;
 
     my $ordinal_of = {};
@@ -3093,7 +3102,7 @@ sub dot_graph {
 sub to_makeflow {
     my ($self, $dir, $dag_name, $builder_exec, $local_database, $cores) = @_;
 
-    $self->to_file("$dir/$local_database");
+    $self->trimmed_database("$dir/$local_database");
 
     my $makeflow_name = 'dag';
 
@@ -3182,7 +3191,106 @@ sub prestage {
     }
 }
 
-sub to_file {
+sub trimmed_database {
+    my ($self, $filename) = @_;
+
+    my $output = {};
+
+    for my $e (values %{$self->elements}) {
+        my $n = {};
+        my $w = $e->widget;
+        $n->{version} = $w->version->normal;
+
+        if($w->dependencies) {
+            $n->{dependencies} = $w->dependencies;
+        }
+
+        if($w->wrapper) {
+            $n->{wrapper} = $w->wrapper;
+        }
+
+        if($w->prologue) {
+            $n->{prologue} = $w->prologue;
+        }
+
+        if($w->environment_variables) {
+            $n->{'environment-variables'} = $w->environment_variables;
+        }
+
+        if($w->phony) {
+            $n->{phony} = $w->phony;
+        }
+
+        if($w->active_source) {
+            my $s = $w->active_source;
+            my $m = {};
+
+            $m->{type} = $s->{type};
+
+            if($s->isa('VC3::Source::AutoRecipe')) {
+                if($s->preface) {
+                    $m->{preface} = $s->preface;
+                }
+
+                if($s->epilogue) {
+                    $m->{epilogue} = $s->epilogue;
+                }
+
+                if($s->options) {
+                    $m->{options} = $s->options;
+                }
+            } elsif($s->recipe) {
+                $m->{recipe} = $s->recipe;
+            }
+
+            if($s->files) {
+                $m->{files} = $s->files;
+            }
+
+            if($s->msg_manual_requirement) {
+                $m->{msg_manual_requirement} = $s->msg_manual_requirement;
+            }
+
+            if($s->dependencies) {
+                $m->{dependencies} = $s->dependencies;
+            }
+
+            if($s->prerequisites) {
+                $m->{prerequisites} = $s->prerequisites;
+            }
+
+            if($s->local) {
+                $m->{local} = $s->local;
+            }
+
+
+            $n->{sources} = [ $m ];
+        }
+
+        $output->{$w->name} = [ $n ];
+    }
+
+    open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
+
+    my $json = JSON::Tiny::encode_json($output);
+
+    print { $f_h } $json, "\n";
+
+    close $f_h;
+}
+
+sub to_script {
+    my ($self, $filename) = @_;
+
+    open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
+
+    # to be filled
+
+    close $f_h;
+}
+
+
+sub to_script {
     my ($self, $filename) = @_;
 
     my $output = {};

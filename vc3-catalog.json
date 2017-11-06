@@ -1844,7 +1844,7 @@
                 },
                 {
                     "name":"PERL5LIB",
-                    "value":"lib/perl5/site_perl/5.24.0"
+                    "value":"lib/perl5/site_perl/${VC3_VERSION_FULL_PERL}"
                 },
                 {
                     "name":"PERL_MB_OPT", 

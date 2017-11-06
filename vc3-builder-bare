@@ -172,6 +172,7 @@ sub main {
 
     my $dot_output;
     my $parallel_dir;       
+    my $to_script;
 
     my @databases   = ();
     my @extra_vars  = ();
@@ -209,9 +210,9 @@ sub main {
         "force"           => \$force_rebuild,
         "ignore-locks"    => \$ignore_locks,
 
-        "env-to=s" => \$env_to,
-
-        "dot=s"    => \$dot_output,
+        "env-to=s"    => \$env_to,
+        "dot=s"       => \$dot_output,
+        "to-script=s" => \$to_script,
 
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
@@ -255,6 +256,10 @@ sub main {
 
     if(defined $dot_output) {
         push @no_sys_locs, 'ALL';
+        $dry_run = 1;
+    }
+
+    if(defined $to_script) {
         $dry_run = 1;
     }
 
@@ -306,6 +311,11 @@ sub main {
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
     }
+
+    if(defined $to_script) {
+        $bag->plan->to_script($to_script);
+    }
+
 
     if($bag->dry_run) {
         exit 0;
@@ -1104,6 +1114,15 @@ sub set_profile {
 
     print { $profile_f } "#!$shell\n\n";
 
+    $self->set_profile_fh($profile_f, @command_and_args);
+
+    close $profile_f;
+}
+
+
+sub set_profile_fh {
+    my ($self, $profile_f, @command_and_args) = @_;
+
     my $prologue = $self->consolidate_prologue();
     for my $line (@{$prologue}) {
         print { $profile_f } "$line\n";
@@ -1112,7 +1131,6 @@ sub set_profile {
     if(@command_and_args) {
         print { $profile_f } join(' ', 'exec', @command_and_args, "\n");
     }
-    close $profile_f;
 }
 
 sub set_environment {
@@ -1437,12 +1455,17 @@ sub new {
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
 
-    $self->add_widget_variable('ROOT',    $self->root_dir);
+    # set root dir
+    $self->root_dir();
+
+    my $majminbug = $self->version->normal;
+    $majminbug =~ s/^v([0-9]+\.[0-9]+\.[0-9]+)/$1/;
 
     my $majmin = $self->version->normal;
-    $majmin =~ s/^v([0-9]+\.[0-9]+)\..*/$1/;
+    $majmin    =~ s/^v([0-9]+\.[0-9]+)\..*/$1/;
 
     $self->add_widget_variable('VERSION', $majmin);
+    $self->add_widget_variable('VERSION_FULL', $majminbug);
 
     unless($self->sources) {
         my $null_source = {};
@@ -1667,18 +1690,21 @@ sub root_dir {
 
     my $old = $self->{root_dir};
 
+    my $var_value;
+
     if($new) {
         $self->{root_dir} = $new;
+        $var_value = $new;
     }
 
     unless($self->{root_dir}) {
         my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
-
         $self->{root_dir} = File::Spec->rel2abs($vc3_root) . '/' . $rel;
+        $var_value = '${VC3_ROOT}/${VC3_MACHINE_TARGET}/' . $self->name . '/v${' . $self->widget_var('VERSION_FULL') . '}';
     }
 
     if(!$old || $old ne $self->{root_dir}) {
-        $self->add_widget_variable('ROOT', $self->{root_dir});
+        $self->add_widget_variable('ROOT', $var_value);
     }
 
     return $self->{root_dir};
@@ -3284,99 +3310,14 @@ sub to_script {
 
     open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
 
-    # to be filled
-
-    close $f_h;
-}
-
-
-sub to_script {
-    my ($self, $filename) = @_;
-
-    my $output = {};
-
-    for my $e (values %{$self->elements}) {
-        my $n = {};
-        my $w = $e->widget;
-        $n->{version} = $w->version->normal;
-
-        if($w->dependencies) {
-            $n->{dependencies} = $w->dependencies;
-        }
-
-        if($w->wrapper) {
-            $n->{wrapper} = $w->wrapper;
-        }
-
-        if($w->prologue) {
-            $n->{prologue} = $w->prologue;
-        }
-
-        if($w->environment_variables) {
-            $n->{'environment-variables'} = $w->environment_variables;
-        }
-
-        if($w->phony) {
-            $n->{phony} = $w->phony;
-        }
-
-        if($w->active_source) {
-            my $s = $w->active_source;
-            my $m = {};
-
-            $m->{type} = $s->{type};
-
-            if($s->isa('VC3::Source::AutoRecipe')) {
-                if($s->preface) {
-                    $m->{preface} = $s->preface;
-                }
-
-                if($s->epilogue) {
-                    $m->{epilogue} = $s->epilogue;
-                }
-
-                if($s->options) {
-                    $m->{options} = $s->options;
-                }
-            } elsif($s->recipe) {
-                $m->{recipe} = $s->recipe;
-            }
-
-            if($s->files) {
-                $m->{files} = $s->files;
-            }
-
-            if($s->msg_manual_requirement) {
-                $m->{msg_manual_requirement} = $s->msg_manual_requirement;
-            }
-
-            if($s->dependencies) {
-                $m->{dependencies} = $s->dependencies;
-            }
-
-            if($s->prerequisites) {
-                $m->{prerequisites} = $s->prerequisites;
-            }
-
-            if($s->local) {
-                $m->{local} = $s->local;
-            }
-
-
-            $n->{sources} = [ $m ];
-        }
-
-        $output->{$w->name} = [ $n ];
+    for my $w (@{$self->order}) {
+        $self->bag->activate_widget($w);
+        $self->bag->set_environment_variables($f_h);
     }
 
-    open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
-
-    my $json = JSON::Tiny::encode_json($output);
-
-    print { $f_h } $json, "\n";
-
     close $f_h;
 }
+
 
 package VC3::Plan::Element;
 

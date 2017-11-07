@@ -10735,12 +10735,12 @@ sub main {
     my $force_rebuild      = 0;
     my $prestage           = 0;
     my $timeout;
-    my $to_script          = 0;
 
     my $ignore_locks       = 0;
 
     my $dot_output;
     my $parallel_dir;       
+    my $to_script;
 
     my @databases   = ();
     my @extra_vars  = ();
@@ -12268,7 +12268,7 @@ sub root_dir {
     unless($self->{root_dir}) {
         my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
         $self->{root_dir} = File::Spec->rel2abs($vc3_root) . '/' . $rel;
-        $var_value = '${VC3_ROOT}/${VC3_MACHINE_TARGET}/' . $self->name . '/' . $self->version->normal;
+        $var_value = '${VC3_ROOT}/${VC3_MACHINE_TARGET}/' . $self->name . '/v${' . $self->widget_var('VERSION_FULL') . '}';
     }
 
     if(!$old || $old ne $self->{root_dir}) {

@@ -1203,6 +1203,9 @@
                             ],
                             "openssl":[
                                 "v1.000"
+                            ],
+                            "python":[
+                                "v2.6"
                             ]
                         }
                     }
@@ -1255,8 +1258,8 @@
                             ": ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib no-shared",
                             "./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib -Wl,-rpath=${VC3_PREFIX}/lib",
                             "make depend",
-                            "make",
-                            "make install"
+                            "make build_all",
+                            "make install_sw"
                         ]
                     }
                 ],

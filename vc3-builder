@@ -15613,7 +15613,8 @@ __DATA__
                             "sed -i 's@cc -x@${CC:-cc} -x@' externals/build_sha3/makeHook.sh",
                             "cd cvmfs",
                             "make libcvmfs",
-                            "mkdir -p ${VC3_PREFIX}/{lib,include}",
+                            "mkdir -p ${VC3_PREFIX}/lib",
+                            "mkdir -p ${VC3_PREFIX}/include",
                             "cp libcvmfs.a ${VC3_PREFIX}/lib",
                             "cp ../../cvmfs/libcvmfs*.h ${VC3_PREFIX}/include"
                         ],
@@ -15975,7 +15976,9 @@ __DATA__
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "mkdir -p ${VC3_PREFIX}/{config,log,spool}",
+                            "mkdir -p ${VC3_PREFIX}/config",
+                            "mkdir -p ${VC3_PREFIX}/log",
+                            "mkdir -p ${VC3_PREFIX}/spool",
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
                         ]
                     },
@@ -15989,7 +15992,8 @@ __DATA__
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "mkdir -p ${HOME}/var/condor/{spool,log}",
+                            "mkdir -p ${HOME}/var/condor/log",
+                            "mkdir -p ${HOME}/var/condor/spool",
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
                         ]
                     }

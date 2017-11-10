@@ -15636,6 +15636,9 @@ __DATA__
                             ],
                             "openssl":[
                                 "v1.000"
+                            ],
+                            "python":[
+                                "v2.6"
                             ]
                         }
                     }
@@ -15688,8 +15691,8 @@ __DATA__
                             ": ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib no-shared",
                             "./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib -Wl,-rpath=${VC3_PREFIX}/lib",
                             "make depend",
-                            "make",
-                            "make install"
+                            "make build_all",
+                            "make install_sw"
                         ]
                     }
                 ],
@@ -16977,7 +16980,7 @@ __DATA__
             "${VC3_PREFIX}/bin/python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
         ],
         "environment-autovars":[
-            "PATH", "PYTHONPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"
+            "PATH", "PYTHONPATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"
         ],
         "environment-variables":[
             {
@@ -16999,6 +17002,11 @@ __DATA__
             {
                 "name":"PYTHONPATH",
                 "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                "absolute":1
+            },
+            {
+                "name":"C_INCLUDE_PATH",
+                "value":"${VC3_ROOT_PYTHON}/include/python${VC3_VERSION_PYTHON}",
                 "absolute":1
             }
         ]

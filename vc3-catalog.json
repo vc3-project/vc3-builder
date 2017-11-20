@@ -897,16 +897,17 @@
    "vc3-glidein":{
         "versions": [
             {
-                "version":"v1.0.1",
+                "version":"v1.0.2",
                 "sources":[
                     {
-                        "type":"generic",
+                        "type":"tarball",
                         "files":[
-                            "vc3-glidein-v1.0.1.tar.gz"
+                            "vc3-glidein-v1.0.2.tar.gz"
                         ],
                         "recipe":[
+                            "chmod 755 vc3-glidein",
                             "mkdir -p ${VC3_PREFIX}/bin",
-                            "tar -C ${VC3_PREFIX}/bin -xf vc3-glidein-v1.0.1.tar.gz vc3-glidein/vc3-glidein"
+                            "mv vc3-glidein ${VC3_PREFIX}/bin"
                         ]
                     }
                 ]

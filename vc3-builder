@@ -16427,15 +16427,15 @@ __DATA__
     "python-pip":{
         "versions":[
             {
-                "version":"v1.008.002",
+                "version":"v9.000.001",
                 "sources":[
                     {
                         "type":"generic",
                         "files":[
-                            "pip-8.1.2.distribution"
+                            "pip-9.0.1.distribution"
                         ],
                         "recipe":[
-                            "python pip-8.1.2.distribution --prefix=${VC3_MODULES_PYTHON}"
+                            "python pip-9.0.1.distribution --prefix=${VC3_MODULES_PYTHON}"
                         ]
                     }
                 ],

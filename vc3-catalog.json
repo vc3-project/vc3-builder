@@ -2002,7 +2002,7 @@
                             "pip-9.0.1.distribution"
                         ],
                         "recipe":[
-                            "python pip-9.0.1.distribution --prefix=${VC3_MODULES_PYTHON}"
+                            "python pip-9.0.1.distribution --prefix=${VC3_MODULES_PYTHON} --ignore-installed"
                         ]
                     }
                 ],

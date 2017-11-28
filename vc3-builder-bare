@@ -980,9 +980,11 @@ sub set_environment_variables {
         $expansion->{$var->{name}} = [$var->{value}];
     }
 
-    for my $wid (@{$self->plan->order}) {
-        next unless $env->{$wid};
-        $wid->consolidate_environment_variables($expansion);
+    if($self->plan->order) {
+        for my $wid (@{$self->plan->order}) {
+            next unless $env->{$wid};
+            $wid->consolidate_environment_variables($expansion);
+        }
     }
 
     $expansion->{'PATH'} ||= [];
@@ -1058,18 +1060,21 @@ sub set_wrapper {
     my $env = $self->active_widgets();
 
     my $payload = "$shell -c '. $profile_file'";
-    for my $w (@{$self->plan->order}) {
-        next unless $env->{$w};
 
-        my $wrap = $w->wrapper;
+    if($self->plan->order) {
+        for my $w (@{$self->plan->order}) {
+            next unless $env->{$w};
 
-        next unless $wrap;
+            my $wrap = $w->wrapper;
 
-        if( $wrap =~ /\{\}/ ) {
-            $wrap =~ s/\{\}/$payload/;
-            $payload = $wrap;
-        } else {
-            $payload = $wrap . ' ' . $payload;
+            next unless $wrap;
+
+            if( $wrap =~ /\{\}/ ) {
+                $wrap =~ s/\{\}/$payload/;
+                $payload = $wrap;
+            } else {
+                $payload = $wrap . ' ' . $payload;
+            }
         }
     }
 
@@ -1094,11 +1099,13 @@ sub consolidate_prologue {
 
     my @progs = ("cd '" . $self->home_dir . "'");
 
-    for my $w (@{$self->plan->order}) {
-        next unless $env->{$w};
+    if($self->plan->order) {
+        for my $w (@{$self->plan->order}) {
+            next unless $env->{$w};
 
-        if($w->prologue) {
-            push @progs, @{$w->prologue};
+            if($w->prologue) {
+                push @progs, @{$w->prologue};
+            }
         }
     }
 
@@ -2283,6 +2290,7 @@ sub check_prerequisites {
     print { $pre_in } "exec 2>&1\n";
     print { $pre_in } "set -ex\n";
 
+
     # add shifting to tmp directory as the first step.
     unshift @steps, 'cd ' . $self->widget->bag->tmp_dir;
 
@@ -2989,6 +2997,7 @@ sub add_source {
 
     my $exit_status = -1;
     eval { $exit_status = $source->check_prerequisites() };
+
     if($exit_status) {
         $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version->normal);
         return 0;

@@ -351,7 +351,7 @@
     "vc3-factory-plugins":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -386,6 +386,9 @@
                 "dependencies":{
                     "vc3-factory-plugins":[
                         "v0.000.001"
+                    ],
+                    "condor-personal":[
+                        "v8.6.0"
                     ]
                 }
             }

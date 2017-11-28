@@ -12116,11 +12116,13 @@ sub consolidate_prologue {
 
     my @progs = ("cd '" . $self->home_dir . "'");
 
-    for my $w (@{$self->plan->order}) {
-        next unless $env->{$w};
+    if($self->plan->order) {
+        for my $w (@{$self->plan->order}) {
+            next unless $env->{$w};
 
-        if($w->prologue) {
-            push @progs, @{$w->prologue};
+            if($w->prologue) {
+                push @progs, @{$w->prologue};
+            }
         }
     }
 
@@ -13301,9 +13303,12 @@ sub check_prerequisites {
 
     my ($pid, $pre_in) = $self->widget->bag->shell();
 
-    print { $pre_in } "exec 1>> /dev/null\n";
+    #print { $pre_in } "exec 1>> /dev/null\n";
+    #print { $pre_in } "exec 2>&1\n";
+    print { $pre_in } "exec 1>> /tmp/oo\n";
     print { $pre_in } "exec 2>&1\n";
     print { $pre_in } "set -ex\n";
+
 
     # add shifting to tmp directory as the first step.
     unshift @steps, 'cd ' . $self->widget->bag->tmp_dir;
@@ -14011,6 +14016,9 @@ sub add_source {
 
     my $exit_status = -1;
     eval { $exit_status = $source->check_prerequisites() };
+    if($@) {
+        die $@;
+    }
     if($exit_status) {
         $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version->normal);
         return 0;
@@ -14784,7 +14792,7 @@ __DATA__
     "vc3-factory-plugins":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -14819,6 +14827,9 @@ __DATA__
                 "dependencies":{
                     "vc3-factory-plugins":[
                         "v0.000.001"
+                    ],
+                    "condor-personal":[
+                        "v8.6.0"
                     ]
                 }
             }

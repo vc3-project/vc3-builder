@@ -15625,7 +15625,6 @@ __DATA__
                             ": to force openssl static, nullify PKG_CONFIG_PATH",
                             "export PKG_CONFIG_PATH=invalid",
                             "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_CRYPTO_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libcrypto.a -DOPENSSL_SSL_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libssl.a -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
-                            "sed -i 's@cc -x@${CC:-cc} -x@' externals/build_sha3/makeHook.sh",
                             "cd cvmfs",
                             "make libcvmfs",
                             "mkdir -p ${VC3_PREFIX}/lib",

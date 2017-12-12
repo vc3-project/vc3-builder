@@ -12002,9 +12002,11 @@ sub set_environment_variables {
         $expansion->{$var->{name}} = [$var->{value}];
     }
 
-    for my $wid (@{$self->plan->order}) {
-        next unless $env->{$wid};
-        $wid->consolidate_environment_variables($expansion);
+    if($self->plan->order) {
+        for my $wid (@{$self->plan->order}) {
+            next unless $env->{$wid};
+            $wid->consolidate_environment_variables($expansion);
+        }
     }
 
     $expansion->{'PATH'} ||= [];
@@ -12080,18 +12082,21 @@ sub set_wrapper {
     my $env = $self->active_widgets();
 
     my $payload = "$shell -c '. $profile_file'";
-    for my $w (@{$self->plan->order}) {
-        next unless $env->{$w};
 
-        my $wrap = $w->wrapper;
+    if($self->plan->order) {
+        for my $w (@{$self->plan->order}) {
+            next unless $env->{$w};
 
-        next unless $wrap;
+            my $wrap = $w->wrapper;
 
-        if( $wrap =~ /\{\}/ ) {
-            $wrap =~ s/\{\}/$payload/;
-            $payload = $wrap;
-        } else {
-            $payload = $wrap . ' ' . $payload;
+            next unless $wrap;
+
+            if( $wrap =~ /\{\}/ ) {
+                $wrap =~ s/\{\}/$payload/;
+                $payload = $wrap;
+            } else {
+                $payload = $wrap . ' ' . $payload;
+            }
         }
     }
 
@@ -13303,9 +13308,7 @@ sub check_prerequisites {
 
     my ($pid, $pre_in) = $self->widget->bag->shell();
 
-    #print { $pre_in } "exec 1>> /dev/null\n";
-    #print { $pre_in } "exec 2>&1\n";
-    print { $pre_in } "exec 1>> /tmp/oo\n";
+    print { $pre_in } "exec 1>> /dev/null\n";
     print { $pre_in } "exec 2>&1\n";
     print { $pre_in } "set -ex\n";
 
@@ -14016,9 +14019,7 @@ sub add_source {
 
     my $exit_status = -1;
     eval { $exit_status = $source->check_prerequisites() };
-    if($@) {
-        die $@;
-    }
+
     if($exit_status) {
         $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version->normal);
         return 0;
@@ -15609,12 +15610,12 @@ __DATA__
     "libcvmfs":{
         "versions":[
             {
-                "version":"v2.003",
+                "version":"v2.004",
                 "sources":[
                     {
                         "type":"tarball",
                         "files":[
-                            "cvmfs-0941e442.tar.gz"
+                            "cvmfs-70dfa0d62.tar.gz"
                         ],
                         "recipe":[
                             "mkdir -p build",
@@ -15624,7 +15625,6 @@ __DATA__
                             ": to force openssl static, nullify PKG_CONFIG_PATH",
                             "export PKG_CONFIG_PATH=invalid",
                             "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_CRYPTO_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libcrypto.a -DOPENSSL_SSL_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libssl.a -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
-                            "make libpacparser",
                             "sed -i 's@cc -x@${CC:-cc} -x@' externals/build_sha3/makeHook.sh",
                             "cd cvmfs",
                             "make libcvmfs",

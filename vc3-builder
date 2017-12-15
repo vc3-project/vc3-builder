@@ -15618,6 +15618,7 @@ __DATA__
                             "cvmfs-70dfa0d62.tar.gz"
                         ],
                         "recipe":[
+                            "unset CPLUS_INCLUDE_PATH",
                             "mkdir -p build",
                             "cd build",
                             ": set NO_INTERNET to stop parcparser tests",

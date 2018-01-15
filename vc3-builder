@@ -11131,6 +11131,8 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --prestage            Download all files to --distfiles <dir> before
                         processing.
 
+  --list                List all the packages available.
+
   Developers options:
   --debug               On a builder error, print the full back-trace. 
 
@@ -11195,6 +11197,7 @@ sub main {
     my $dot_output;
     my $parallel_dir;       
     my $to_script;
+    my $list_all;
 
     my @databases   = ();
     my @extra_vars  = ();
@@ -11239,6 +11242,7 @@ sub main {
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
         "prestage" => \$prestage,
+        "list"     => \$list_all,
 
         "interactive" => \$interactive_run,
 
@@ -11282,6 +11286,11 @@ sub main {
     }
 
     if(defined $to_script) {
+        $dry_run = 1;
+    }
+
+    if(defined $list_all) {
+        $silent  = 1;
         $dry_run = 1;
     }
 
@@ -11336,6 +11345,10 @@ sub main {
 
     if(defined $to_script) {
         $bag->plan->to_script($to_script);
+    }
+
+    if(defined $list_all) {
+        $bag->list_packages();
     }
 
 
@@ -11465,6 +11478,28 @@ sub new {
 
 
     return $self;
+}
+
+sub list_packages() {
+    my ($self) = @_;
+
+    my @ps = keys %{$self->{packages}};
+
+    @ps = sort { $a cmp $b } @ps;
+
+    for my $p (@ps) {
+        my $printed = {};
+        my $ws = $self->{packages}{$p}->widgets;
+
+        for my $w (@{$ws}) {
+            my $str = "$p:@{[$w->version]}";
+
+            unless(defined $printed->{$str}) {
+                $printed->{$str} = 1;
+                print "$str\n";
+            }
+        }
+    }
 }
 
 sub check_manual_requirements() {
@@ -14444,7 +14479,7 @@ __DATA__
     "noop":{
         "versions":[
             {
-                "version":"v0.000.001",
+                "version":"v0.0.1",
                 "phony":1
             }
         ]
@@ -14453,7 +14488,7 @@ __DATA__
     "vc3-builder-hands":{
         "versions":[
             {
-                "version":"v1.000.000",
+                "version":"v1.0.0",
                 "sources":[
                     {
                         "type":"generic",
@@ -14463,23 +14498,23 @@ __DATA__
                         ],
                         "dependencies-disabled":{
                             "make":[
-                                "v3.082.000"
+                                "v3.82.0"
                             ],
                             "sed":[
-                                "v4.002.000"
+                                "v4.2.0"
                             ],
                             "awk":[
-                                "v4.001.001"
+                                "v4.1.1"
                             ],
                             "pkg-config":[
-                                "v0.023.000"
+                                "v0.23.0"
                             ]
                         }
                     }
                 ],
                 "dependencies-disabled":{
                     "tar":[
-                        "v1.002.000"
+                        "v1.2.0"
                     ]
                 }
             }
@@ -14489,7 +14524,7 @@ __DATA__
     "static-get":{
         "versions":[
             {
-                "version":"v1.000.000",
+                "version":"v1.0.0",
                 "sources":[
                     {
                         "type":"generic",
@@ -14543,7 +14578,7 @@ __DATA__
     "pax":{
         "versions":[
             {
-                "version":"v2016.11.04",
+                "version":"v2016.11.4",
                 "sources":[
                     {
                         "type":"tarball",
@@ -14713,24 +14748,24 @@ __DATA__
     "vc3-wq-factory":{
         "versions":[
             {
-                "version":"v0.000.001",
+                "version":"v0.0.1",
                 "dependencies":{
                     "cctools-statics":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-factory":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             },
             {
-                "version":"v0.000.001",
+                "version":"v0.0.1",
                 "dependencies":{
                     "cctools":[
-                        "v6.000.016"
+                        "v6.0.16"
                     ],
                     "vc3-factory":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             }
@@ -14740,7 +14775,7 @@ __DATA__
     "autopyfactory":{
         "versions":[
             {
-                "version":"v0.000.001",
+                "version":"v0.0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -14759,10 +14794,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-services-common-requirements":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-infoservice":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "condor":[
                         "v8.6"
@@ -14810,10 +14845,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "autopyfactory":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "pax":[
-                        "v2016.000.000"
+                        "v2016.0.0"
                     ]
                 }
             }
@@ -14823,11 +14858,11 @@ __DATA__
     "vc3-factory":{
         "versions":[
             {
-                "version":"v0.000.001",
+                "version":"v0.0.1",
                 "phony":1,
                 "dependencies":{
                     "vc3-factory-plugins":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "condor-personal":[
                         "v8.6.0"
@@ -14840,31 +14875,31 @@ __DATA__
     "vc3-services":{
         "versions":[
             {
-                "version":"v0.000.001",
+                "version":"v0.0.1",
                 "dependencies":{
                     "vc3-builder":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-plugin-manager":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-credible":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-infoservice":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-wrappers":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-master":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-client":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-builder":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             }
@@ -14874,7 +14909,7 @@ __DATA__
     "vc3-services-common-requirements":{
         "versions":[
             {
-                "version":"v0.000.001",
+                "version":"v0.0.1",
                 "sources":[
                     {
                         "type":"generic",
@@ -14889,13 +14924,13 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.007.012"
+                        "v2.7.12"
                     ],
                     "python-pip":[
                         "v1.8"
                     ],
                     "git":[
-                        "v2.012.000"
+                        "v2.12.0"
                     ]
                 }
             }
@@ -14923,13 +14958,13 @@ __DATA__
     "vc3-dev":{
         "versions":[
             {
-                "version":"v0.000.001",
+                "version":"v0.0.1",
                 "dependencies":{
                     "vc3-services":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "perl":[
-                        "v5.010.000"
+                        "v5.10.0"
                     ]
                 }
             }
@@ -14939,7 +14974,7 @@ __DATA__
     "vc3-builder":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -14956,7 +14991,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-services-common-requirements":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             }
@@ -14966,7 +15001,7 @@ __DATA__
     "vc3-client":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -14984,7 +15019,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-infoservice":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "python-yaml":[
                         "v3.12"
@@ -14997,7 +15032,7 @@ __DATA__
     "vc3-master":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -15015,7 +15050,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-plugin-manager":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             }
@@ -15025,7 +15060,7 @@ __DATA__
     "vc3-resource-tool":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -15042,7 +15077,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-client":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             }
@@ -15052,10 +15087,10 @@ __DATA__
     "vc3-test-service":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "dependencies":{
                     "vc3-infoservice":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             }
@@ -15065,7 +15100,7 @@ __DATA__
     "vc3-wrappers":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -15082,7 +15117,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-infoservice":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             }
@@ -15092,7 +15127,7 @@ __DATA__
     "vc3-infoservice":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -15115,16 +15150,16 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-plugin-manager":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "vc3-credible":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "python-cherrypy":[
-                        "v3.002.002"
+                        "v3.2.2"
                     ],
                     "python-requests":[
-                        "v2.007.000"
+                        "v2.7.0"
                     ]
                 }
             }
@@ -15154,7 +15189,7 @@ __DATA__
     "vc3-credible":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -15187,7 +15222,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-services-common-requirements":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             }
@@ -15223,7 +15258,7 @@ __DATA__
     "vc3-plugin-manager":{
         "versions":[
             {
-                "version":"v0.001",
+                "version":"v0.1",
                 "phony":1,
                 "sources":[
                     {
@@ -15240,13 +15275,13 @@ __DATA__
                 ],
                 "dependencies":{
                     "vc3-services-common-requirements":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ],
                     "python-cherrypy":[
-                        "v3.002.002"
+                        "v3.2.2"
                     ],
                     "python-requests":[
-                        "v2.007.000"
+                        "v2.7.0"
                     ]
                 }
             }
@@ -15256,7 +15291,7 @@ __DATA__
     "icecube-argonne-demo":{
         "versions":[
             {
-                "version":"v1.000",
+                "version":"v1.0",
                 "phony":1,
                 "sources":[
                     {
@@ -15273,10 +15308,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "icecube-environment":[
-                        "v1.000"
+                        "v1.0"
                     ],
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ]
                 },
                 "environment-variables":[
@@ -15293,16 +15328,16 @@ __DATA__
     "icecube-environment":{
         "versions":[
             {
-                "version":"v1.000",
+                "version":"v1.0",
                 "prologue": [
                     "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"
                 ],
                 "dependencies":{
                     "cvmfs":[
-                        "v2.000"
+                        "v2.0"
                     ],
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ]
                 }
             }
@@ -15312,7 +15347,7 @@ __DATA__
     "htcondor-glidein-wrapper":{
         "versions":[
             {
-                "version":"v1.000",
+                "version":"v1.0",
                 "sources":[
                     {
                         "type":"generic",
@@ -15327,7 +15362,7 @@ __DATA__
                         ],
                         "dependencies":{
                             "python":[
-                                "v2.006"
+                                "v2.6"
                             ]
                         }
                     }
@@ -15360,7 +15395,7 @@ __DATA__
         ],
         "dependencies":{
             "python":[
-                "v2.006"
+                "v2.6"
             ]
         },
         "environment-autovars":[
@@ -15371,7 +15406,7 @@ __DATA__
     "cvmfs":{
         "versions":[
             {
-                "version":"v2.000",
+                "version":"v2.0",
                 "sources":[
                     {
                         "type":"system",
@@ -15420,7 +15455,7 @@ __DATA__
                 "version":"v6.0.16",
                 "dependencies":{
                     "cctools-statics":[
-                        "v0.000.001"
+                        "v0.0.1"
                     ]
                 }
             },
@@ -15457,7 +15492,7 @@ __DATA__
                                 "v5.16", "v5.16.3"
                             ],
                             "python":[
-                                "v2.007.000", "v2.007.012"
+                                "v2.7.0", "v2.7.12"
                             ]
                         }
                     },
@@ -15475,10 +15510,10 @@ __DATA__
                         ],
                         "dependencies":{
                             "perl":[
-                                "v5.010.000", "v5.010.001"
+                                "v5.10.0", "v5.10.1"
                             ],
                             "python":[
-                                "v2.006.000", "v2.006.009"
+                                "v2.6.0", "v2.6.9"
                             ]
                         }
                     },
@@ -15490,25 +15525,25 @@ __DATA__
                         "options":"--without-system-umbrella --without-system-prune --without-system-doc --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
                         "dependencies":{
                             "swig":[
-                                "v3.000"
+                                "v3.0"
                             ],
                             "python":[
-                                "v2.006"
+                                "v2.6"
                             ],
                             "perl":[
-                                "v5.010"
+                                "v5.10"
                             ],
                             "libcvmfs":[
-                                "v2.002"
+                                "v2.2"
                             ],
                             "fuse":[
-                                "v2.009"
+                                "v2.9"
                             ],
                             "openssl":[
-                                "v1.000"
+                                "v1.0"
                             ],
                             "uuid":[
-                                "v1.000"
+                                "v1.0"
                             ]
                         }
                     }
@@ -15517,7 +15552,7 @@ __DATA__
         ],
         "dependencies":{
             "zlib":[
-                "v1.002"
+                "v1.2"
             ]
         },
         "environment-autovars":[
@@ -15536,7 +15571,7 @@ __DATA__
     "swig":{
         "versions":[
             {
-                "version":"v3.000.002",
+                "version":"v3.0.2",
                 "sources":[
                     {
                         "type":"configure",
@@ -15546,13 +15581,13 @@ __DATA__
                         "options":"--libdir=${VC3_PREFIX}/lib",
                         "dependencies":{
                             "python":[
-                                "v2.006"
+                                "v2.6"
                             ],
                             "perl":[
-                                "v5.008"
+                                "v5.8"
                             ],
                             "pcre":[
-                                "v8.034"
+                                "v8.34"
                             ]
                         }
                     }
@@ -15567,7 +15602,7 @@ __DATA__
     "patch":{
         "versions":[
             {
-                "version":"v2.007.005",
+                "version":"v2.7.5",
                 "sources":[
                     {
                         "type":"configure",
@@ -15586,7 +15621,7 @@ __DATA__
     "cmake":{
         "versions":[
             {
-                "version":"v3.005.002",
+                "version":"v3.5.2",
                 "sources":[
                     {
                         "type":"tarball",
@@ -15610,7 +15645,7 @@ __DATA__
     "libcvmfs":{
         "versions":[
             {
-                "version":"v2.004",
+                "version":"v2.4",
                 "sources":[
                     {
                         "type":"tarball",
@@ -15635,22 +15670,22 @@ __DATA__
                         ],
                         "dependencies":{
                             "uuid":[
-                                "v1.000"
+                                "v1.0"
                             ],
                             "fuse":[
-                                "v2.009"
+                                "v2.9"
                             ],
                             "cmake":[
-                                "v3.001"
+                                "v3.1"
                             ],
                             "patch":[
-                                "v2.000"
+                                "v2.0"
                             ],
                             "attr":[
-                                "v2.004"
+                                "v2.4"
                             ],
                             "openssl":[
-                                "v1.000"
+                                "v1.0"
                             ],
                             "python":[
                                 "v2.6"
@@ -15671,7 +15706,7 @@ __DATA__
     "uuid":{
         "versions":[
             {
-                "version":"v1.000.003",
+                "version":"v1.0.3",
                 "sources":[
                     {
                         "type":"configure",
@@ -15694,7 +15729,7 @@ __DATA__
     "openssl":{
         "versions":[
             {
-                "version":"v1.000.002",
+                "version":"v1.0.2",
                 "sources":[
                     {
                         "type":"tarball",
@@ -15713,10 +15748,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "zlib":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "perl":[
-                        "v5.010"
+                        "v5.10"
                     ]
                 }
             }
@@ -15729,7 +15764,7 @@ __DATA__
     "libssh2":{
         "versions":[
             {
-                "version":"v1.008.000",
+                "version":"v1.8.0",
                 "sources":[
                     {
                         "type":"configure",
@@ -15744,7 +15779,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "openssl":[
-                        "v1.000.002"
+                        "v1.0.2"
                     ]
                 },
                 "environment-autovars":[
@@ -15757,7 +15792,7 @@ __DATA__
     "gss":{
         "versions":[
             {
-                "version":"v1.000.003",
+                "version":"v1.0.3",
                 "sources":[
                     {
                         "type":"configure",
@@ -15780,7 +15815,7 @@ __DATA__
     "curl":{
         "versions":[
             {
-                "version":"v7.053.001",
+                "version":"v7.53.1",
                 "sources":[
                     {
                         "type":"tarball",
@@ -15798,16 +15833,16 @@ __DATA__
                 ],
                 "dependencies":{
                     "zlib":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "openssl":[
-                        "v1.000.002"
+                        "v1.0.2"
                     ],
                     "gss":[
-                        "v1.000.003"
+                        "v1.0.3"
                     ],
                     "libssh2":[
-                        "v1.008.000"
+                        "v1.8.0"
                     ]
                 },
                 "environment-autovars":[
@@ -15820,7 +15855,7 @@ __DATA__
     "git":{
         "versions":[
             {
-                "version":"v2.012.000",
+                "version":"v2.12.0",
                 "sources":[
                     {
                         "type":"configure",
@@ -15835,25 +15870,25 @@ __DATA__
                 ],
                 "dependencies":{
                     "zlib":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "openssl":[
-                        "v1.000.002"
+                        "v1.0.2"
                     ],
                     "gss":[
-                        "v1.000.003"
+                        "v1.0.3"
                     ],
                     "curl":[
-                        "v7.053.001"
+                        "v7.53.1"
                     ],
                     "libssh2":[
-                        "v1.008.000"
+                        "v1.8.0"
                     ],
                     "perl":[
-                        "v5.024"
+                        "v5.24"
                     ],
                     "python":[
-                        "v2.007"
+                        "v2.7"
                     ]
                 },
                 "environment-autovars":[
@@ -15866,7 +15901,7 @@ __DATA__
     "condor-configure":{
         "versions":[
             {
-                "version":"v8.006.000",
+                "version":"v8.6.0",
                 "sources":[
                     {
                         "type":"generic",
@@ -15924,10 +15959,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "condor":[
-                        "v8.006.000"
+                        "v8.6.0"
                     ],
                     "perl":[
-                        "v5.010.000"
+                        "v5.10.0"
                     ]
                 },
                 "environment-variables":[
@@ -15945,7 +15980,7 @@ __DATA__
     "condor-personal":{
         "versions":[
             {
-                "version":"v8.006.000",
+                "version":"v8.6.0",
                 "sources":[
                     {
                         "type":"generic",
@@ -15966,7 +16001,7 @@ __DATA__
         ],
         "dependencies":{
             "condor":[
-                "v8.006.000"
+                "v8.6.0"
             ]
         },
         "environment-variables":[
@@ -15982,7 +16017,7 @@ __DATA__
     "condor":{
         "versions":[
             {
-                "version":"v8.006.000",
+                "version":"v8.6.0",
                 "sources":[
                     {
                         "type":"binary",
@@ -16036,7 +16071,7 @@ __DATA__
     "berkeley-db":{
         "versions":[
             {
-                "version":"v6.002.023",
+                "version":"v6.2.23",
                 "sources":[
                     {
                         "type":"tarball",
@@ -16063,7 +16098,7 @@ __DATA__
     "readline":{
         "versions":[
             {
-                "version":"v6.003",
+                "version":"v6.3",
                 "sources":[
                     {
                         "type":"configure",
@@ -16086,7 +16121,7 @@ __DATA__
     "glib":{
         "versions":[
             {
-                "version":"v2.018.001",
+                "version":"v2.18.1",
                 "sources":[
                     {
                         "type":"configure",
@@ -16102,19 +16137,19 @@ __DATA__
                 ],
                 "dependencies":{
                     "libffi":[
-                        "v3.002.001"
+                        "v3.2.1"
                     ],
                     "gettext":[
-                        "v0.019"
+                        "v0.19"
                     ],
                     "zlib":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "pcre":[
-                        "v8.013"
+                        "v8.13"
                     ],
                     "python":[
-                        "v2.005"
+                        "v2.5"
                     ]
                 },
                 "environment-autovars":[
@@ -16127,7 +16162,7 @@ __DATA__
     "attr":{
         "versions":[
             {
-                "version":"v2.004.047",
+                "version":"v2.4.47",
                 "sources":[
                     {
                         "type":"configure",
@@ -16146,7 +16181,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "gettext":[
-                        "v0.019"
+                        "v0.19"
                     ]
                 },
                 "environment-autovars":[
@@ -16159,7 +16194,7 @@ __DATA__
     "libffi":{
         "versions":[
             {
-                "version":"v3.002.001",
+                "version":"v3.2.1",
                 "sources":[
                     {
                         "type":"configure",
@@ -16192,7 +16227,7 @@ __DATA__
     "pcre":{
         "versions":[
             {
-                "version":"v8.039",
+                "version":"v8.39",
                 "sources":[
                     {
                         "type":"configure",
@@ -16212,7 +16247,7 @@ __DATA__
     "fuse":{
         "versions":[
             {
-                "version":"v2.009.003",
+                "version":"v2.9.3",
                 "sources":[
                     {
                         "type":"configure",
@@ -16232,36 +16267,36 @@ __DATA__
     "perl":{
         "versions":[
             {
-                "version":"v5.010",
+                "version":"v5.10",
                 "sources":[
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.010 || $] >= 5.011)'",
+                            "perl -e 'exit($] < 5.10 || $] >= 5.11)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
         ]
                     }
                 ]
             },
             {
-                "version":"v5.016",
+                "version":"v5.16",
                 "sources":[
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.016 || $] >= 5.017)'",
+                            "perl -e 'exit($] < 5.16 || $] >= 5.17)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                     }
                 ]
             },
             {
-                "version":"v5.024",
+                "version":"v5.24",
                 "sources":[
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.024 || $] >= 5.025)'",
+                            "perl -e 'exit($] < 5.24 || $] >= 5.25)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                     },
@@ -16281,7 +16316,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-vc3-modules":[
-                    "v0.001.000"
+                    "v0.1.0"
                 ]
             },
             "auto-version":[
@@ -16324,7 +16359,7 @@ __DATA__
     "perl-vc3-modules":{
         "versions":[
             {
-                "version":"v000.001.000",
+                "version":"v000.1.0",
                 "sources":[
                     {
                         "type":"generic",
@@ -16361,12 +16396,12 @@ __DATA__
     "perl-local-lib":{
         "versions":[
             {
-                "version":"v2.000019",
+                "version":"v2.19",
                 "sources":[
                     {
                         "type":"tarball",
                         "files":[
-                            "local-lib-2.000019.tar.gz"
+                            "local-lib-2.19.tar.gz"
                         ],
                         "recipe":[
                             "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",
@@ -16376,7 +16411,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "perl":[
-                        "v5.010"
+                        "v5.10"
                     ]
                 }
             }
@@ -16386,7 +16421,7 @@ __DATA__
     "perl-cpanminus":{
         "versions":[
             {
-                "version":"v1.007",
+                "version":"v1.7",
                 "sources":[
                     {
                         "type":"generic",
@@ -16401,7 +16436,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "perl-local-lib":[
-                        "v2.000"
+                        "v2.0"
                     ]
                 }
             }
@@ -16411,7 +16446,7 @@ __DATA__
     "python-setuptools":{
         "versions":[
             {
-                "version":"v24.000.002",
+                "version":"v24.0.2",
                 "sources":[
                     {
                         "type":"tarball",
@@ -16430,7 +16465,7 @@ __DATA__
         ],
         "dependencies":{
             "python":[
-                "v2.006"
+                "v2.6"
             ]
         }
     },
@@ -16438,7 +16473,7 @@ __DATA__
     "python-pip":{
         "versions":[
             {
-                "version":"v9.000.001",
+                "version":"v9.0.1",
                 "sources":[
                     {
                         "type":"generic",
@@ -16452,10 +16487,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000"
+                        "v24.0"
                     ]
                 }
             }
@@ -16478,7 +16513,7 @@ __DATA__
     "python-virtualenv":{
         "versions":[
             {
-                "version":"v1.000.000",
+                "version":"v1.0.0",
                 "sources":[
                     {
                         "type":"generic",
@@ -16491,7 +16526,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "python-pip":[
-                        "v1.008"
+                        "v1.8"
                     ]
                 }
             }
@@ -16515,10 +16550,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16542,10 +16577,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16569,16 +16604,16 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "libffi":[
-                        "v3.002.001"
+                        "v3.2.1"
                     ],
                     "python-pycparser":[
                         "v2.18.0"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16602,10 +16637,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16629,10 +16664,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16656,10 +16691,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16683,10 +16718,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16710,13 +16745,13 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-pyparsing":[
                         "v2.2.0"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16740,10 +16775,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16767,10 +16802,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16781,7 +16816,7 @@ __DATA__
     "python-cryptography":{
         "versions":[
             {
-                "version":"v1.008.001",
+                "version":"v1.8.1",
                 "sources":[
                     {
                         "type":"tarball",
@@ -16795,10 +16830,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "libffi":[
-                        "v3.002.001"
+                        "v3.2.1"
                     ],
                     "python-cffi":[
                         "v1.10.0"
@@ -16822,10 +16857,10 @@ __DATA__
                         "v2.5.0"
                     ],
                     "openssl":[
-                        "v1.000.000"
+                        "v1.0.0"
                     ],
                     "python-setuptools":[
-                        "v24.000.000"
+                        "v24.0.0"
                     ]
                 }
             }
@@ -16835,7 +16870,7 @@ __DATA__
     "python-cherrypy":{
         "versions":[
             {
-                "version":"v3.002.002",
+                "version":"v3.2.2",
                 "sources":[
                     {
                         "type":"tarball",
@@ -16849,10 +16884,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python-pyOpenSSL":[
-                        "v17.000.000"
+                        "v17.0.0"
                     ],
                     "python-setuptools":[
-                        "v24.000"
+                        "v24.0"
                     ]
                 }
             }
@@ -16862,7 +16897,7 @@ __DATA__
     "python-pyOpenSSL":{
         "versions":[
             {
-                "version":"v17.000.000",
+                "version":"v17.0.0",
                 "sources":[
                     {
                         "type":"tarball",
@@ -16876,10 +16911,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "python-cryptography":[
-                        "v1.008.000"
+                        "v1.8.0"
                     ],
                     "python-setuptools":[
-                        "v24.000"
+                        "v24.0"
                     ]
                 }
             }
@@ -16889,7 +16924,7 @@ __DATA__
     "python-requests":{
         "versions":[
             {
-                "version":"v2.007.000",
+                "version":"v2.7.0",
                 "sources":[
                     {
                         "type":"tarball",
@@ -16903,7 +16938,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "python-setuptools":[
-                        "v24.000"
+                        "v24.0"
                     ],
                     "python-urllib3":[
                         "v1.22"
@@ -16930,7 +16965,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "python-setuptools":[
-                        "v24.000"
+                        "v24.0"
                     ]
                 }
             }
@@ -16941,7 +16976,7 @@ __DATA__
     "python":{
         "versions":[
             {
-                "version":"v2.006",
+                "version":"v2.6",
                 "sources":[
                     {
                         "type":"system",
@@ -16956,7 +16991,7 @@ __DATA__
                 ]
             },
             {
-                "version":"v2.007.012",
+                "version":"v2.7.12",
                 "sources":[
                     {
                         "type":"system",
@@ -16983,13 +17018,13 @@ __DATA__
                         ],
                         "dependencies":{
                             "zlib":[
-                                "v1.002.008"
+                                "v1.2.8"
                             ],
                             "openssl":[
-                                "v1.000"
+                                "v1.0"
                             ],
                             "libffi":[
-                                "v3.002.001"
+                                "v3.2.1"
                             ]
                         }
                     }
@@ -17035,7 +17070,7 @@ __DATA__
     "zlib": {
         "versions":[
             {
-                "version":"v1.002.008",
+                "version":"v1.2.8",
                 "sources":[
                     {
                         "type":"configure",
@@ -17058,7 +17093,7 @@ __DATA__
     "gsl": {
         "versions":[
             {
-                "version":"v2.001",
+                "version":"v2.1",
                 "sources":[
                     {
                         "type":"configure",
@@ -17081,7 +17116,7 @@ __DATA__
     "gettext": {
         "versions":[
             {
-                "version":"v0.019.008",
+                "version":"v0.19.8",
                 "sources":[
                     {
                         "type":"configure",
@@ -17104,16 +17139,16 @@ __DATA__
     "mash": {
         "versions":[
             {
-                "version":"v1.001",
+                "version":"v1.1",
                 "sources":[
                     {
                         "type":"binary",
                         "files":[
-                            "mash-Linux64-v1.001.tar.gz"
+                            "mash-Linux64-v1.1.tar.gz"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf mash-Linux64-v1.001.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf mash-Linux64-v1.1.tar.gz"
                         ]
                     }
                 ],
@@ -17128,7 +17163,7 @@ __DATA__
     "xrootd": {
         "versions":[
             {
-                "version":"v4.003.000",
+                "version":"v4.3.0",
                 "sources":[
                     {
                         "type":"cmake",
@@ -17143,10 +17178,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "perl":[
-                        "v5.010"
+                        "v5.10"
                     ],
                     "fuse":[
-                        "v2.009"
+                        "v2.9"
                     ]
                 },
                 "environment-autovars":[
@@ -17159,7 +17194,7 @@ __DATA__
     "irods":{
         "versions":[
             {
-                "version":"v3.000",
+                "version":"v3.0",
                 "sources":[
                     {
                         "type":"tarball",
@@ -17174,7 +17209,7 @@ __DATA__
                         ],
                         "dependencies":{
                             "help2man":[
-                                "v1.000.000"
+                                "v1.0.0"
                             ]
                         }
                     }
@@ -17204,7 +17239,7 @@ __DATA__
     "help2man":{
         "versions":[
             {
-                "version":"v1.043.003",
+                "version":"v1.43.3",
                 "sources":[
                     {
                         "type":"configure",
@@ -17224,7 +17259,7 @@ __DATA__
     "perl-text-soundex":{
         "versions":[
             {
-                "version":"v3.000",
+                "version":"v3.0",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17240,7 +17275,7 @@ __DATA__
     "perl-bioperl":{
         "versions":[
             {
-                "version":"v1.006",
+                "version":"v1.6",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17251,10 +17286,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "berkeley-db":[
-                        "v6.000"
+                        "v6.0"
                     ],
                     "perl-DB_File":[
-                        "v1.008"
+                        "v1.8"
                     ]
 
                 }
@@ -17265,7 +17300,7 @@ __DATA__
     "perl-DB_File":{
         "versions":[
             {
-                "version":"v1.008",
+                "version":"v1.8",
                 "sources":[
                     {
                         "type":"tarball",
@@ -17280,10 +17315,10 @@ __DATA__
                 ],
                 "dependencies":{
                     "perl-cpanminus":[
-                        "v1.007"
+                        "v1.7"
                     ],
                     "berkeley-db":[
-                        "v6.000"
+                        "v6.0"
                     ]
                 }
             }
@@ -17293,7 +17328,7 @@ __DATA__
     "perl-dbi":{
         "versions":[
             {
-                "version":"v1.006",
+                "version":"v1.6",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17309,7 +17344,7 @@ __DATA__
     "perl-file-which":{
         "versions":[
             {
-                "version":"v1.002",
+                "version":"v1.2",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17325,7 +17360,7 @@ __DATA__
     "perl-unsafe-signals":{
         "versions":[
             {
-                "version":"v0.003",
+                "version":"v0.3",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17341,7 +17376,7 @@ __DATA__
     "perl-bit-vector":{
         "versions":[
             {
-                "version":"v7.004",
+                "version":"v7.4",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17357,7 +17392,7 @@ __DATA__
     "perl-inline":{
         "versions":[
             {
-                "version":"v0.008",
+                "version":"v0.8",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17373,7 +17408,7 @@ __DATA__
     "perl-inline-c":{
         "versions":[
             {
-                "version":"v0.076",
+                "version":"v0.76",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17389,7 +17424,7 @@ __DATA__
     "perl-forks":{
         "versions":[
             {
-                "version":"v0.036",
+                "version":"v0.36",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17405,7 +17440,7 @@ __DATA__
     "perl-io-all":{
         "versions":[
             {
-                "version":"v0.086",
+                "version":"v0.86",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17421,7 +17456,7 @@ __DATA__
     "perl-dbd-sqlite":{
         "versions":[
             {
-                "version":"v1.005",
+                "version":"v1.5",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17437,7 +17472,7 @@ __DATA__
     "perl-want":{
         "versions":[
             {
-                "version":"v0.029",
+                "version":"v0.29",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17453,7 +17488,7 @@ __DATA__
     "perl-lwp-simple":{
         "versions":[
             {
-                "version":"v6.015",
+                "version":"v6.15",
                 "sources":[
                     {
                         "type":"cpan",
@@ -17469,7 +17504,7 @@ __DATA__
     "hmmer":{
         "versions":[
             {
-                "version":"v3.001",
+                "version":"v3.1",
                 "sources":[
                     {
                         "type":"configure",
@@ -17481,7 +17516,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "openmpi":[
-                        "v1.010"
+                        "v1.10"
                     ]
                 },
                 "environment-autovars":[
@@ -17494,7 +17529,7 @@ __DATA__
     "openmpi":{
         "versions":[
             {
-                "version":"v1.010",
+                "version":"v1.10",
                 "sources":[
                     {
                         "type":"configure",
@@ -17517,7 +17552,7 @@ __DATA__
     "ncbi-blast":{
         "versions":[
             {
-                "version":"v2.002.028",
+                "version":"v2.2.28",
                 "sources":[
                     {
                         "type":"binary",
@@ -17546,19 +17581,19 @@ __DATA__
                 ],
                 "dependencies":{
                     "zlib":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "pcre":[
-                        "v8.034"
+                        "v8.34"
                     ],
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "perl":[
-                        "v5.008"
+                        "v5.8"
                     ],
                     "sqlite3":[
-                        "v3.013"
+                        "v3.13"
                     ]
                 }
             }
@@ -17571,7 +17606,7 @@ __DATA__
     "ncbi-rmblastn":{
         "versions":[
             {
-                "version":"v2.002.028",
+                "version":"v2.2.28",
                 "sources":[
                     {
                         "type":"binary",
@@ -17602,22 +17637,22 @@ __DATA__
                 ],
                 "dependencies":{
                     "zlib":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "pcre":[
-                        "v8.034"
+                        "v8.34"
                     ],
                     "python":[
-                        "v2.006"
+                        "v2.6"
                     ],
                     "perl":[
-                        "v5.008"
+                        "v5.8"
                     ],
                     "ncbi-blast":[
-                        "v2.002.028"
+                        "v2.2.28"
                     ],
                     "sqlite3":[
-                        "v3.013"
+                        "v3.13"
                     ]
                 }
             }
@@ -17630,7 +17665,7 @@ __DATA__
     "sqlite3":{
         "versions":[
             {
-                "version":"v3.013",
+                "version":"v3.13",
                 "sources":[
                     {
                         "type":"configure",
@@ -17653,7 +17688,7 @@ __DATA__
     "exonerate":{
         "versions":[
             {
-                "version":"v2.002.000",
+                "version":"v2.2.0",
                 "sources":[
                     {
                         "type":"configure",
@@ -17684,7 +17719,7 @@ __DATA__
     "snap":{
         "versions":[
             {
-                "version":"v2013.011.029",
+                "version":"v2013.11.29",
                 "sources":[
                     {
                         "type":"tarball",
@@ -17704,7 +17739,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "perl":[
-                        "v5.008"
+                        "v5.8"
                     ]
                 },
                 "environment-variables":[
@@ -17727,7 +17762,7 @@ __DATA__
     "repeatmasker":{
         "versions":[
             {
-                "version":"v4.000.006",
+                "version":"v4.0.6",
                 "sources":[
                     {
                         "type":"manual-distribution",
@@ -17755,7 +17790,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "repeatmasker-free":[
-                        "v4.000.006"
+                        "v4.0.6"
                     ]
                 }
             }
@@ -17765,7 +17800,7 @@ __DATA__
     "repeatmasker-free":{
         "versions":[
             {
-                "version":"v4.000.006",
+                "version":"v4.0.6",
                 "sources":[
                     {
                         "type":"generic",
@@ -17782,25 +17817,25 @@ __DATA__
                 ],
                 "dependencies": {
                     "repeatmasker-common":[
-                        "v4.000.006"
+                        "v4.0.6"
                     ],
                     "perl":[
-                        "v5.008"
+                        "v5.8"
                     ],
                     "hmmer":[
-                        "v3.001"
+                        "v3.1"
                     ],
                     "ncbi-blast":[
-                        "v2.002.028"
+                        "v2.2.28"
                     ],
                     "ncbi-rmblastn":[
-                        "v2.002.028"
+                        "v2.2.28"
                     ],
                     "trf":[
-                        "v4.000.009"
+                        "v4.0.9"
                     ],
                     "perl-text-soundex":[
-                        "v3.000"
+                        "v3.0"
                     ]
                 }
             }
@@ -17810,7 +17845,7 @@ __DATA__
     "repeatmasker-common":{
         "versions":[
             {
-                "version":"v4.000.006",
+                "version":"v4.0.6",
                 "sources": [
                     {
                         "type":"generic",
@@ -17838,7 +17873,7 @@ __DATA__
     "augustus":{
         "versions":[
             {
-                "version":"v2.004",
+                "version":"v2.4",
                 "sources":[
                     {
                         "type":"generic",
@@ -17870,7 +17905,7 @@ __DATA__
     "trf":{
         "versions":[
             {
-                "version":"v4.009",
+                "version":"v4.9",
                 "sources":[
                     {
                         "msg_manual_requirement":[
@@ -17906,7 +17941,7 @@ __DATA__
     "maker":{
         "versions":[
             {
-                "version":"v2.031",
+                "version":"v2.31",
                 "sources":[
                     {
                         "type":"manual-distribution",
@@ -17944,58 +17979,58 @@ __DATA__
                 ],
                 "dependencies":{
                     "ncbi-blast":[
-                        "v2.002.028"
+                        "v2.2.28"
                     ],
                     "snap":[
-                        "v2013.011.029"
+                        "v2013.11.29"
                     ],
                     "repeatmasker":[
-                        "v4.000.006"
+                        "v4.0.6"
                     ],
                     "exonerate":[
-                        "v2.002"
+                        "v2.2"
                     ],
                     "augustus":[
-                        "v2.004"
+                        "v2.4"
                     ],
                     "openmpi":[
-                        "v1.010"
+                        "v1.10"
                     ],
                     "perl-bioperl":[
-                        "v1.006"
+                        "v1.6"
                     ],
                     "perl-dbi":[
-                        "v1.006"
+                        "v1.6"
                     ],
                     "perl-dbd-sqlite":[
-                        "v1.005"
+                        "v1.5"
                     ],
                     "perl-want":[
-                        "v0.029"
+                        "v0.29"
                     ],
                     "perl-lwp-simple":[
-                        "v6.015"
+                        "v6.15"
                     ],
                     "perl-file-which":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "perl-unsafe-signals":[
-                        "v0.003"
+                        "v0.3"
                     ],
                     "perl-bit-vector":[
-                        "v7.004"
+                        "v7.4"
                     ],
                     "perl-inline":[
-                        "v0.008"
+                        "v0.8"
                     ],
                     "perl-inline-c":[
-                        "v0.076"
+                        "v0.76"
                     ],
                     "perl-forks":[
-                        "v0.036"
+                        "v0.36"
                     ],
                     "perl-io-all":[
-                        "v0.086"
+                        "v0.86"
                     ]
                 },
                 "environment-variables":[
@@ -18012,7 +18047,7 @@ __DATA__
     "findutils":{
         "versions":[
             {
-                "version":"v4.001.020",
+                "version":"v4.1.20",
                 "sources":[
                     {
                         "type":"system",
@@ -18056,7 +18091,7 @@ __DATA__
                 "dependencies":
                 {
                     "maker":[
-                        "v2.031"
+                        "v2.31"
                     ]
                 }
             }
@@ -18066,7 +18101,7 @@ __DATA__
     "namd":{
         "versions":[
             {
-                "version":"v2.012.000",
+                "version":"v2.12.0",
                 "sources":[
                     {
                         "type":"manual-distribution",
@@ -18096,19 +18131,19 @@ __DATA__
                 ],
                 "dependencies":{
                     "openmpi":[
-                        "v1.010"
+                        "v1.10"
                     ],
                     "charm":[
-                        "v6.007.001"
+                        "v6.7.1"
                     ],
                     "fftw":[
-                        "v3.003.006"
+                        "v3.3.6"
                     ],
                     "tcl":[
-                        "v8.005.009"
+                        "v8.5.9"
                     ],
                     "python":[
-                        "v2.006.000"
+                        "v2.6.0"
                     ]
                 },
                 "environment-variables":
@@ -18126,7 +18161,7 @@ __DATA__
     "charm":{
         "versions":[
             {
-                "version":"v6.007.01",
+                "version":"v6.7.1",
                 "sources":[
                     {
                         "type":"generic",
@@ -18142,7 +18177,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "openmpi":[
-                        "v1.010"
+                        "v1.10"
                     ]
                 },
                 "environment-variables":[
@@ -18175,7 +18210,7 @@ __DATA__
     "tcl":{
         "versions":[
             {
-                "version":"v8.005.09",
+                "version":"v8.5.9",
                 "sources":[
                     {
                         "type":"configure",
@@ -18198,7 +18233,7 @@ __DATA__
     "fftw":{
         "versions":[
             {
-                "version":"v3.003.006",
+                "version":"v3.3.6",
                 "sources":[
                     {
                         "type":"configure",
@@ -18211,7 +18246,7 @@ __DATA__
                         "options":"--enable-openmp --enable-mpi --enable-shared --enable-float",
                         "dependencies":{
                             "openmpi":[
-                                "v1.010"
+                                "v1.10"
                             ]
                         }
                     }
@@ -18226,7 +18261,7 @@ __DATA__
     "octave":{
         "versions":[
             {
-                "version":"v4.002.001",
+                "version":"v4.2.1",
                 "sources":[
                     {
                         "type":"configure",
@@ -18238,31 +18273,31 @@ __DATA__
                 ],
                 "dependencies":{
                     "qhull":[
-                        "v7.002"
+                        "v7.2"
                     ],
                     "zlib":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "hdf5":[
-                        "v1.008"
+                        "v1.8"
                     ],
                     "fftw":[
-                        "v3.003"
+                        "v3.3"
                     ],
                     "glpk":[
-                        "v4.061"
+                        "v4.61"
                     ],
                     "curl":[
-                        "v7.053"
+                        "v7.53"
                     ],
                     "lapack":[
-                        "v3.007"
+                        "v3.7"
                     ],
                     "qrupdate":[
-                        "v1.002"
+                        "v1.2"
                     ],
                     "arpack":[
-                        "v3.004"
+                        "v3.4"
                     ]
                 },
                 "environment-autovars":[
@@ -18275,7 +18310,7 @@ __DATA__
     "qrupdate":{
         "versions":[
             {
-                "version":"v1.002.02",
+                "version":"v1.2.2",
                 "sources":[
                     {
                         "type":"tarball",
@@ -18294,7 +18329,7 @@ __DATA__
                 ],
                 "dependencies":{
                     "lapack":[
-                        "v3.007"
+                        "v3.7"
                     ]
                 },
                 "environment-autovars":[
@@ -18307,7 +18342,7 @@ __DATA__
     "hdf5":{
         "versions":[
             {
-                "version":"v1.008.018",
+                "version":"v1.8.18",
                 "sources":[
                     {
                         "type":"cmake",
@@ -18317,7 +18352,7 @@ __DATA__
                         "options":"-DCMAKE_C_FLAGS=-fPIC -DCMAKE_Fortran_FLAGS=-fPIC",
                         "dependencies":{
                             "openmpi":[
-                                "v1.010"
+                                "v1.10"
                             ]
                         }
                     }
@@ -18332,7 +18367,7 @@ __DATA__
     "qhull":{
         "versions":[
             {
-                "version":"v7.002.000",
+                "version":"v7.2.0",
                 "sources":[
                     {
                         "type":"cmake",
@@ -18352,7 +18387,7 @@ __DATA__
     "glpk":{
         "versions":[
             {
-                "version":"v4.061.000",
+                "version":"v4.61.0",
                 "sources":[
                     {
                         "type":"configure",
@@ -18378,7 +18413,7 @@ __DATA__
     "arpack":{
         "versions":[
             {
-                "version":"v3.004.000",
+                "version":"v3.4.0",
                 "sources":[
                     {
                         "type":"tarball",
@@ -18395,13 +18430,13 @@ __DATA__
                         ],
                         "dependencies":{
                             "cmake":[
-                                "v3.000"
+                                "v3.0"
                             ],
                             "openmpi":[
-                                "v1.010"
+                                "v1.10"
                             ],
                             "lapack":[
-                                "v3.007.000"
+                                "v3.7.0"
                             ]
                         }
                     }
@@ -18416,7 +18451,7 @@ __DATA__
     "lapack":{
         "versions":[
             {
-                "version":"v3.007.000",
+                "version":"v3.7.0",
                 "sources":[
                     {
                         "type":"tarball",
@@ -18442,7 +18477,7 @@ __DATA__
                         ],
                         "dependencies":{
                             "cmake":[
-                                "3.000.000"
+                                "3.0.0"
                             ]
                         }
                     }
@@ -18468,7 +18503,7 @@ __DATA__
     "openblas":{
         "versions":[
             {
-                "version":"v0.002.019",
+                "version":"v0.2.19",
                 "sources":[
                     {
                         "type":"tarball",
@@ -18517,7 +18552,7 @@ __DATA__
     "musl-zlib": {
         "versions":[
             {
-                "version":"v1.002.008",
+                "version":"v1.2.8",
                 "sources":[
                     {
                         "type":"configure",

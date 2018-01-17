@@ -1,3 +1,4 @@
+AutoReqProv: no
 Name: vc3-builder
 Version: 1.0.0
 Release: 1%{?dist}
@@ -5,8 +6,6 @@ Summary: Pilot and software installer
 
 License: MIT
 URL: https://github.com/vc3-project/vc3-builder
-
-AutoReqProv: no
 
 # tarball generation:
 # ------------------- 

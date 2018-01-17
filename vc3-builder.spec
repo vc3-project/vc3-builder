@@ -6,6 +6,8 @@ Summary: Pilot and software installer
 License: MIT
 URL: https://github.com/vc3-project/vc3-builder
 
+AutoReqProv: no
+
 # tarball generation:
 # ------------------- 
 # cd ~/rpmbuild/SOURCES

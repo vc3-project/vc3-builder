@@ -14575,6 +14575,97 @@ __DATA__
         ]
     },
 
+    "jre":{
+        "versions":[
+            {
+                "version":"v1.8.0_172",
+                "sources":[
+                    { 
+                        "type":"tarball",
+                        "files":[
+                            "jre-1.8.0_172.tar.gz"
+                        ],
+                        "recipe":[
+                            "ls -lha",
+                            "mkdir -p ${VC3_PREFIX}/{bin,lib}",
+                            "cp -r bin/* ${VC3_PREFIX}/bin/",
+                            "cp -r lib/* ${VC3_PREFIX}/lib/"
+                        ] 
+                    }
+                ]
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
+    "scala":{
+        "versions":[
+            {
+                "version":"v2.12.4",
+                "dependencies":{
+                    "jre":[
+                        "v1.8.0_172"
+                    ]
+                },
+                "sources":[
+                    { 
+                        "type":"tarball",
+                        "files":[
+                            "scala-2.12.4.tgz"
+                        ],
+                        "recipe":[
+                            "ls -lha",
+                            "mkdir -p ${VC3_PREFIX}/{bin,lib}",
+                            "cp -r bin/* ${VC3_PREFIX}/bin/",
+                            "cp -r lib/* ${VC3_PREFIX}/lib/"
+                        ] 
+                    }
+                ]
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
+    "spark":{
+        "versions":[
+            {
+                "version":"v2.2.1",
+                "dependencies":{
+                    "scala":[
+                        "v2.12.4"
+                    ],
+                    "curl":[
+                        "v7.53.1"
+                    ]
+                },
+                "sources":[
+                    { 
+                        "type":"tarball",
+                        "files":[
+                            "spark-2.2.1-bin-hadoop2.7.tgz"
+                        ],
+                        "recipe":[
+                            "ls -lha",
+                            "mkdir -p ${VC3_PREFIX}/{bin,jars,sbin}",
+                            "cp -r bin/* ${VC3_PREFIX}/bin/",
+                            "cp -r jars/* ${VC3_PREFIX}/jars",
+                            "cp -r sbin/* ${VC3_PREFIX}/sbin",
+                            "curl http://download.virtualclusters.org/builder-files/aws-java-sdk-1.7.4.jar > ${VC3_PREFIX}/jars/aws-java-sdk-1.7.4.jar",
+                            "curl http://download.virtualclusters.org/builder-files/hadoop-aws-2.7.1.jar > ${VC3_PREFIX}/jars/hadoop-aws-2.7.1.jar"
+                        ] 
+                    }
+                ]
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
     "pax":{
         "versions":[
             {

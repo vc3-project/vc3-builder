@@ -702,12 +702,12 @@ sub add_manual_packages {
             (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
             :
             (?<version>(([0-9]+(\.?[0-9]){0,3})|auto))
-            =
-            (?<dir>.*)
+            (=(?<dir>.*))?
             $
             /x
         ) {
             ($name, $version, $dir) = @+{qw(name version dir)};
+            $dir ||= '/usr';
         } else {
             die "Malformed manual specification: '$spec'\n";
         }

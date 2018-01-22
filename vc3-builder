@@ -11724,12 +11724,12 @@ sub add_manual_packages {
             (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
             :
             (?<version>(([0-9]+(\.?[0-9]){0,3})|auto))
-            =
-            (?<dir>.*)
+            (=(?<dir>.*))?
             $
             /x
         ) {
             ($name, $version, $dir) = @+{qw(name version dir)};
+            $dir ||= '/usr';
         } else {
             die "Malformed manual specification: '$spec'\n";
         }
@@ -12318,7 +12318,11 @@ sub new {
     $self->phony($json_description->{phony});
     $self->auto_version($json_description->{'auto-version'});
 
-    $self->widgets($json_description->{versions});
+    if($json_description->{versions}) {
+        $self->widgets($json_description->{versions});
+    } else {
+        $self->{widgets} = [];
+    }
 
     return $self;
 }

@@ -12037,7 +12037,7 @@ sub set_environment_variables {
         $expansion->{$var->{name}} = [$var->{value}];
     }
 
-    if($self->plan->order) {
+    if($self->plan and $self->plan->order) {
         for my $wid (@{$self->plan->order}) {
             next unless $env->{$wid};
             $wid->consolidate_environment_variables($expansion);
@@ -12118,7 +12118,7 @@ sub set_wrapper {
 
     my $payload = "$shell -c '. $profile_file'";
 
-    if($self->plan->order) {
+    if($self->plan and $self->plan->order) {
         for my $w (@{$self->plan->order}) {
             next unless $env->{$w};
 
@@ -12156,7 +12156,7 @@ sub consolidate_prologue {
 
     my @progs = ("cd '" . $self->home_dir . "'");
 
-    if($self->plan->order) {
+    if($self->plan and $self->plan->order) {
         for my $w (@{$self->plan->order}) {
             next unless $env->{$w};
 
@@ -16113,7 +16113,7 @@ __DATA__
                     {
                         "type":"binary",
                         "files":[
-                            "condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
+                            "condor-8.6.9-x86_64_RedHat6-stripped.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
@@ -16129,7 +16129,7 @@ __DATA__
                     {
                         "type":"binary",
                         "files":[
-                            "condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
+                            "condor-8.6.9-x86_64_RedHat7-stripped.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"

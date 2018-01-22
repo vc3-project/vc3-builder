@@ -1636,7 +1636,7 @@
                     {
                         "type":"binary",
                         "files":[
-                            "condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
+                            "condor-8.6.9-x86_64_RedHat6-stripped.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
@@ -1652,7 +1652,7 @@
                     {
                         "type":"binary",
                         "files":[
-                            "condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
+                            "condor-8.6.9-x86_64_RedHat7-stripped.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"

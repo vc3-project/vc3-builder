@@ -1015,7 +1015,7 @@ sub set_environment_variables {
         $expansion->{$var->{name}} = [$var->{value}];
     }
 
-    if($self->plan->order) {
+    if($self->plan and $self->plan->order) {
         for my $wid (@{$self->plan->order}) {
             next unless $env->{$wid};
             $wid->consolidate_environment_variables($expansion);
@@ -1096,7 +1096,7 @@ sub set_wrapper {
 
     my $payload = "$shell -c '. $profile_file'";
 
-    if($self->plan->order) {
+    if($self->plan and $self->plan->order) {
         for my $w (@{$self->plan->order}) {
             next unless $env->{$w};
 
@@ -1134,7 +1134,7 @@ sub consolidate_prologue {
 
     my @progs = ("cd '" . $self->home_dir . "'");
 
-    if($self->plan->order) {
+    if($self->plan and $self->plan->order) {
         for my $w (@{$self->plan->order}) {
             next unless $env->{$w};
 

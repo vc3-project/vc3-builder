@@ -1294,9 +1294,14 @@ sub new {
     $self->environment_variables($json_description->{'environment-variables'});
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
+    $self->operating_system($json_description->{operating_system});
     $self->auto_version($json_description->{'auto-version'});
 
-    $self->widgets($json_description->{versions});
+    if($json_description->{versions}) {
+        $self->widgets($json_description->{versions});
+    } else {
+        $self->{widgets} = [];
+    }
 
     return $self;
 }
@@ -1469,6 +1474,15 @@ sub phony {
     return $self->{phony};
 }
 
+sub operating_system {
+    my ($self, $new_os) = @_;
+
+    $self->{operating_system} = $new_os if($new_os);
+
+    return $self->{operating_system};
+}
+
+
 package VC3::Widget;
 use Carp;
 use POSIX ":sys_wait_h";
@@ -1496,6 +1510,7 @@ sub new {
     $self->environment_variables($json_description->{'environment-variables'});
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
+    $self->operating_system($json_description->{operating_system});
 
     # set root dir
     $self->root_dir();
@@ -1725,6 +1740,16 @@ sub phony {
     my $phony = $self->{phony} || $self->package->phony;
 
     return $phony;
+}
+
+sub operating_system {
+    my ($self, $new_operating_system) = @_;
+
+    $self->{operating_system} = $new_operating_system if($new_operating_system);
+
+    my $operating_system = $self->{operating_system} || $self->package->operating_system;
+
+    return $operating_system;
 }
 
 sub root_dir {
@@ -2178,6 +2203,9 @@ sub new {
     # should always be executed
     $self->phony($json_description->{phony});
 
+    # is an operating system requirement. Only one allowed per plan.
+    $self->operating_system($json_description->{operating_system});
+
     # should recipe be executed locally when using parallel builds?
     $self->local($json_description->{local});
 
@@ -2192,6 +2220,14 @@ sub phony {
     $self->{phony} = $new_phony if($new_phony);
 
     return $self->{phony};
+}
+
+sub operating_system {
+    my ($self, $new_operating_system) = @_;
+
+    $self->{operating_system} = $new_operating_system if($new_operating_system);
+
+    return $self->{operating_system};
 }
 
 sub widget {

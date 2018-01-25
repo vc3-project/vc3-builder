@@ -16144,7 +16144,7 @@ __DATA__
     "condor":{
         "versions":[
             {
-                "version":"v8.6.0",
+                "version":"v8.6.9",
                 "sources":[
                     {
                         "type":"binary",
@@ -16159,7 +16159,7 @@ __DATA__
                             "mkdir -p ${VC3_PREFIX}/config",
                             "mkdir -p ${VC3_PREFIX}/log",
                             "mkdir -p ${VC3_PREFIX}/spool",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat6-stripped.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.9-x86_64_RedHat6-stripped.tar.gz"
                         ]
                     },
                     {
@@ -16174,7 +16174,7 @@ __DATA__
                             "mkdir -p ${VC3_PREFIX}",
                             "mkdir -p ${HOME}/var/condor/log",
                             "mkdir -p ${HOME}/var/condor/spool",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.0-x86_64_RedHat7-stripped.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.9-x86_64_RedHat7-stripped.tar.gz"
                         ]
                     }
                 ]

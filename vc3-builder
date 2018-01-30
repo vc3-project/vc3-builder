@@ -15502,12 +15502,12 @@ __DATA__
    "vc3-glidein":{
         "versions": [
             {
-                "version":"v1.0.2",
+                "version":"v1.0.3",
                 "sources":[
                     {
                         "type":"tarball",
                         "files":[
-                            "vc3-glidein-v1.0.2.tar.gz"
+                            "vc3-glidein-v1.0.3.tar.gz"
                         ],
                         "recipe":[
                             "chmod 755 vc3-glidein",

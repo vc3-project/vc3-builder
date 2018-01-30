@@ -1973,19 +1973,19 @@
     "perl-vc3-modules":{
         "versions":[
             {
-                "version":"v000.1.0",
+                "version":"v000.2.0",
                 "sources":[
                     {
                         "type":"generic",
                         "files":[
-                            "perl-vc3-modules-001.tar"
+                            "perl-vc3-modules-002.tar"
                         ],
                         "recipe":[
                             ": cpanm --force -L none --save-dists /path/ --scandeps PACKAGE", 
                             ": orepan2-indexer /path/",
                             "local_cpan=${VC3_ROOT}/${VC3_MACHINE_TARGET}/perl_local_modules/local_cpan",
                             "mkdir -p ${local_cpan}",
-                            "tar -C ${local_cpan} -xf perl-vc3-modules-001.tar"
+                            "tar -C ${local_cpan} -xf perl-vc3-modules-002.tar"
                         ]
                     }
                 ]
@@ -2015,7 +2015,7 @@
                     {
                         "type":"tarball",
                         "files":[
-                            "local-lib-2.19.tar.gz"
+                            "local-lib-2.000019.tar.gz"
                         ],
                         "recipe":[
                             "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",

@@ -1063,6 +1063,47 @@
         ]
     },
 
+    "parrot-static":{
+        "versions":[
+            {
+                "version":"v6.2.4",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "cctools-6.2.4-source.tar.gz"
+                        ],
+                        "recipe":[
+                            "./configure --prefix ${VC3_PREFIX} --without-system-sand --without-system-allpairs --without-system-wavefront --without-system-makeflow --without-system-umbrella --without-system-prune --without-system-resource_monitor --without-system-doc --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
+                            "make",
+                            "cd parrot/src",
+                            "make parrot_cvmfs_static_run",
+                            "mkdir -p ${VC3_PREFIX}/bin",
+                            "cp parrot_cvmfs_static_run ${VC3_PREFIX}/bin"
+                        ],
+                        "dependencies":{
+                            "zlib":[
+                                "v1.2"
+                            ],
+                            "libcvmfs":[
+                                "v2.2"
+                            ],
+                            "fuse":[
+                                "v2.9"
+                            ],
+                            "openssl":[
+                                "v1.0"
+                            ],
+                            "uuid":[
+                                "v1.0"
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+
     "cctools-catalog-server":{
         "versions":[
             {
@@ -1175,7 +1216,7 @@
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":"http://cache01.hep.wisc.edu:3128",
+                "value":";:DIRECT",
                 "clobber":1,
                 "absolute":1
             }

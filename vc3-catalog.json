@@ -1171,11 +1171,16 @@
                                 "v2.6.0", "v2.6.9"
                             ]
                         }
-                    },
+                    }
+                ]
+            },
+            {
+                "version":"v6.2.4",
+                "sources":[
                     {
                         "type":"configure",
                         "files":[
-                            "cctools-6.1.1-source.tar.gz"
+                            "cctools-6.2.4-source.tar.gz"
                         ],
                         "options":"--without-system-umbrella --without-system-prune --without-system-doc --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
                         "dependencies":{
@@ -1314,8 +1319,10 @@
                             ": set NO_INTERNET to stop parcparser tests",
                             "export NO_INTERNET=1",
                             ": to force openssl static, nullify PKG_CONFIG_PATH",
-                            "export PKG_CONFIG_PATH=invalid",
-                            "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_CRYPTO_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libcrypto.a -DOPENSSL_SSL_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libssl.a -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} ..",
+                            ": export PKG_CONFIG_PATH=invalid",
+                            "sed -i '305ifind_package (FUSE REQUIRED)' ../CMakeLists.txt",
+                            "sed -i '306iset (INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} ${FUSE_INCLUDE_DIR})' ../CMakeLists.txt",
+                            "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC4_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_CRYPTO_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libcrypto.a -DOPENSSL_SSL_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libssl.a -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DFUSE_INCLUDE_DIR:PATH=${VC3_ROOT_FUSE}/include ..",
                             "cd cvmfs",
                             "make libcvmfs",
                             "mkdir -p ${VC3_PREFIX}/lib",
@@ -1394,7 +1401,7 @@
                         "recipe":[
                             ": ./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
                             ": ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib no-shared",
-                            "./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib -Wl,-rpath=${VC3_PREFIX}/lib",
+                            "./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib -D_GNU_SOURCE -DOPENSSL_NO_HEARTBEAT -Wl,-rpath=${VC3_PREFIX}/lib shared zlib no-weak-ssl-ciphers",
                             "make depend",
                             "make build_all",
                             "make install_sw"
@@ -4259,7 +4266,7 @@
                     {
                         "type":"tarball",
                         "files":[
-                            "cctools-6.2.1-source.tar.gz"
+                            "cctools-6.2.4-source.tar.gz"
                         ],
                         "recipe":[
                             "CFLAGS=-D__MUSL__ CC=musl-gcc ./configure --prefix ${VC3_PREFIX} --without-system-{doc,apps} --with-readline-path=no --static --with-zlib-path=${VC3_ROOT_MUSL_ZLIB}",

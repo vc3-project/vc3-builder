@@ -376,7 +376,7 @@
                 "version":"v0.0.1",
                 "dependencies":{
                     "cctools":[
-                        "v6.0.16"
+                        "v6.0.0"
                     ],
                     "vc3-factory":[
                         "v0.0.1"
@@ -1039,7 +1039,7 @@
                             "stat /cvmfs/cms.cern.ch"
                         ],
                         "dependencies":{
-                            "parrot":[
+                            "parrot-wrapper":[
                                 "v6.0.16"
                             ]
                         }
@@ -1049,14 +1049,14 @@
         ]
     },
 
-    "parrot":{
+    "parrot-wrapper":{
         "versions":[
             {
-                "version":"v6.1.1",
+                "version":"v6.0.0",
                 "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
                 "dependencies":{
                     "cctools":[
-                        "v6.1.1"
+                        "v6.0.0"
                     ]
                 }
             }
@@ -1107,7 +1107,7 @@
     "cctools-catalog-server":{
         "versions":[
             {
-                "version":"v6.0.16",
+                "version":"v6.0.0",
                 "dependencies":{
                     "cctools-statics":[
                         "v0.0.1"
@@ -1115,10 +1115,10 @@
                 }
             },
             {
-                "version":"v6.1.1",
+                "version":"v6.0.0",
                 "dependencies":{
                     "cctools":[
-                        "v6.1.1"
+                        "v6.0.0"
                     ]
                 }
             }
@@ -1128,19 +1128,19 @@
     "cctools":{
         "versions":[
             {
-                "version":"v6.1.1",
+                "version":"v6.2.4",
                 "sources":[
                     {
                         "type":"binary",
                         "files":[
-                            "cctools-6.1.1-x86_64-redhat7.tar.gz"
+                            "cctools-6.2.4-x86_64-redhat7.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.1.1-x86_64-redhat7.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.4-x86_64-redhat7.tar.gz"
                         ],
                         "dependencies":{
                             "perl":[
@@ -1154,14 +1154,14 @@
                     {
                         "type":"binary",
                         "files":[
-                            "cctools-6.1.1-x86_64-redhat6.tar.gz"
+                            "cctools-6.2.4-x86_64-redhat6.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.1.1-x86_64-redhat6.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.4-x86_64-redhat6.tar.gz"
                         ],
                         "dependencies":{
                             "perl":[
@@ -1171,12 +1171,7 @@
                                 "v2.6.0", "v2.6.9"
                             ]
                         }
-                    }
-                ]
-            },
-            {
-                "version":"v6.2.4",
-                "sources":[
+                    },
                     {
                         "type":"configure",
                         "files":[
@@ -1213,6 +1208,74 @@
         "dependencies":{
             "zlib":[
                 "v1.2"
+            ]
+        },
+        "environment-autovars":[
+            "PATH", "PYTHONPATH", "PERL5LIB"
+        ],
+        "environment-variables":[
+            {
+                "name":"PARROT_HTTP_PROXY",
+                "value":";:DIRECT",
+                "clobber":1,
+                "absolute":1
+            }
+        ]
+    },
+
+    "cctools-unstable":{
+        "phony":1,
+        "versions":[
+            {
+                "version":"v999.999.999",
+                "sources":[
+                    {
+                        "type":"binary",
+                        "prerequisites":[
+                            "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                        ],
+                        "recipe":[
+                            "curl -O http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat7.tar.gz",
+                            "mkdir -p ${VC3_PREFIX}",
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-*-redhat7.tar.gz"
+                        ],
+                        "dependencies":{
+                            "perl":[
+                                "v5.16", "v5.16.3"
+                            ],
+                            "python":[
+                                "v2.7.0", "v2.7.12"
+                            ]
+                        }
+                    },
+                    {
+                        "type":"binary",
+                        "prerequisites":[
+                            "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
+                        ],
+                        "recipe":[
+                            "curl -O http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat6.tar.gz",
+                            "mkdir -p ${VC3_PREFIX}",
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-*-redhat6.tar.gz"
+                        ],
+                        "dependencies":{
+                            "perl":[
+                                "v5.10.0", "v5.10.1"
+                            ],
+                            "python":[
+                                "v2.6.0", "v2.6.9"
+                            ]
+                        }
+                    }
+                ]
+            }
+        ],
+        "dependencies":{
+            "zlib":[
+                "v1.2"
+            ],
+            "curl":[
+                "v1.0.0"
             ]
         },
         "environment-autovars":[

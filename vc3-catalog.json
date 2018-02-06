@@ -1017,10 +1017,10 @@
         ]
     },
 
-    "cvmfs":{
+    "cvmfs-native":{
         "versions":[
             {
-                "version":"v2.0",
+                "version":"v1.0.0",
                 "sources":[
                     {
                         "type":"system",
@@ -1031,20 +1031,59 @@
                         "recipe":[
                             "echo /cvmfs"
                         ]
-                    },
+                    }
+                ]
+            }
+        ]
+    },
+
+    "cvmfs-parrot-libcvmfs":{
+        "versions":[
+            {
+                "version":"v2.4.0",
+                "sources":[
                     {
                         "type":"generic",
                         "local":1,
+                        "phony":1,
                         "recipe":[
                             "stat /cvmfs/cms.cern.ch"
                         ],
                         "dependencies":{
                             "parrot-wrapper":[
-                                "v6.0.16"
+                                "v6.0.0"
                             ]
                         }
                     }
                 ]
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_PARROT_EXTRA_OPTIONS",
+                "value":"-M /test=/usr",
+                "absolute":1
+            }
+        ]
+    },
+
+    "cvmfs":{
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "dependencies":{
+                    "cvmfs-native":[
+                        "v1.0.0"
+                    ]
+                }
+            },
+            {
+                "version":"v2.4.0",
+                "dependencies":{
+                    "cvmfs-parrot-libcvmfs":[
+                        "v2.4.0"
+                    ]
+                }
             }
         ]
     },
@@ -1053,7 +1092,7 @@
         "versions":[
             {
                 "version":"v6.0.0",
-                "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching -- {}",
+                "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching $(echo \"${VC3_PARROT_EXTRA_OPTIONS}\" | sed 's/:/ /g') -- {}",
                 "dependencies":{
                     "cctools":[
                         "v6.0.0"

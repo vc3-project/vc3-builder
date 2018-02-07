@@ -1164,7 +1164,7 @@
         ]
     },
 
-    "cctools":{
+    "cctools-binary":{
         "versions":[
             {
                 "version":"v6.2.4",
@@ -1210,7 +1210,33 @@
                                 "v2.6.0", "v2.6.9"
                             ]
                         }
-                    },
+                    }
+                ]
+            }
+        ],
+        "dependencies":{
+            "zlib":[
+                "v1.2"
+            ]
+        },
+        "environment-autovars":[
+            "PATH", "PYTHONPATH", "PERL5LIB"
+        ],
+        "environment-variables":[
+            {
+                "name":"PARROT_HTTP_PROXY",
+                "value":";:DIRECT",
+                "clobber":1,
+                "absolute":1
+            }
+        ]
+    },
+
+    "cctools-source":{
+        "versions":[
+            {
+                "version":"v6.2.4",
+                "sources":[
                     {
                         "type":"configure",
                         "files":[
@@ -1251,6 +1277,35 @@
         },
         "environment-autovars":[
             "PATH", "PYTHONPATH", "PERL5LIB"
+        ],
+        "environment-variables":[
+            {
+                "name":"PARROT_HTTP_PROXY",
+                "value":";:DIRECT",
+                "clobber":1,
+                "absolute":1
+            }
+        ]
+    },
+
+    "cctools":{
+        "versions":[
+            {
+                "version":"v6.2.4",
+                "dependencies":{
+                    "cctools-binary":[
+                        "v6.2.4"
+                    ]
+                }
+            },
+            {
+                "version":"v6.2.4",
+                "dependencies":{
+                    "cctools-source":[
+                        "v6.2.4"
+                    ]
+                }
+            }
         ],
         "environment-variables":[
             {

@@ -1163,7 +1163,7 @@ sub set_wrapper {
 
     $self->set_environment_variables($sh_f);
 
-    print { $sh_f } "\ncd '" . $self->home_dir . "'\n";
+    print { $sh_f } "\n" . 'cd ${HOME}' ."\n";
     print { $sh_f } "exec $payload\n\n";
     return $payload;
 }
@@ -1173,7 +1173,7 @@ sub consolidate_prologue {
 
     my $env = $self->active_widgets();
 
-    my @progs = ("cd '" . $self->home_dir . "'");
+    my @progs = ();
 
     if($self->plan and $self->plan->order) {
         for my $w (@{$self->plan->order}) {

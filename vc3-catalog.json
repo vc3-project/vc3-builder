@@ -927,14 +927,7 @@
                     "python":[
                         "v2.6"
                     ]
-                },
-                "environment-variables":[
-                    {
-                        "name":"PATH",
-                        "value":"${HOME}/icecube-argonne-demo-01",
-                        "absolute":1
-                    }
-                ]
+                }
             }
         ]
     },
@@ -1225,7 +1218,7 @@
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":";:DIRECT",
+                "value":":;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -1281,7 +1274,7 @@
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":";:DIRECT",
+                "value":":;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -1310,7 +1303,7 @@
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":";:DIRECT",
+                "value":":;DIRECT",
                 "clobber":1,
                 "absolute":1
             }

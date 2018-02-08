@@ -11178,7 +11178,6 @@ sub main {
     my $print_help   = 0;
     my $make_jobs    = 4;
     my $sh_on_error  = 0;
-    my $env_to       = 0;
 
     my $debug_modules_used = 0;
     my $dry_run            = 0;
@@ -11192,6 +11191,7 @@ sub main {
 
     my $ignore_locks       = 0;
 
+    my $env_to;
     my $dot_output;
     my $parallel_dir;       
     my $to_script;
@@ -11375,6 +11375,7 @@ sub main {
     if($no_run) {
         $exit_code = 0;
     } elsif($env_to) {
+        $bag->preserve_profile(1);
         $bag->set_environment($env_to, @command_and_args);
         $exit_code = 0;
     } else {
@@ -11461,6 +11462,9 @@ sub new {
     $self->{dry_run}         = $dry_run;
     $self->{interactive_run} = $interactive_run;
     $self->{silent_run}      = $silent;
+
+    # clean generated shell profile by default
+    $self->preserve_profile(0);
 
     $self->set_builder_variables();
 
@@ -11670,6 +11674,22 @@ sub dry_run {
     return $self->{dry_run};
 }
 
+sub preserve_profile {
+    my ($self, $val) = @_;
+
+    if(defined $val) {
+        $self->{preserve_profile} = $val;
+    }
+
+    unless(defined $self->{preserve_profile}) {
+        # do not preserve profile by default.
+        $self->{preserve_profile} = 0;
+    }
+
+    return $self->{preserve_profile};
+}
+
+
 sub environment_variables {
     my ($self, $new_vars) = @_;
 
@@ -11801,14 +11821,17 @@ sub cleanup {
         kill 'HUP', -($self->{child_pid});
     }
 
-    if(-f $self->sh_profile) {
-        unlink $self->sh_profile;
-    }
+    unless($self->preserve_profile) {
+        if(-f $self->sh_profile) {
+            unlink $self->sh_profile;
+        }
 
-    my $cmd_file = $self->sh_profile . '.cmd';
-    if(-f $cmd_file) {
-        unlink $cmd_file;
+        my $cmd_file = $self->sh_profile . '.cmd';
+        if(-f $cmd_file) {
+            unlink $cmd_file;
+        }
     }
+        warn $self->sh_profile;
 
     if($self->{child_pid}) {
         # give 10 seconds for child to cleanup HUP, then REDRUM
@@ -12198,7 +12221,6 @@ sub set_profile_fh {
 sub set_environment {
     my ($self, $wrapper_file, @command_and_args) = @_;
 
-    $wrapper_file = $self->sh_profile;
     my $profile_file = "$wrapper_file.cmd";
 
     $self->set_profile($profile_file, @command_and_args);

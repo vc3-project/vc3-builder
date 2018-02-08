@@ -11059,6 +11059,9 @@ my @cleanups;     # functions to call on exit.
 # call main if running interactively
 VC3::Builder::main();
 
+END {
+    cleanup_signal_handler();
+}
 
 sub usage {
     my ($script_name) = @_;
@@ -11147,6 +11150,23 @@ sub select_sleep {
     select(undef, undef, undef, $seconds);
 }
 
+sub fix_http_proxy_vars {
+
+    for my $var (qw(http_proxy HTTP_PROXY)) {
+
+        my $val = $ENV{$var};
+        if($val) {
+            if($val =~ /^:?;?DIRECT$/) {
+                delete $ENV{$var};
+                next;
+            }
+
+            if($val !~ m#^https?://#) { 
+                $ENV{$var} = "http://$val";
+            }
+        }
+}
+
 sub cleanup_signal_handler {
     my ($signal) = @_;
 
@@ -11166,10 +11186,6 @@ sub cleanup_signal_handler {
         $? = 128;
         exit $?;
     }
-}
-
-END {
-    cleanup_signal_handler();
 }
 
 sub main {
@@ -11256,6 +11272,8 @@ sub main {
         # options for developing, not for runtime:
         "debug-modules-used" => \$debug_modules_used,
     );
+
+    fix_http_proxy_vars();
 
     unless($opt_result) {
         print usage($script_name);

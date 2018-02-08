@@ -37,6 +37,9 @@ my @cleanups;     # functions to call on exit.
 # call main if running interactively
 VC3::Builder::main();
 
+END {
+    cleanup_signal_handler();
+}
 
 sub usage {
     my ($script_name) = @_;
@@ -146,9 +149,25 @@ sub cleanup_signal_handler {
     }
 }
 
-END {
-    cleanup_signal_handler();
+sub fix_http_proxy_vars {
+    my ($self) = @_;
+
+    for my $var (qw(http_proxy HTTP_PROXY)) {
+        my $val = $ENV{$var};
+
+        if($val) {
+            if($val =~ /^:?;?DIRECT$/) {
+                delete $ENV{$var};
+                next;
+            }
+
+            if($val !~ m#^https?://#) { 
+                $ENV{$var} = "http://$val";
+            }
+        }
+    }
 }
+
 
 sub main {
     my @requires     = ();
@@ -187,7 +206,8 @@ sub main {
     my $script_name = ${EXECUTABLE_NAME} =~ /perl/ ? $0 : ${EXECUTABLE_NAME};
 
     my $original_command = join(' ', $script_name, @ARGV);
-
+    
+    VC3::Builder::fix_http_proxy_vars();
 
     my $opt_result = GetOptions(
         "help"        => \$print_help,
@@ -708,6 +728,7 @@ sub add_manual_variables {
     }
 }
 
+
 sub add_manual_packages {
     my ($self, $specs) = @_;
 
@@ -809,7 +830,6 @@ sub cleanup {
             unlink $cmd_file;
         }
     }
-        warn $self->sh_profile;
 
     if($self->{child_pid}) {
         # give 10 seconds for child to cleanup HUP, then REDRUM

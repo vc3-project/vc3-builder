@@ -11396,7 +11396,7 @@ sub main {
         $exit_code = 0;
     } elsif($env_to) {
         $bag->preserve_profile(1);
-        $bag->set_environment($env_to, @command_and_args);
+        $bag->set_profile($env_to, @command_and_args);
         $exit_code = 0;
     } else {
         $exit_code = $bag->execute(@command_and_args);
@@ -12165,8 +12165,8 @@ sub order_variables {
 }
 
 
-sub set_wrapper {
-    my ($self, $wrapper_file, $profile_file) = @_;
+sub set_profile {
+    my ($self, $profile_file, @command_and_args) = @_;
 
     my $env = $self->active_widgets();
 
@@ -12189,18 +12189,63 @@ sub set_wrapper {
         }
     }
 
-
     # write to $env_file
-    open(my $sh_f, '>', "$wrapper_file")
-    || die "Could not open file $wrapper_file: $!";
+    open(my $sh_f, '>', "$profile_file")
+    || die "Could not open file $profile_file $!";
 
     print { $sh_f } "#! $shell\n\n";
 
+    print { $sh_f } <<'EOFP';
+CALLED_AS="$_"
+
+if [ "${CALLED_AS}" != "$0" ]
+then
+    SOURCED=yes
+else
+    SOURCED=no
+fi
+
+EOFP
+
     $self->set_environment_variables($sh_f);
 
-    print { $sh_f } "\n" . 'cd ${HOME}' ."\n";
-    print { $sh_f } "exec $payload\n\n";
-    return $payload;
+print { $sh_f } <<'EOFP';
+
+
+VC3_CMD_WRAPPER=$(cat <<EOF
+parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching $(echo "${VC3_PARROT_EXTRA_OPTIONS}" | sed 's/:/ /g')
+EOF
+)
+
+VC3_CMD_PAYLOAD=$(cat <<'EOF'
+
+EOFP
+
+for my $prog_line (@{$self->consolidate_prologue}) {
+    print { $sh_f } "$prog_line\n";
+}
+
+print { $sh_f } join(' ', @command_and_args) . "\n";
+
+print { $sh_f } <<'EOFP';
+EOF
+)
+
+export VC3_CMD_WRAPPER
+export VC3_CMD_PAYLOAD
+
+# if executing, execute the payload.
+if [ ${SOURCED} = no ]
+then
+    cd ${HOME}
+    exec ${VC3_CMD_WRAPPER} -- /bin/sh -c "${VC3_CMD_PAYLOAD}"
+fi
+
+EOFP
+
+    close($sh_f);
+
+    copy $profile_file, "$ENV{HOME}/x";
 }
 
 sub consolidate_prologue {
@@ -12221,43 +12266,6 @@ sub consolidate_prologue {
     }
 
     return \@progs;
-}
-
-sub set_profile {
-    my ($self, $profile_file, @command_and_args) = @_;
-
-    # write to $profile
-    open(my $profile_f, '>', $profile_file)
-    || die "Could not open file '$profile_file': $!";
-
-    print { $profile_f } "#! $shell\n\n";
-
-    $self->set_profile_fh($profile_f, @command_and_args);
-
-    close $profile_f;
-}
-
-
-sub set_profile_fh {
-    my ($self, $profile_f, @command_and_args) = @_;
-
-    my $prologue = $self->consolidate_prologue();
-    for my $line (@{$prologue}) {
-        print { $profile_f } "$line\n";
-    }
-
-    if(@command_and_args) {
-        print { $profile_f } join(' ', 'exec', @command_and_args, "\n");
-    }
-}
-
-sub set_environment {
-    my ($self, $wrapper_file, @command_and_args) = @_;
-
-    my $profile_file = "$wrapper_file.cmd";
-
-    $self->set_profile($profile_file, @command_and_args);
-    $self->set_wrapper($wrapper_file, $profile_file);
 }
 
 sub preserved_vars {
@@ -12281,7 +12289,7 @@ sub preserved_vars {
 sub execute {
     my ($self, @command_and_args) = @_;
 
-    $self->set_environment($self->sh_profile, @command_and_args);
+    $self->set_profile($self->sh_profile, @command_and_args);
 
     my $pid = fork();
 
@@ -12335,7 +12343,7 @@ sub shell {
     my ($self, $payload) = @_;
 
     $payload |= $shell;
-    $self->set_environment($self->sh_profile, $payload);
+    $self->set_profile($self->sh_profile, $payload);
 
     my $pid = open(my $input, '|-');
     if($pid == 0) {

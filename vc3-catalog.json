@@ -2317,14 +2317,10 @@
         "environment-variables":
         [
             {
-                "name":"PATH",
-                "value":"${HOME}/.local/bin",
-                "absolute":1
-            },
-            {
-                "name":"PYTHONPATH",
-                "value":"${HOME}/.local/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                "absolute":1
+                "name":"PIP_PREFIX",
+                "value":"${VC3_MODULES_PYTHON}",
+                "absolute":1,
+                "clobber":1
             }
         ]
     },
@@ -2337,9 +2333,7 @@
                     {
                         "type":"generic",
                         "recipe":[
-                            "pip install --user virtualenv",
-                            "cd ${HOME}",
-                            ".local/bin/virtualenv ${VC3_MODULES_PYTHON}"
+                            "pip install --user virtualenv"
                         ]
                     }
                 ],

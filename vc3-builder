@@ -11150,23 +11150,6 @@ sub select_sleep {
     select(undef, undef, undef, $seconds);
 }
 
-sub fix_http_proxy_vars {
-
-    for my $var (qw(http_proxy HTTP_PROXY)) {
-
-        my $val = $ENV{$var};
-        if($val) {
-            if($val =~ /^:?;?DIRECT$/) {
-                delete $ENV{$var};
-                next;
-            }
-
-            if($val !~ m#^https?://#) { 
-                $ENV{$var} = "http://$val";
-            }
-        }
-}
-
 sub cleanup_signal_handler {
     my ($signal) = @_;
 
@@ -11187,6 +11170,26 @@ sub cleanup_signal_handler {
         exit $?;
     }
 }
+
+sub fix_http_proxy_vars {
+    my ($self) = @_;
+
+    for my $var (qw(http_proxy HTTP_PROXY)) {
+        my $val = $ENV{$var};
+
+        if($val) {
+            if($val =~ /^:?;?DIRECT$/) {
+                delete $ENV{$var};
+                next;
+            }
+
+            if($val !~ m#^https?://#) { 
+                $ENV{$var} = "http://$val";
+            }
+        }
+    }
+}
+
 
 sub main {
     my @requires     = ();
@@ -11225,7 +11228,8 @@ sub main {
     my $script_name = ${EXECUTABLE_NAME} =~ /perl/ ? $0 : ${EXECUTABLE_NAME};
 
     my $original_command = join(' ', $script_name, @ARGV);
-
+    
+    VC3::Builder::fix_http_proxy_vars();
 
     my $opt_result = GetOptions(
         "help"        => \$print_help,
@@ -11272,8 +11276,6 @@ sub main {
         # options for developing, not for runtime:
         "debug-modules-used" => \$debug_modules_used,
     );
-
-    fix_http_proxy_vars();
 
     unless($opt_result) {
         print usage($script_name);
@@ -11748,6 +11750,7 @@ sub add_manual_variables {
     }
 }
 
+
 sub add_manual_packages {
     my ($self, $specs) = @_;
 
@@ -11849,7 +11852,6 @@ sub cleanup {
             unlink $cmd_file;
         }
     }
-        warn $self->sh_profile;
 
     if($self->{child_pid}) {
         # give 10 seconds for child to cleanup HUP, then REDRUM
@@ -16868,14 +16870,10 @@ __DATA__
         "environment-variables":
         [
             {
-                "name":"PATH",
-                "value":"${HOME}/.local/bin",
-                "absolute":1
-            },
-            {
-                "name":"PYTHONPATH",
-                "value":"${HOME}/.local/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                "absolute":1
+                "name":"PIP_PREFIX",
+                "value":"${VC3_MODULES_PYTHON}",
+                "absolute":1,
+                "clobber":1
             }
         ]
     },
@@ -16888,9 +16886,7 @@ __DATA__
                     {
                         "type":"generic",
                         "recipe":[
-                            "pip install --user virtualenv",
-                            "cd ${HOME}",
-                            ".local/bin/virtualenv ${VC3_MODULES_PYTHON}"
+                            "pip install --user virtualenv"
                         ]
                     }
                 ],

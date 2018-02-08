@@ -12108,7 +12108,7 @@ sub set_environment_variables {
     for my $var_name (keys %{$expansion}) {
         eval { $expansion->{$var_name} = join(':', @{$expansion->{$var_name}}) };
         if($@) {
-            carp("Environment variable '$var_name' is not defined.");
+            carp("Environment variable '$var_name' was not explicitely set.");
         }
     }
 

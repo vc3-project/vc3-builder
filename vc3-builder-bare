@@ -1086,7 +1086,7 @@ sub set_environment_variables {
     for my $var_name (keys %{$expansion}) {
         eval { $expansion->{$var_name} = join(':', @{$expansion->{$var_name}}) };
         if($@) {
-            carp("Environment variable '$var_name' was not explicitely set.");
+            warn("Environment variable '$var_name' was not explicitely set.\n");
         }
     }
 
@@ -1126,7 +1126,7 @@ sub order_variables {
             next unless @deps;
 
             my $org   = $order->{$var};
-            my $nxt   = 1 + max(map { $order->{$_} || carp "Variable '$_' is not defined." } @deps);
+            my $nxt   = 1 + max(map { $order->{$_} || warn "Variable '$_' is not explicitely set.\n" } @deps);
 
             if($nxt > $org) {
                 $swap++;

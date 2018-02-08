@@ -11602,6 +11602,8 @@ sub set_builder_variables {
     $self->home_dir($vc3_user_home);
     $self->tmp_dir($tmp_dir);
 
+    $self->user_name(getlogin() || $ENV{'USER'} || 'vc3-user');
+
     my $executable = $RealScript;
     if($executable eq '-e') {
         # this will break! BUG. How to know the name of static executable?
@@ -11626,13 +11628,15 @@ sub set_builder_variables {
     $self->add_builder_variable('VC3_ROOT',         $vc3_root);
     $self->add_builder_variable('VC3_DISTFILES',    $vc3_distfiles);
     $self->add_builder_variable('VC3_BUILDER_PATH', $self->builder_path);
-    $self->add_builder_variable('HOME',             $self->home_dir);
     $self->add_builder_variable('TMP',              $self->tmp_dir);
     $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'xterm');
     $self->add_builder_variable('CC',               $ENV{'CC'}   || 'gcc');
     $self->add_builder_variable('CXX',              $ENV{'CXX'}  || 'g++');
     $self->add_builder_variable('SHELL',            $shell);
-    $self->add_builder_variable('USER',             getlogin() || $ENV{'USER'} || 'vc3-user');
+
+    # we don't want to overwrite these variables in the general profile:
+    # $self->add_builder_variable('USER',
+    # $self->add_builder_variable('HOME',             $self->home_dir);
 }
 
 sub DESTROY {
@@ -11663,6 +11667,15 @@ sub tmp_dir {
 
     return $self->{tmp_dir};
 }
+
+sub user_name {
+    my ($self, $name) = @_;
+
+    $self->{user_name} = $name if($name);
+
+    return $self->{user_name};
+}
+
 
 sub plan {
     my ($self, $new) = @_;
@@ -12181,7 +12194,7 @@ sub set_wrapper {
     open(my $sh_f, '>', "$wrapper_file")
     || die "Could not open file $wrapper_file: $!";
 
-    print { $sh_f } "#!/usr/bin/env -i $shell\n\n";
+    print { $sh_f } "#! $shell\n\n";
 
     $self->set_environment_variables($sh_f);
 
@@ -12217,7 +12230,7 @@ sub set_profile {
     open(my $profile_f, '>', $profile_file)
     || die "Could not open file '$profile_file': $!";
 
-    print { $profile_f } "#!$shell\n\n";
+    print { $profile_f } "#! $shell\n\n";
 
     $self->set_profile_fh($profile_f, @command_and_args);
 
@@ -12247,6 +12260,23 @@ sub set_environment {
     $self->set_wrapper($wrapper_file, $profile_file);
 }
 
+sub preserved_vars {
+    my ($self) = @_;
+
+    my %to_preserve;
+
+    $to_preserve{HOME} = $self->home_dir;
+    $to_preserve{USER} = $self->user_name;
+
+    my @output;
+
+    for my $var (keys %to_preserve) {
+        push @output, "$var=$to_preserve{$var}";
+    }
+
+    return @output;
+}
+
 
 sub execute {
     my ($self, @command_and_args) = @_;
@@ -12259,6 +12289,7 @@ sub execute {
         my @args = (
             '/usr/bin/env',
             '-i',
+            $self->preserved_vars(),
             $shell,
             '-c',
             ". " . $self->sh_profile);
@@ -12311,6 +12342,7 @@ sub shell {
         my @args = (
             '/usr/bin/env',
             '-i',
+            $self->preserved_vars(),
             $shell,
             '-c',
             ". " . $self->sh_profile);

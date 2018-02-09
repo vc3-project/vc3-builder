@@ -1175,6 +1175,7 @@ EOFP
 
     for my $prog_line (@{$self->consolidate_prologue}) {
         print { $sh_f_pay } $prog_line;
+        print { $sh_f_pay } "\n";
     }
 
     print { $sh_f_pay } join(' ', @command_and_args);
@@ -1217,8 +1218,6 @@ EOFP
 
     close($sh_f);
     chmod 0755, $profile_file;
-
-    copy $profile_file, "$ENV{HOME}/aaa";
 }
 
 sub consolidate_prologue {

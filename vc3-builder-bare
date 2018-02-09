@@ -100,10 +100,10 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --timeout SECONDS     Terminate after SECONDS have elapased. 
                         If 0, then the timeout is not activated (default).
 
-  --env-to <file>       Write environment script to <root>/<home>/<file>,
-                        but do not execute the payload. If <file> is sourced 
-                        (i.e., . <file>), only environment variables are set. If
-                        executed (e.g., ./<file>), payload is executed.
+  --env-to <file>       Write environment script to
+                        <root>/<home>/<file>.{,env,payload},
+                        but do not execute command-and-args. To execute
+                        command-and-args, run ./<file>.
 
   --dot <file>          Write a dependency graph of the requirements to <file>.
 
@@ -446,6 +446,7 @@ package VC3::Bag;
 
 use Carp qw/carp croak/;
 #use English qw/-mo_match_vars/;
+use File::Basename;
 use File::Copy;
 use File::Spec ();
 use File::Temp qw/tempfile/;
@@ -840,6 +841,14 @@ sub cleanup {
         if(-f $self->sh_profile) {
             unlink $self->sh_profile;
         }
+
+        if(-f $self->sh_profile . '.env') {
+            unlink $self->sh_profile . '.env';
+        }
+
+        if(-f $self->sh_profile . '.payload') {
+            unlink $self->sh_profile . '.payload';
+        }
     }
 
     if($self->{child_pid}) {
@@ -1144,41 +1153,54 @@ sub order_variables {
 sub set_profile {
     my ($self, $profile_file, @command_and_args) = @_;
 
-    my $env = $self->active_widgets();
+    my ($env_file, $pay_file) = ($profile_file . '.env', $profile_file . '.payload');
 
-    # write to $env_file
+
+    # write to env file
+    open(my $sh_f_env, '>', $env_file)
+    || die "Could not open file $env_file $!";
+    print { $sh_f_env } "#! $shell\n\n";
+    $self->set_environment_variables($sh_f_env);
+    close($sh_f_env);
+
+    # write to payload file
+    open(my $sh_f_pay, '>', $pay_file)
+    || die "Could not open file $pay_file $!";
+    print { $sh_f_pay } "#! $shell\n\n";
+
+    print { $sh_f_pay } <<EOFP;
+if [ "\${VC3_INSIDE_WRAPPER_SCRIPT}" != yes ]
+then
+
+    echo This script cannot be executed by itself.
+    echo Run instead: ${profile_file}
+    exit 1
+fi
+EOFP
+
+    for my $prog_line (@{$self->consolidate_prologue}) {
+        print { $sh_f_pay } $prog_line;
+    }
+
+    print { $sh_f_pay } join(' ', @command_and_args);
+    print { $sh_f_pay } "\n";
+
+    close($sh_f_pay);
+    chmod 0755, $pay_file;
+
+    # write to wrapper file
     open(my $sh_f, '>', "$profile_file")
     || die "Could not open file $profile_file $!";
 
-    print { $sh_f } "#! $shell\n\n";
+    print { $sh_f } "#! $shell\n\n\n";
+    print { $sh_f } 'cw="$(readlink -f $( cd "$( dirname "$0" )" && pwd ))"';
+    print { $sh_f } "\n\n";
+    print { $sh_f } '. $cw/' . basename($env_file) . "\n";
+    print { $sh_f } "export VC3_INSIDE_WRAPPER_SCRIPT=yes\n\n";
 
-    print { $sh_f } <<'EOFP';
-CALLED_AS="$_"
+    my $payload = '$cw/' . basename($pay_file);
 
-if [ "${CALLED_AS}" != "$0" ]
-then
-    SOURCED=yes
-else
-    SOURCED=no
-fi
-
-EOFP
-
-    $self->set_environment_variables($sh_f);
-
-    my @payload;
-    for my $prog_line (@{$self->consolidate_prologue}) {
-        push @payload, $prog_line;
-    }
-
-    push @payload, join(' ', @command_and_args);
-    my $payload_line= join("; ", @payload);
-
-    $payload_line =~ s/(\s|['";\$\(\)])/\\$1/g;
-    $payload_line = "/bin/sh -c $payload_line";
-
-    print { $sh_f } qq(\n\nVC3_CMD_PAYLOAD="$payload_line");
-
+    my $env = $self->active_widgets();
     if($self->plan and $self->plan->order) {
         for my $w (@{$self->plan->order}) {
             next unless $env->{$w};
@@ -1188,29 +1210,20 @@ EOFP
             next unless $wrap;
 
             if( $wrap =~ /\{\}/ ) {
-                $wrap =~ s/\{\}/$payload_line/;
-                $payload_line = $wrap;
+                $wrap =~ s/\{\}/$payload/;
+                $payload = $wrap;
             } else {
-                $payload_line = $wrap . ' ' . $payload_line;
+                $payload = $wrap . ' ' . $payload;
             }
         }
     }
 
-    print { $sh_f } qq(\n\nVC3_CMD_WRAPPER="$payload_line");
-
-print { $sh_f } <<'EOFP';
-
-
-# if executing, execute the payload.
-if [ ${SOURCED} = no ]
-then
-    cd ${HOME}
-    exec sh -c "${VC3_CMD_WRAPPER}"
-fi
-
-EOFP
+    print { $sh_f } "\n\nexec $payload\n\n";
 
     close($sh_f);
+    chmod 0755, $profile_file;
+
+    copy $profile_file, "$ENV{HOME}/aaa";
 }
 
 sub consolidate_prologue {
@@ -1263,9 +1276,7 @@ sub execute {
             '/usr/bin/env',
             '-i',
             $self->preserved_vars(),
-            $shell,
-            '-c',
-            ". " . $self->sh_profile);
+            $self->sh_profile);
 
         POSIX::setpgid(0, 0);
 
@@ -1316,9 +1327,7 @@ sub shell {
             '/usr/bin/env',
             '-i',
             $self->preserved_vars(),
-            $shell,
-            '-c',
-            ". " . $self->sh_profile);
+            $self->sh_profile);
         exec { $args[0] } @args;
         die 'Could not exec shell';
     } elsif($pid > 0) {

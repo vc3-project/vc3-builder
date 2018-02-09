@@ -38,8 +38,11 @@ my @cleanups;     # functions to call on exit.
 VC3::Builder::main();
 
 END {
-    cleanup_signal_handler();
-    exit 0;
+    local $?;
+
+    for my $fn (@cleanups) {
+        eval { $fn->() };
+    }
 }
 
 sub usage {
@@ -139,15 +142,8 @@ sub cleanup_signal_handler {
         if($signal eq 'ALRM') {
             warn("Timeout!");
         }
-    }
 
-    for my $fn (@cleanups) {
-        eval { $fn->() };
-    }
-
-    if($signal) {
-        $? = 128;
-        exit $?;
+        exit 128;
     }
 }
 

@@ -1190,7 +1190,7 @@ EOFP
     print { $sh_f } "#! $shell\n\n\n";
     print { $sh_f } 'cw="$(readlink -f $( cd "$( dirname "$0" )" && pwd ))"';
     print { $sh_f } "\n\n";
-    print { $sh_f } '. $cw/' . basename($env_file) . "\n";
+    print { $sh_f } '. $cw/' . basename($env_file) . "\n\n";
     print { $sh_f } "export VC3_INSIDE_WRAPPER_SCRIPT=yes\n\n";
 
     my $payload = '$cw/' . basename($pay_file);
@@ -1213,7 +1213,7 @@ EOFP
         }
     }
 
-    print { $sh_f } "\n\nexec $payload\n\n";
+    print { $sh_f } "exec $payload\n\n";
 
     close($sh_f);
     chmod 0755, $profile_file;

@@ -147,6 +147,8 @@ sub cleanup_signal_handler {
         $? = 128;
         exit $?;
     }
+
+    exit 0;
 }
 
 sub fix_http_proxy_vars {

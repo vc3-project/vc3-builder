@@ -101,9 +101,8 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         If 0, then the timeout is not activated (default).
 
   --env-to <file>       Write environment script to
-                        <root>/<home>/<file>.{,env,payload},
-                        but do not execute command-and-args. To execute
-                        command-and-args, run ./<file>.
+                        <file>.{,env,payload}, but do not execute command-and-args.
+                        To execute command-and-args, run ./<file>.
 
   --dot <file>          Write a dependency graph of the requirements to <file>.
 

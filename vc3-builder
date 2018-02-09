@@ -11121,8 +11121,10 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --timeout SECONDS     Terminate after SECONDS have elapased. 
                         If 0, then the timeout is not activated (default).
 
-  --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.cmd},
-                        but do not execute the payload.
+  --env-to <file>       Write environment script to <root>/<home>/<file>,
+                        but do not execute the payload. If <file> is sourced 
+                        (i.e., . <file>), only environment variables are set. If
+                        executed (e.g., ./<file>), payload is executed.
 
   --dot <file>          Write a dependency graph of the requirements to <file>.
 
@@ -11169,6 +11171,8 @@ sub cleanup_signal_handler {
         $? = 128;
         exit $?;
     }
+
+    exit 0;
 }
 
 sub fix_http_proxy_vars {
@@ -11859,11 +11863,6 @@ sub cleanup {
         if(-f $self->sh_profile) {
             unlink $self->sh_profile;
         }
-
-        my $cmd_file = $self->sh_profile . '.cmd';
-        if(-f $cmd_file) {
-            unlink $cmd_file;
-        }
     }
 
     if($self->{child_pid}) {
@@ -12108,7 +12107,7 @@ sub set_environment_variables {
     for my $var_name (keys %{$expansion}) {
         eval { $expansion->{$var_name} = join(':', @{$expansion->{$var_name}}) };
         if($@) {
-            carp("Environment variable '$var_name' was not explicitely set.");
+            warn("Environment variable '$var_name' was not explicitely set.\n");
         }
     }
 
@@ -12148,7 +12147,7 @@ sub order_variables {
             next unless @deps;
 
             my $org   = $order->{$var};
-            my $nxt   = 1 + max(map { $order->{$_} || carp "Variable '$_' is not defined." } @deps);
+            my $nxt   = 1 + max(map { $order->{$_} || warn "Variable '$_' is not explicitely set.\n" } @deps);
 
             if($nxt > $org) {
                 $swap++;

@@ -99,8 +99,10 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --timeout SECONDS     Terminate after SECONDS have elapased. 
                         If 0, then the timeout is not activated (default).
 
-  --env-to <file>       Write environment scripts to <root>/<home>/<file>{,.cmd},
-                        but do not execute the payload.
+  --env-to <file>       Write environment script to <root>/<home>/<file>,
+                        but do not execute the payload. If <file> is sourced 
+                        (i.e., . <file>), only environment variables are set. If
+                        executed (e.g., ./<file>), payload is executed.
 
   --dot <file>          Write a dependency graph of the requirements to <file>.
 
@@ -838,11 +840,6 @@ sub cleanup {
     unless($self->preserve_profile) {
         if(-f $self->sh_profile) {
             unlink $self->sh_profile;
-        }
-
-        my $cmd_file = $self->sh_profile . '.cmd';
-        if(-f $cmd_file) {
-            unlink $cmd_file;
         }
     }
 

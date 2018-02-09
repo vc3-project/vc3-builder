@@ -12169,25 +12169,6 @@ sub set_profile {
 
     my $env = $self->active_widgets();
 
-    my $payload = "$shell -c '. $profile_file'";
-
-    if($self->plan and $self->plan->order) {
-        for my $w (@{$self->plan->order}) {
-            next unless $env->{$w};
-
-            my $wrap = $w->wrapper;
-
-            next unless $wrap;
-
-            if( $wrap =~ /\{\}/ ) {
-                $wrap =~ s/\{\}/$payload/;
-                $payload = $wrap;
-            } else {
-                $payload = $wrap . ' ' . $payload;
-            }
-        }
-    }
-
     # write to $env_file
     open(my $sh_f, '>', "$profile_file")
     || die "Could not open file $profile_file $!";
@@ -12208,43 +12189,52 @@ EOFP
 
     $self->set_environment_variables($sh_f);
 
+    my @payload;
+    for my $prog_line (@{$self->consolidate_prologue}) {
+        push @payload, $prog_line;
+    }
+
+    push @payload, join(' ', @command_and_args);
+    my $payload_line= join(";\n", @payload);
+
+    $payload_line =~ s/(\s['";\$])/a\\$1/g;
+    $payload_line = "/bin/sh  -c  $payload_line";
+
+    print $payload_line;
+
+    print { $sh_f } qq(\n\nVC3_CMD_PAYLOAD="$payload_line");
+
+    if($self->plan and $self->plan->order) {
+        for my $w (@{$self->plan->order}) {
+            next unless $env->{$w};
+
+            my $wrap = $w->wrapper;
+
+            next unless $wrap;
+
+            if( $wrap =~ /\{\}/ ) {
+                $wrap =~ s/\{\}/$payload_line/;
+                $payload_line = $wrap;
+            } else {
+                $payload_line = $wrap . ' ' . $payload_line;
+            }
+        }
+    }
+
+    print { $sh_f } qq(\n\nVC3_CMD_WRAPPER="$payload_line");
+
 print { $sh_f } <<'EOFP';
-
-
-VC3_CMD_WRAPPER=$(cat <<EOF
-parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching $(echo "${VC3_PARROT_EXTRA_OPTIONS}" | sed 's/:/ /g')
-EOF
-)
-
-VC3_CMD_PAYLOAD=$(cat <<'EOF'
-
-EOFP
-
-for my $prog_line (@{$self->consolidate_prologue}) {
-    print { $sh_f } "$prog_line\n";
-}
-
-print { $sh_f } join(' ', @command_and_args) . "\n";
-
-print { $sh_f } <<'EOFP';
-EOF
-)
-
-export VC3_CMD_WRAPPER
-export VC3_CMD_PAYLOAD
 
 # if executing, execute the payload.
 if [ ${SOURCED} = no ]
 then
     cd ${HOME}
-    exec ${VC3_CMD_WRAPPER} -- /bin/sh -c "${VC3_CMD_PAYLOAD}"
+    exec ${VC3_CMD_WRAPPER}
 fi
 
 EOFP
 
     close($sh_f);
-
-    copy $profile_file, "$ENV{HOME}/x";
 }
 
 sub consolidate_prologue {

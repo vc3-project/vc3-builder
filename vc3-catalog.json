@@ -1050,13 +1050,6 @@
                     }
                 ]
             }
-        ],
-        "environment-variables":[
-            {
-                "name":"VC3_PARROT_EXTRA_OPTIONS",
-                "value":"-M /test=/usr",
-                "absolute":1
-            }
         ]
     },
 
@@ -1085,7 +1078,7 @@
         "versions":[
             {
                 "version":"v6.0.0",
-                "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching $(echo \"${VC3_PARROT_EXTRA_OPTIONS}\" | sed 's/:/ /g') -- {}",
+                "wrapper":"parrot_run --dynamic-mounts -p \"${PARROT_HTTP_PROXY}\" --cvmfs-repo-switching $(echo \"${VC3_PARROT_EXTRA_OPTIONS}\" | sed 's/:/ /g') -- {}",
                 "dependencies":{
                     "cctools":[
                         "v6.0.0"
@@ -1218,7 +1211,7 @@
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":;DIRECT",
+                "value":":\\;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -1274,7 +1267,7 @@
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":;DIRECT",
+                "value":":\\;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -1303,7 +1296,7 @@
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":;DIRECT",
+                "value":":\\;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -1371,7 +1364,7 @@
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":";:DIRECT",
+                "value":":\\;DIRECT",
                 "clobber":1,
                 "absolute":1
             }

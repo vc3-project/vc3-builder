@@ -12195,12 +12195,10 @@ EOFP
     }
 
     push @payload, join(' ', @command_and_args);
-    my $payload_line= join(";\n", @payload);
+    my $payload_line= join("; ", @payload);
 
-    $payload_line =~ s/(\s['";\$])/a\\$1/g;
-    $payload_line = "/bin/sh  -c  $payload_line";
-
-    print $payload_line;
+    $payload_line =~ s/(\s|['";\$\(\)])/\\$1/g;
+    $payload_line = "/bin/sh -c $payload_line";
 
     print { $sh_f } qq(\n\nVC3_CMD_PAYLOAD="$payload_line");
 
@@ -12225,11 +12223,12 @@ EOFP
 
 print { $sh_f } <<'EOFP';
 
+
 # if executing, execute the payload.
 if [ ${SOURCED} = no ]
 then
     cd ${HOME}
-    exec ${VC3_CMD_WRAPPER}
+    exec sh -c "${VC3_CMD_WRAPPER}"
 fi
 
 EOFP
@@ -15632,13 +15631,6 @@ __DATA__
                     }
                 ]
             }
-        ],
-        "environment-variables":[
-            {
-                "name":"VC3_PARROT_EXTRA_OPTIONS",
-                "value":"-M /test=/usr",
-                "absolute":1
-            }
         ]
     },
 
@@ -15667,7 +15659,7 @@ __DATA__
         "versions":[
             {
                 "version":"v6.0.0",
-                "wrapper":"parrot_run --dynamic-mounts -p ${PARROT_HTTP_PROXY} --cvmfs-repo-switching $(echo \"${VC3_PARROT_EXTRA_OPTIONS}\" | sed 's/:/ /g') -- {}",
+                "wrapper":"parrot_run --dynamic-mounts -p \"${PARROT_HTTP_PROXY}\" --cvmfs-repo-switching $(echo \"${VC3_PARROT_EXTRA_OPTIONS}\" | sed 's/:/ /g') -- {}",
                 "dependencies":{
                     "cctools":[
                         "v6.0.0"
@@ -15800,7 +15792,7 @@ __DATA__
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":;DIRECT",
+                "value":":\\;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -15856,7 +15848,7 @@ __DATA__
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":;DIRECT",
+                "value":":\\;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -15885,7 +15877,7 @@ __DATA__
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":;DIRECT",
+                "value":":\\;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -15953,7 +15945,7 @@ __DATA__
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":";:DIRECT",
+                "value":":\\;DIRECT",
                 "clobber":1,
                 "absolute":1
             }

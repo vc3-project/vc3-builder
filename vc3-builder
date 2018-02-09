@@ -11468,6 +11468,7 @@ package VC3::Bag;
 
 use Carp qw/carp croak/;
 #use English qw/-mo_match_vars/;
+use File::Basename;
 use File::Copy;
 use File::Spec ();
 use File::Temp qw/tempfile/;
@@ -12178,48 +12179,48 @@ sub set_profile {
 
 
     # write to env file
-    open(my $sh_f, '>', $env_file)
+    open(my $sh_f_env, '>', $env_file)
     || die "Could not open file $env_file $!";
-    $self->set_environment_variables($sh_f);
-    close($sh_f);
+    print { $sh_f_env } "#! $shell\n\n";
+    $self->set_environment_variables($sh_f_env);
+    close($sh_f_env);
 
     # write to payload file
-    open(my $sh_f, '>', $pay_file)
+    open(my $sh_f_pay, '>', $pay_file)
     || die "Could not open file $pay_file $!";
-    print { $sh_f } "#! $shell\n\n";
+    print { $sh_f_pay } "#! $shell\n\n";
 
-    print { $sh_f } <<EOFP;
-if [ "\${VC3_INSIDE_WRAPPER_SCRIPT}" = yes]
+    print { $sh_f_pay } <<EOFP;
+if [ "\${VC3_INSIDE_WRAPPER_SCRIPT}" != yes ]
 then
 
     echo This script cannot be executed by itself.
     echo Run instead: ${profile_file}
-
+    exit 1
 fi
 EOFP
 
     for my $prog_line (@{$self->consolidate_prologue}) {
-        print { $sh_f }, $prog_line;
+        print { $sh_f_pay } $prog_line;
     }
 
-    print { $sh_f } join(' ', @command_and_args);
-    print { $sh_f } "\n";
+    print { $sh_f_pay } join(' ', @command_and_args);
+    print { $sh_f_pay } "\n";
 
-    close($sh_f);
+    close($sh_f_pay);
     chmod 0755, $pay_file;
 
     # write to wrapper file
     open(my $sh_f, '>', "$profile_file")
     || die "Could not open file $profile_file $!";
 
-    print { $sh_f } "#! $shell\n\n";
+    print { $sh_f } "#! $shell\n\n\n";
+    print { $sh_f } 'cw="$(readlink -f $( cd "$( dirname "$0" )" && pwd ))"';
+    print { $sh_f } "\n\n";
+    print { $sh_f } '. $cw/' . basename($env_file) . "\n";
+    print { $sh_f } "export VC3_INSIDE_WRAPPER_SCRIPT=yes\n\n";
 
-    print { $sh_f } ". $env_file\n\n";
-
-    print { $sh_f } "export VC3_INSIDE_WRAPPER_SCRIPT=yes";
-
-
-    my $payload = $pay_file
+    my $payload = '$cw/' . basename($pay_file);
 
     my $env = $self->active_widgets();
     if($self->plan and $self->plan->order) {
@@ -12243,6 +12244,8 @@ EOFP
 
     close($sh_f);
     chmod 0755, $profile_file;
+
+    copy $profile_file, "$ENV{HOME}/aaa";
 }
 
 sub consolidate_prologue {

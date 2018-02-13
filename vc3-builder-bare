@@ -1171,6 +1171,7 @@ then
     echo Run instead: ${profile_file}
     exit 1
 fi
+
 EOFP
 
     for my $prog_line (@{$self->consolidate_prologue}) {
@@ -1193,6 +1194,7 @@ EOFP
     print { $sh_f } "\n\n";
     print { $sh_f } '. $cw/' . basename($env_file) . "\n\n";
     print { $sh_f } "export VC3_INSIDE_WRAPPER_SCRIPT=yes\n\n";
+    print { $sh_f } q(cd  "${HOME}") . "\n\n";
 
     my $payload = '$cw/' . basename($pay_file);
 

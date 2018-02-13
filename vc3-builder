@@ -11866,6 +11866,10 @@ sub cleanup {
         if(-f $self->sh_profile . '.payload') {
             unlink $self->sh_profile . '.payload';
         }
+
+        $self->del_builder_variable('VC3_SH_PROFILE');
+        $self->del_builder_variable('VC3_SH_PROFILE_ENV');
+        $self->del_builder_variable('VC3_SH_PROFILE_PAYLOAD');
     }
 
     if($self->{child_pid}) {
@@ -12242,6 +12246,10 @@ EOFP
 
     close($sh_f);
     chmod 0755, $profile_file;
+
+    $self->add_builder_variable('VC3_SH_PROFILE', $profile_file);
+    $self->add_builder_variable('VC3_SH_PROFILE_ENV', $env_file);
+    $self->add_builder_variable('VC3_SH_PROFILE_PAYLOAD', $pay_file);
 }
 
 sub consolidate_prologue {

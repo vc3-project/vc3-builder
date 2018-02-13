@@ -12124,6 +12124,8 @@ sub set_environment_variables {
         my $value = $expansion->{$var_name};
         print { $sh_f } "export $var_name=\"$value\"\n";
     }
+
+    print { $sh_f } "\n";
 }
 
 sub order_variables {

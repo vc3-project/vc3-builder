@@ -15794,7 +15794,7 @@ __DATA__
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":\\;DIRECT",
+                "value":":;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -15850,7 +15850,7 @@ __DATA__
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":\\;DIRECT",
+                "value":":;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -15879,7 +15879,7 @@ __DATA__
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":\\;DIRECT",
+                "value":":;DIRECT",
                 "clobber":1,
                 "absolute":1
             }
@@ -15947,7 +15947,7 @@ __DATA__
         "environment-variables":[
             {
                 "name":"PARROT_HTTP_PROXY",
-                "value":":\\;DIRECT",
+                "value":":;DIRECT",
                 "clobber":1,
                 "absolute":1
             }

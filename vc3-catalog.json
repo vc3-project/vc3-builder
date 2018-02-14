@@ -4113,6 +4113,9 @@
                     ],
                     "arpack":[
                         "v3.4"
+                    ],
+                    "pcre":[
+                        "v8.39"
                     ]
                 },
                 "environment-autovars":[

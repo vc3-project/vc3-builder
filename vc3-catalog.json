@@ -124,6 +124,7 @@
     },
 
     "scala":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.12.4",
@@ -154,6 +155,7 @@
     },
 
     "spark":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.2.1",
@@ -190,6 +192,7 @@
     },
 
     "pax":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2016.11.4",
@@ -214,6 +217,7 @@
     },
 
     "sharutils":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.15.0",
@@ -233,6 +237,7 @@
     },
 
     "gcc":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.6.1",
@@ -263,6 +268,7 @@
     },
 
     "make":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.82",
@@ -586,6 +592,7 @@
     },
 
     "vc3-builder":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v0.1",
@@ -903,6 +910,7 @@
     },
 
     "icecube-argonne-demo":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.0",
@@ -933,6 +941,7 @@
     },
 
     "icecube-environment":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.0",
@@ -948,36 +957,6 @@
                     ]
                 }
             }
-        ]
-    },
-
-    "htcondor-glidein-wrapper":{
-        "versions":[
-            {
-                "version":"v1.0",
-                "sources":[
-                    {
-                        "type":"generic",
-                        "local":1,
-                        "files":[
-                            "htcondor-glidein-wrapper"
-                        ],
-                        "recipe":[
-                            "chmod 755 htcondor-glidein-wrapper",
-                            "mkdir -p ${VC3_PREFIX}/bin",
-                            "cp htcondor-glidein-wrapper ${VC3_PREFIX}/bin"
-                        ],
-                        "dependencies":{
-                            "python":[
-                                "v2.6"
-                            ]
-                        }
-                    }
-                ]
-            }
-        ],
-        "environment-autovars":[
-            "PATH"
         ]
     },
 
@@ -1013,7 +992,7 @@
     "cvmfs-native":{
         "versions":[
             {
-                "version":"v1.0.0",
+                "version":"v2.4.0",
                 "sources":[
                     {
                         "type":"system",
@@ -1026,6 +1005,13 @@
                         ]
                     }
                 ]
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_PARROT_EXTRA_OPTIONS",
+                "value":"-M /cvmfs=/cvmfs",
+                "absolute":1
             }
         ]
     },
@@ -1054,9 +1040,10 @@
     },
 
     "cvmfs":{
+        "show-in-list":1,
         "versions":[
             {
-                "version":"v1.0.0",
+                "version":"v2.4.0",
                 "dependencies":{
                     "cvmfs-native":[
                         "v1.0.0"
@@ -1075,6 +1062,7 @@
     },
 
     "parrot-wrapper":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v6.0.0",
@@ -1275,6 +1263,7 @@
     },
 
     "cctools":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v6.2.4",
@@ -1304,10 +1293,11 @@
     },
 
     "cctools-unstable":{
+        "show-in-list":1,
         "phony":1,
         "versions":[
             {
-                "version":"v999.999.999",
+                "version":"v7.0.0",
                 "sources":[
                     {
                         "type":"binary",
@@ -1372,6 +1362,7 @@
     },
 
     "swig":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.0.2",
@@ -1403,6 +1394,7 @@
     },
 
     "patch":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.7.5",
@@ -1422,6 +1414,7 @@
     },
 
     "cmake":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.5.2",
@@ -1618,6 +1611,7 @@
     },
 
     "curl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v7.53.1",
@@ -1658,6 +1652,7 @@
     },
 
     "git":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.12.0",
@@ -2070,6 +2065,7 @@
     },
 
     "perl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v5.10",
@@ -2077,7 +2073,7 @@
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.10 || $] >= 5.11)'",
+                            "perl -e 'exit($] < 5.10)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
         ]
                     }
@@ -2089,7 +2085,7 @@
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.16 || $] >= 5.17)'",
+                            "perl -e 'exit($] < 5.16)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                     }
@@ -2101,7 +2097,7 @@
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.24 || $] >= 5.25)'",
+                            "perl -e 'exit($] < 5.24)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                     },
@@ -2249,6 +2245,7 @@
     },
 
     "python-setuptools":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v24.0.2",
@@ -2276,6 +2273,7 @@
     },
 
     "python-pip":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v9.0.1",
@@ -2312,6 +2310,7 @@
     },
 
     "python-virtualenv":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.0.0",
@@ -2773,6 +2772,7 @@
 
 
     "python":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.6",
@@ -2780,7 +2780,7 @@
                     {
                         "type":"system",
                         "recipe":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] == 6) or sys.exit(1)'",
+                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 6) or sys.exit(1)'",
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
                             "[ -n \"$base\" ] || exit 1",
@@ -2795,7 +2795,7 @@
                     {
                         "type":"system",
                         "recipe":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] == 7) or sys.exit(1)'",
+                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or sys.exit(1)'",
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
                             "[ -n \"$base\" ] || exit 1",
@@ -2936,6 +2936,7 @@
     },
 
     "mash": {
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.1",
@@ -2960,6 +2961,7 @@
 
 
     "xrootd": {
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.3.0",
@@ -2991,6 +2993,7 @@
     },
 
     "irods":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.0",
@@ -3072,6 +3075,7 @@
     },
 
     "perl-bioperl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.6",
@@ -3301,6 +3305,7 @@
     },
 
     "hmmer":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.1",
@@ -3326,6 +3331,7 @@
     },
 
     "openmpi":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.10",
@@ -3349,6 +3355,7 @@
     },
 
     "ncbi-blast":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.2.28",
@@ -3403,6 +3410,7 @@
     },
 
     "ncbi-rmblastn":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.2.28",
@@ -3462,6 +3470,7 @@
     },
 
     "sqlite3":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.13",
@@ -3485,6 +3494,7 @@
     },
 
     "exonerate":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.2.0",
@@ -3516,6 +3526,7 @@
     },
 
     "snap":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2013.11.29",
@@ -3670,6 +3681,7 @@
     },
 
     "augustus":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.4",
@@ -3702,6 +3714,7 @@
     },
 
     "trf":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.9",
@@ -3958,6 +3971,7 @@
     },
 
     "charm":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v6.7.1",
@@ -4007,6 +4021,7 @@
     },
 
     "tcl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v8.5.9",
@@ -4058,6 +4073,7 @@
     },
 
     "octave":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.2.1",
@@ -4107,6 +4123,7 @@
     },
 
     "qrupdate":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.2.2",
@@ -4139,6 +4156,7 @@
     },
 
     "hdf5":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.8.18",
@@ -4164,6 +4182,7 @@
     },
 
     "qhull":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v7.2.0",
@@ -4210,6 +4229,7 @@
     },
 
     "arpack":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.4.0",
@@ -4248,6 +4268,7 @@
     },
 
     "lapack":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.7.0",
@@ -4300,6 +4321,7 @@
     },
 
     "openblas":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v0.2.19",
@@ -4325,6 +4347,7 @@
     },
 
     "musl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.1.15",

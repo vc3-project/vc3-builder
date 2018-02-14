@@ -11137,7 +11137,9 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --prestage            Download all files to --distfiles <dir> before
                         processing.
 
-  --list                List all the packages available.
+  --list                List general packages available.
+
+  --list-all            List all the packages available, even vc3-internals.
 
   Developers options:
   --debug               On a builder error, print the full back-trace. 
@@ -11212,6 +11214,7 @@ sub main {
     my $dot_output;
     my $parallel_dir;       
     my $to_script;
+    my $list_general;
     my $list_all;
 
     my @databases   = ();
@@ -11258,7 +11261,8 @@ sub main {
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
         "prestage" => \$prestage,
-        "list"     => \$list_all,
+        "list"     => \$list_general,
+        "list-all" => \$list_all,
 
         "interactive" => \$interactive_run,
 
@@ -11305,7 +11309,7 @@ sub main {
         $dry_run = 1;
     }
 
-    if(defined $list_all) {
+    if(defined $list_general or defined $list_all) {
         $silent  = 1;
         $dry_run = 1;
     }
@@ -11363,8 +11367,8 @@ sub main {
         $bag->plan->to_script($to_script);
     }
 
-    if(defined $list_all) {
-        $bag->list_packages();
+    if(defined $list_general or defined $list_all) {
+        $bag->list_packages($list_all);
     }
 
 
@@ -11502,18 +11506,22 @@ sub new {
 }
 
 sub list_packages() {
-    my ($self) = @_;
+    my ($self, $all) = @_;
 
-    my @ps = keys %{$self->{packages}};
+    my @ps = values %{$self->{packages}};
 
-    @ps = sort { $a cmp $b } @ps;
+    if((not defined $all) or not $all) {
+        @ps = grep { $_->show_in_list } @ps;
+    }
+
+    @ps = sort { $a->name cmp $b->name } @ps;
 
     for my $p (@ps) {
         my $printed = {};
-        my $ws = $self->{packages}{$p}->widgets;
+        my $ws = $p->widgets;
 
         for my $w (@{$ws}) {
-            my $str = "$p:@{[$w->version]}";
+            my $str = $p->name . ':' . $w->version;
 
             unless(defined $printed->{$str}) {
                 $printed->{$str} = 1;
@@ -12400,6 +12408,7 @@ sub new {
     $self->phony($json_description->{phony});
     $self->operating_system($json_description->{operating_system});
     $self->auto_version($json_description->{'auto-version'});
+    $self->show_in_list($json_description->{'show-in-list'});
 
     if($json_description->{versions}) {
         $self->widgets($json_description->{versions});
@@ -12576,6 +12585,14 @@ sub phony {
     $self->{phony} = $new_phony if($new_phony);
 
     return $self->{phony};
+}
+
+sub show_in_list {
+    my ($self, $new_show) = @_;
+
+    $self->{show_in_list} = $new_show if($new_show);
+
+    return $self->{show_in_list};
 }
 
 sub operating_system {
@@ -14719,6 +14736,7 @@ __DATA__
     },
 
     "scala":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.12.4",
@@ -14749,6 +14767,7 @@ __DATA__
     },
 
     "spark":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.2.1",
@@ -14785,6 +14804,7 @@ __DATA__
     },
 
     "pax":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2016.11.4",
@@ -14809,6 +14829,7 @@ __DATA__
     },
 
     "sharutils":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.15.0",
@@ -14828,6 +14849,7 @@ __DATA__
     },
 
     "gcc":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.6.1",
@@ -14858,6 +14880,7 @@ __DATA__
     },
 
     "make":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.82",
@@ -15181,6 +15204,7 @@ __DATA__
     },
 
     "vc3-builder":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v0.1",
@@ -15498,6 +15522,7 @@ __DATA__
     },
 
     "icecube-argonne-demo":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.0",
@@ -15528,6 +15553,7 @@ __DATA__
     },
 
     "icecube-environment":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.0",
@@ -15543,36 +15569,6 @@ __DATA__
                     ]
                 }
             }
-        ]
-    },
-
-    "htcondor-glidein-wrapper":{
-        "versions":[
-            {
-                "version":"v1.0",
-                "sources":[
-                    {
-                        "type":"generic",
-                        "local":1,
-                        "files":[
-                            "htcondor-glidein-wrapper"
-                        ],
-                        "recipe":[
-                            "chmod 755 htcondor-glidein-wrapper",
-                            "mkdir -p ${VC3_PREFIX}/bin",
-                            "cp htcondor-glidein-wrapper ${VC3_PREFIX}/bin"
-                        ],
-                        "dependencies":{
-                            "python":[
-                                "v2.6"
-                            ]
-                        }
-                    }
-                ]
-            }
-        ],
-        "environment-autovars":[
-            "PATH"
         ]
     },
 
@@ -15608,7 +15604,7 @@ __DATA__
     "cvmfs-native":{
         "versions":[
             {
-                "version":"v1.0.0",
+                "version":"v2.4.0",
                 "sources":[
                     {
                         "type":"system",
@@ -15621,6 +15617,13 @@ __DATA__
                         ]
                     }
                 ]
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_PARROT_EXTRA_OPTIONS",
+                "value":"-M /cvmfs=/cvmfs",
+                "absolute":1
             }
         ]
     },
@@ -15649,9 +15652,10 @@ __DATA__
     },
 
     "cvmfs":{
+        "show-in-list":1,
         "versions":[
             {
-                "version":"v1.0.0",
+                "version":"v2.4.0",
                 "dependencies":{
                     "cvmfs-native":[
                         "v1.0.0"
@@ -15670,6 +15674,7 @@ __DATA__
     },
 
     "parrot-wrapper":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v6.0.0",
@@ -15870,6 +15875,7 @@ __DATA__
     },
 
     "cctools":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v6.2.4",
@@ -15899,10 +15905,11 @@ __DATA__
     },
 
     "cctools-unstable":{
+        "show-in-list":1,
         "phony":1,
         "versions":[
             {
-                "version":"v999.999.999",
+                "version":"v7.0.0",
                 "sources":[
                     {
                         "type":"binary",
@@ -15967,6 +15974,7 @@ __DATA__
     },
 
     "swig":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.0.2",
@@ -15998,6 +16006,7 @@ __DATA__
     },
 
     "patch":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.7.5",
@@ -16017,6 +16026,7 @@ __DATA__
     },
 
     "cmake":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.5.2",
@@ -16213,6 +16223,7 @@ __DATA__
     },
 
     "curl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v7.53.1",
@@ -16253,6 +16264,7 @@ __DATA__
     },
 
     "git":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.12.0",
@@ -16665,6 +16677,7 @@ __DATA__
     },
 
     "perl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v5.10",
@@ -16672,7 +16685,7 @@ __DATA__
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.10 || $] >= 5.11)'",
+                            "perl -e 'exit($] < 5.10)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
         ]
                     }
@@ -16684,7 +16697,7 @@ __DATA__
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.16 || $] >= 5.17)'",
+                            "perl -e 'exit($] < 5.16)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                     }
@@ -16696,7 +16709,7 @@ __DATA__
                     {
                         "type":"system",
                         "recipe":[
-                            "perl -e 'exit($] < 5.24 || $] >= 5.25)'",
+                            "perl -e 'exit($] < 5.24)'",
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
                     },
@@ -16844,6 +16857,7 @@ __DATA__
     },
 
     "python-setuptools":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v24.0.2",
@@ -16871,6 +16885,7 @@ __DATA__
     },
 
     "python-pip":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v9.0.1",
@@ -16907,6 +16922,7 @@ __DATA__
     },
 
     "python-virtualenv":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.0.0",
@@ -17368,6 +17384,7 @@ __DATA__
 
 
     "python":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.6",
@@ -17375,7 +17392,7 @@ __DATA__
                     {
                         "type":"system",
                         "recipe":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] == 6) or sys.exit(1)'",
+                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 6) or sys.exit(1)'",
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
                             "[ -n \"$base\" ] || exit 1",
@@ -17390,7 +17407,7 @@ __DATA__
                     {
                         "type":"system",
                         "recipe":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] == 7) or sys.exit(1)'",
+                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or sys.exit(1)'",
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
                             "[ -n \"$base\" ] || exit 1",
@@ -17531,6 +17548,7 @@ __DATA__
     },
 
     "mash": {
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.1",
@@ -17555,6 +17573,7 @@ __DATA__
 
 
     "xrootd": {
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.3.0",
@@ -17586,6 +17605,7 @@ __DATA__
     },
 
     "irods":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.0",
@@ -17667,6 +17687,7 @@ __DATA__
     },
 
     "perl-bioperl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.6",
@@ -17896,6 +17917,7 @@ __DATA__
     },
 
     "hmmer":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.1",
@@ -17921,6 +17943,7 @@ __DATA__
     },
 
     "openmpi":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.10",
@@ -17944,6 +17967,7 @@ __DATA__
     },
 
     "ncbi-blast":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.2.28",
@@ -17998,6 +18022,7 @@ __DATA__
     },
 
     "ncbi-rmblastn":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.2.28",
@@ -18057,6 +18082,7 @@ __DATA__
     },
 
     "sqlite3":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.13",
@@ -18080,6 +18106,7 @@ __DATA__
     },
 
     "exonerate":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.2.0",
@@ -18111,6 +18138,7 @@ __DATA__
     },
 
     "snap":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2013.11.29",
@@ -18265,6 +18293,7 @@ __DATA__
     },
 
     "augustus":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v2.4",
@@ -18297,6 +18326,7 @@ __DATA__
     },
 
     "trf":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.9",
@@ -18553,6 +18583,7 @@ __DATA__
     },
 
     "charm":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v6.7.1",
@@ -18602,6 +18633,7 @@ __DATA__
     },
 
     "tcl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v8.5.9",
@@ -18653,6 +18685,7 @@ __DATA__
     },
 
     "octave":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.2.1",
@@ -18702,6 +18735,7 @@ __DATA__
     },
 
     "qrupdate":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.2.2",
@@ -18734,6 +18768,7 @@ __DATA__
     },
 
     "hdf5":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.8.18",
@@ -18759,6 +18794,7 @@ __DATA__
     },
 
     "qhull":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v7.2.0",
@@ -18805,6 +18841,7 @@ __DATA__
     },
 
     "arpack":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.4.0",
@@ -18843,6 +18880,7 @@ __DATA__
     },
 
     "lapack":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v3.7.0",
@@ -18895,6 +18933,7 @@ __DATA__
     },
 
     "openblas":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v0.2.19",
@@ -18920,6 +18959,7 @@ __DATA__
     },
 
     "musl":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.1.15",

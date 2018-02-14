@@ -115,7 +115,9 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --prestage            Download all files to --distfiles <dir> before
                         processing.
 
-  --list                List all the packages available.
+  --list                List general packages available.
+
+  --list-all            List all the packages available, even vc3-internals.
 
   Developers options:
   --debug               On a builder error, print the full back-trace. 
@@ -190,6 +192,7 @@ sub main {
     my $dot_output;
     my $parallel_dir;       
     my $to_script;
+    my $list_general;
     my $list_all;
 
     my @databases   = ();
@@ -236,7 +239,8 @@ sub main {
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
         "prestage" => \$prestage,
-        "list"     => \$list_all,
+        "list"     => \$list_general,
+        "list-all" => \$list_all,
 
         "interactive" => \$interactive_run,
 
@@ -283,7 +287,7 @@ sub main {
         $dry_run = 1;
     }
 
-    if(defined $list_all) {
+    if(defined $list_general or defined $list_all) {
         $silent  = 1;
         $dry_run = 1;
     }
@@ -341,8 +345,8 @@ sub main {
         $bag->plan->to_script($to_script);
     }
 
-    if(defined $list_all) {
-        $bag->list_packages();
+    if(defined $list_general or defined $list_all) {
+        $bag->list_packages($list_all);
     }
 
 
@@ -480,18 +484,22 @@ sub new {
 }
 
 sub list_packages() {
-    my ($self) = @_;
+    my ($self, $all) = @_;
 
-    my @ps = keys %{$self->{packages}};
+    my @ps = values %{$self->{packages}};
 
-    @ps = sort { $a cmp $b } @ps;
+    if((not defined $all) or not $all) {
+        @ps = grep { $_->show_in_list } @ps;
+    }
+
+    @ps = sort { $a->name cmp $b->name } @ps;
 
     for my $p (@ps) {
         my $printed = {};
-        my $ws = $self->{packages}{$p}->widgets;
+        my $ws = $p->widgets;
 
         for my $w (@{$ws}) {
-            my $str = "$p:@{[$w->version]}";
+            my $str = $p->name . ':' . $w->version;
 
             unless(defined $printed->{$str}) {
                 $printed->{$str} = 1;
@@ -1378,6 +1386,7 @@ sub new {
     $self->phony($json_description->{phony});
     $self->operating_system($json_description->{operating_system});
     $self->auto_version($json_description->{'auto-version'});
+    $self->show_in_list($json_description->{'show-in-list'});
 
     if($json_description->{versions}) {
         $self->widgets($json_description->{versions});
@@ -1554,6 +1563,14 @@ sub phony {
     $self->{phony} = $new_phony if($new_phony);
 
     return $self->{phony};
+}
+
+sub show_in_list {
+    my ($self, $new_show) = @_;
+
+    $self->{show_in_list} = $new_show if($new_show);
+
+    return $self->{show_in_list};
 }
 
 sub operating_system {

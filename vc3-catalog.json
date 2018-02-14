@@ -4116,6 +4116,9 @@
                     ],
                     "pcre":[
                         "v8.39"
+                    ],
+                    "readline":[
+                        "v6.0"
                     ]
                 },
                 "environment-autovars":[

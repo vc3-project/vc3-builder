@@ -995,7 +995,7 @@
                 "version":"v2.4.0",
                 "sources":[
                     {
-                        "type":"system",
+                        "type":"generic",
                         "local":1,
                         "prerequisites":[
                             "stat /cvmfs/cms.cern.ch"

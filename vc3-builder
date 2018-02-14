@@ -15691,12 +15691,12 @@ __DATA__
     "parrot-static":{
         "versions":[
             {
-                "version":"v6.2.4",
+                "version":"v6.2.5",
                 "sources":[
                     {
                         "type":"tarball",
                         "files":[
-                            "cctools-6.2.4-source.tar.gz"
+                            "cctools-6.2.5-source.tar.gz"
                         ],
                         "recipe":[
                             "./configure --prefix ${VC3_PREFIX} --without-system-sand --without-system-allpairs --without-system-wavefront --without-system-makeflow --without-system-umbrella --without-system-prune --without-system-resource_monitor --without-system-doc --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
@@ -15753,19 +15753,19 @@ __DATA__
     "cctools-binary":{
         "versions":[
             {
-                "version":"v6.2.4",
+                "version":"v6.2.5",
                 "sources":[
                     {
                         "type":"binary",
                         "files":[
-                            "cctools-6.2.4-x86_64-redhat7.tar.gz"
+                            "cctools-6.2.5-x86_64-redhat7.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.4-x86_64-redhat7.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.5-x86_64-redhat7.tar.gz"
                         ],
                         "dependencies":{
                             "perl":[
@@ -15779,14 +15779,14 @@ __DATA__
                     {
                         "type":"binary",
                         "files":[
-                            "cctools-6.2.4-x86_64-redhat6.tar.gz"
+                            "cctools-6.2.5-x86_64-redhat6.tar.gz"
                         ],
                         "prerequisites":[
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.4-x86_64-redhat6.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.5-x86_64-redhat6.tar.gz"
                         ],
                         "dependencies":{
                             "perl":[
@@ -15821,12 +15821,12 @@ __DATA__
     "cctools-source":{
         "versions":[
             {
-                "version":"v6.2.4",
+                "version":"v6.2.5",
                 "sources":[
                     {
                         "type":"configure",
                         "files":[
-                            "cctools-6.2.4-source.tar.gz"
+                            "cctools-6.2.5-source.tar.gz"
                         ],
                         "options":"--without-system-umbrella --without-system-prune --without-system-doc --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
                         "dependencies":{
@@ -15878,18 +15878,18 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
-                "version":"v6.2.4",
+                "version":"v6.2.5",
                 "dependencies":{
                     "cctools-binary":[
-                        "v6.2.4"
+                        "v6.2.5"
                     ]
                 }
             },
             {
-                "version":"v6.2.4",
+                "version":"v6.2.5",
                 "dependencies":{
                     "cctools-source":[
-                        "v6.2.4"
+                        "v6.2.5"
                     ]
                 }
             }
@@ -19038,7 +19038,7 @@ __DATA__
                     {
                         "type":"tarball",
                         "files":[
-                            "cctools-6.2.4-source.tar.gz"
+                            "cctools-6.2.5-source.tar.gz"
                         ],
                         "recipe":[
                             "CFLAGS=-D__MUSL__ CC=musl-gcc ./configure --prefix ${VC3_PREFIX} --without-system-{doc,apps} --with-readline-path=no --static --with-zlib-path=${VC3_ROOT_MUSL_ZLIB}",

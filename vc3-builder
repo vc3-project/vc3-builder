@@ -14770,8 +14770,8 @@ __DATA__
                     "scala":[
                         "v2.12.4"
                     ],
-                    "curl":[
-                        "v7.53.1"
+                    "wget":[
+                        "v1.0"
                     ]
                 },
                 "sources":[
@@ -14786,8 +14786,8 @@ __DATA__
                             "cp -r bin/* ${VC3_PREFIX}/bin/",
                             "cp -r jars/* ${VC3_PREFIX}/jars",
                             "cp -r sbin/* ${VC3_PREFIX}/sbin",
-                            "curl http://download.virtualclusters.org/builder-files/aws-java-sdk-1.7.4.jar > ${VC3_PREFIX}/jars/aws-java-sdk-1.7.4.jar",
-                            "curl http://download.virtualclusters.org/builder-files/hadoop-aws-2.7.1.jar > ${VC3_PREFIX}/jars/hadoop-aws-2.7.1.jar"
+                            "wget http://download.virtualclusters.org/builder-files/aws-java-sdk-1.7.4.jar > ${VC3_PREFIX}/jars/aws-java-sdk-1.7.4.jar",
+                            "wget http://download.virtualclusters.org/builder-files/hadoop-aws-2.7.1.jar > ${VC3_PREFIX}/jars/hadoop-aws-2.7.1.jar"
                         ] 
                     }
                 ]
@@ -15912,7 +15912,7 @@ __DATA__
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                         ],
                         "recipe":[
-                            "curl -O http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat7.tar.gz",
+                            "wget -O http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat7.tar.gz",
                             "mkdir -p ${VC3_PREFIX}",
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-*-redhat7.tar.gz"
                         ],
@@ -15922,6 +15922,9 @@ __DATA__
                             ],
                             "python":[
                                 "v2.7.0", "v2.7.12"
+                            ],
+                            "wget":[
+                                "v1.0"
                             ]
                         }
                     },
@@ -15931,7 +15934,7 @@ __DATA__
                             "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                         ],
                         "recipe":[
-                            "curl -O http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat6.tar.gz",
+                            "wget -O http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat6.tar.gz",
                             "mkdir -p ${VC3_PREFIX}",
                             "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-*-redhat6.tar.gz"
                         ],
@@ -15951,8 +15954,8 @@ __DATA__
             "zlib":[
                 "v1.2"
             ],
-            "curl":[
-                "v1.0.0"
+            "wget":[
+                "v1.0"
             ]
         },
         "environment-autovars":[
@@ -16253,6 +16256,60 @@ __DATA__
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+                ]
+            }
+        ]
+    },
+
+    "wget":{
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v1.0",
+                "sources":[
+                    {
+                        "type":"system",
+                        "prerequisites":[
+                            "which wget"
+                        ],
+                        "recipe":[
+                            "bin=$(dirname $(which wget))",
+                            "echo VC3_ROOT_SYSTEM: ${bin%%bin}"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version":"v1.19.4",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "wget-1.19.4.tar.gz"
+                        ],
+                        "recipe":[
+                            "./configure --prefix=${VC3_PREFIX} --with-zlib --with-openssl --with-libssl-prefix=${VC3_ROOT_OPENSSL} --with-uuid",
+                            "make",
+                            "make install"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "zlib":[
+                        "v1.2"
+                    ],
+                    "openssl":[
+                        "v1.0.2"
+                    ],
+                    "uuid":[
+                        "v1.0"
+                    ],
+                    "libssh2":[
+                        "v1.8.0"
+                    ]
+                },
+                "environment-autovars":[
+                    "PATH"
                 ]
             }
         ]

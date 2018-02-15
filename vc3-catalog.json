@@ -1681,7 +1681,7 @@
                             "wget-1.19.4.tar.gz"
                         ],
                         "recipe":[
-                            "./configure --prefix=${VC3_PREFIX} --with-zlib --with-openssl --with-libssl-prefix=${VC3_ROOT_OPENSSL} --with-uuid",
+                            "./configure --prefix=${VC3_PREFIX} --with-zlib --with-ssl=openssl --with-libssl-prefix=${VC3_ROOT_OPENSSL} --with-libuuid",
                             "make",
                             "make install"
                         ]

@@ -84,8 +84,6 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --no-sys=<package>    Do not use host system version of <package>. If
                         package is 'ALL', do not use system versions at
                         all. (Ignored if package specified with --sys.)
-                        CURRENTLY IS ALWAYS ALL. USE --sys FOR 
-                        DESIRED SYSTEM PACKAGES.
 
   --var NAME=VALUE      Add environment variable NAME with VALUE. 
                         May be specified several times.
@@ -300,9 +298,6 @@ sub main {
         }
     }
     
-    #disable system deps for now:
-    push @no_sys_locs, 'ALL';
-
     if(defined $parallel_dir) {
         push @no_sys_locs, 'ALL';
     }
@@ -3333,7 +3328,7 @@ sub to_makeflow {
     print { $mflow_f } "HOME_DIR = $home\n";
     print { $mflow_f } "DIST_DIR = $vc3_distfiles\n";
     print { $mflow_f } "REPO     = $vc3_repository\n";
-    print { $mflow_f } "OPTIONS  = --make-jobs \$(CORES) --no-sys=ALL --no-run\n\n";
+    print { $mflow_f } "OPTIONS  = --make-jobs \$(CORES) --no-run\n\n";
 
     print { $mflow_f } "RIBBON   = .VC3_DEPENDENCY_BUILD\n\n";
 

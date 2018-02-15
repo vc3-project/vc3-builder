@@ -16748,45 +16748,8 @@ __DATA__
                 ]
             },
             {
-                "version":"v5.10",
-                "sources":[
-                    {
-                        "type":"system",
-                        "prerequisites":[
-                            "perl -e 'exit($] < 5.010 or $] >= 5.016 )'"
-                        ],
-                        "recipe":[
-                            "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
-                        ]
-                    }
-                ]
-            },
-            {
-                "version":"v5.16",
-                "sources":[
-                    {
-                        "type":"system",
-                        "prerequisites":[
-                            "perl -e 'exit($] < 5.016 or $] >= 5.024 )'"
-                        ],
-                        "recipe":[
-                            "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
-                        ]
-                    }
-                ]
-            },
-            {
                 "version":"v5.24",
                 "sources":[
-                    {
-                        "type":"system",
-                        "prerequisites":[
-                            "perl -e 'exit($] < 5.024)'"
-                        ],
-                        "recipe":[
-                            "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
-                    ]
-                    },
                     {
                         "type":"tarball",
                         "files":[
@@ -17462,13 +17425,10 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
-                "version":"v2.6",
+                "version":"auto",
                 "sources":[
                     {
                         "type":"system",
-                        "prerequisites":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 6 and sys.version_info[1] < 7) or sys.exit(1)'"
-                        ],
                         "recipe":[
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
@@ -17481,18 +17441,6 @@ __DATA__
             {
                 "version":"v2.7.12",
                 "sources":[
-                    {
-                        "type":"system",
-                        "prerequisites":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or sys.exit(1)'"
-                        ],
-                        "recipe":[
-                            "cmd=$(which python)",
-                            "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
-                            "[ -n \"$base\" ] || exit 1",
-                            "echo \"VC3_ROOT_SYSTEM: $base\""
-                        ]
-                    },
                     {
                         "type":"configure",
                         "files":[
@@ -17522,7 +17470,8 @@ __DATA__
             }
         ],
         "auto-version":[
-            "${VC3_PREFIX}/bin/python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
+            "export PATH=\"${VC3_PREFIX}/bin\":\"$PATH\"",
+            "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
         ],
         "environment-autovars":[
             "PATH", "PYTHONPATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"

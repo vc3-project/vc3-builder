@@ -2813,13 +2813,10 @@
         "show-in-list":1,
         "versions":[
             {
-                "version":"v2.6",
+                "version":"auto",
                 "sources":[
                     {
                         "type":"system",
-                        "prerequisites":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 6 and sys.version_info[1] < 7) or sys.exit(1)'"
-                        ],
                         "recipe":[
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
@@ -2832,18 +2829,6 @@
             {
                 "version":"v2.7.12",
                 "sources":[
-                    {
-                        "type":"system",
-                        "prerequisites":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or sys.exit(1)'"
-                        ],
-                        "recipe":[
-                            "cmd=$(which python)",
-                            "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
-                            "[ -n \"$base\" ] || exit 1",
-                            "echo \"VC3_ROOT_SYSTEM: $base\""
-                        ]
-                    },
                     {
                         "type":"configure",
                         "files":[
@@ -2873,7 +2858,8 @@
             }
         ],
         "auto-version":[
-            "${VC3_PREFIX}/bin/python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
+            "export PATH=\"${VC3_PREFIX}/bin\":\"$PATH\"",
+            "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
         ],
         "environment-autovars":[
             "PATH", "PYTHONPATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"

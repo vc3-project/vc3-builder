@@ -17449,8 +17449,10 @@ __DATA__
                 "sources":[
                     {
                         "type":"system",
+                        "prerequisites":[
+                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 6 and sys.version_info[1] < 7) or sys.exit(1)'"
+                        ],
                         "recipe":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 6) or sys.exit(1)'",
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
                             "[ -n \"$base\" ] || exit 1",
@@ -17464,8 +17466,10 @@ __DATA__
                 "sources":[
                     {
                         "type":"system",
+                        "prerequisites":[
+                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or sys.exit(1)'"
+                        ],
                         "recipe":[
-                            "python -c 'import sys; (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or sys.exit(1)'",
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
                             "[ -n \"$base\" ] || exit 1",

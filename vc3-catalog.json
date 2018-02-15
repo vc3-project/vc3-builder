@@ -2130,11 +2130,11 @@
                     {
                         "type":"system",
                         "prerequisites":[
-                            "perl -e 'exit($] < 5.10 or $] > 5.16 )'"
+                            "perl -e 'exit($] < 5.010 or $] >= 5.016 )'"
                         ],
                         "recipe":[
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
-        ]
+                        ]
                     }
                 ]
             },
@@ -2144,11 +2144,11 @@
                     {
                         "type":"system",
                         "prerequisites":[
-                            "perl -e 'exit($] < 5.16 or $] > 5.24 )'"
+                            "perl -e 'exit($] < 5.016 or $] >= 5.024 )'"
                         ],
                         "recipe":[
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
-                    ]
+                        ]
                     }
                 ]
             },
@@ -2158,7 +2158,7 @@
                     {
                         "type":"system",
                         "prerequisites":[
-                            "perl -e 'exit($] < 5.24)'"
+                            "perl -e 'exit($] < 5.024)'"
                         ],
                         "recipe":[
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"

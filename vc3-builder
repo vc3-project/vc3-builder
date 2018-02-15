@@ -12541,6 +12541,8 @@ sub compute_auto_version {
     print { $auto_in } 'exec 1> ' . $fname . "\n";
     print { $auto_in } "exec 2>&1\n";
     print { $auto_in } "set -ex\n";
+    print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
+
     for my $step (@{$self->auto_version}) {
         print { $auto_in } "$step\n";
     }
@@ -16770,7 +16772,6 @@ __DATA__
                 ]
             },
             "auto-version":[
-                "export PATH=\"${VC3_PREFIX}/bin\":\"$PATH\"",
                 "perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
             ],
             "environment-variables":[
@@ -17470,7 +17471,6 @@ __DATA__
             }
         ],
         "auto-version":[
-            "export PATH=\"${VC3_PREFIX}/bin\":\"$PATH\"",
             "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
         ],
         "environment-autovars":[

@@ -2125,27 +2125,10 @@
         "show-in-list":1,
         "versions":[
             {
-                "version":"v5.10",
+                "version":"auto",
                 "sources":[
                     {
                         "type":"system",
-                        "prerequisites":[
-                            "perl -e 'exit($] < 5.010 or $] >= 5.016 )'"
-                        ],
-                        "recipe":[
-                            "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
-                        ]
-                    }
-                ]
-            },
-            {
-                "version":"v5.16",
-                "sources":[
-                    {
-                        "type":"system",
-                        "prerequisites":[
-                            "perl -e 'exit($] < 5.016 or $] >= 5.024 )'"
-                        ],
                         "recipe":[
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                         ]
@@ -2155,15 +2138,6 @@
             {
                 "version":"v5.24",
                 "sources":[
-                    {
-                        "type":"system",
-                        "prerequisites":[
-                            "perl -e 'exit($] < 5.024)'"
-                        ],
-                        "recipe":[
-                            "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
-                    ]
-                    },
                     {
                         "type":"tarball",
                         "files":[
@@ -2184,7 +2158,8 @@
                 ]
             },
             "auto-version":[
-                "${VC3_PREFIX}/bin/perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
+                "export PATH=\"${VC3_PREFIX}/bin\":\"$PATH\"",
+                "perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
             ],
             "environment-variables":[
                 {

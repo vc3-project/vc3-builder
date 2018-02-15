@@ -1596,7 +1596,12 @@ sub new {
 
     $self->package($pkg);
 
-    $self->version($json_description->{version});
+    if($json_description->{version} eq 'auto') {
+        $self->version($pkg->compute_auto_version(''));
+    } else {
+        $self->version($json_description->{version});
+    }
+
     $self->sources($json_description->{sources});
     $self->dependencies($json_description->{dependencies});
     $self->wrapper($json_description->{wrapper});

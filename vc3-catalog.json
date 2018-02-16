@@ -1747,8 +1747,8 @@
                     "python":[
                         "v2.7"
                     ],
-                    "perl-vc3-modules":[
-                        "v0.1.0"
+                    "perl-extutils-makemaker":[
+                        "v7.24.0"
                     ]
                 },
                 "environment-autovars":[
@@ -2167,11 +2167,6 @@
                 {
                     "name":"PATH",
                     "value":"bin"
-                },
-                {
-                    "name":"PERL5LIB",
-                    "value":"${VC3_MODULES_PERL_LOCAL_CPAN}",
-                    "absolute":1
                 },
                 {
                     "name":"PERL5LIB",
@@ -3158,6 +3153,22 @@
                         "v6.0"
                     ]
                 }
+            }
+        ]
+    },
+
+    "perl-extutils-makemaker":{
+        "versions":[
+            {
+                "version":"v7.24",
+                "sources":[
+                    {
+                        "type":"cpan",
+                        "files":[
+                            "ExtUtils::MakeMaker"
+                        ]
+                    }
+                ]
             }
         ]
     },

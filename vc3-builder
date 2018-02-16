@@ -11033,6 +11033,8 @@ eval {use Cwd; use lib getcwd . "/builder-pack/fatlib";};
 package VC3::Builder;
 
 use English qw/-mo_match_vars/;
+use File::Path;
+use File::Spec::Functions qw/catfile rel2abs/;
 use Getopt::Long qw/GetOptions/;
 use Tie::RefHash;
 use Cwd;
@@ -11046,10 +11048,10 @@ $SIG{ALRM} = \&cleanup_signal_handler;
 select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
 my $pwd            = getcwd();
-my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
-my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
-my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
-my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/builder-files";
+my $vc3_root       = catfile(${pwd}, 'vc3-root');
+my $vc3_distfiles  = catfile(${pwd}, 'vc3-distfiles');
+my $vc3_user_home  = 'vc3-home';
+my $vc3_repository = "http://download.virtualclusters.org/builder-files";
 
 my $shell          = '/bin/sh';
 
@@ -11170,8 +11172,6 @@ sub cleanup_signal_handler {
 }
 
 sub fix_http_proxy_vars {
-    my ($self) = @_;
-
     for my $var (qw(http_proxy HTTP_PROXY)) {
         my $val = $ENV{$var};
 
@@ -11188,6 +11188,13 @@ sub fix_http_proxy_vars {
     }
 }
 
+sub remove_vc3_vars() {
+    for my $var (keys %ENV) {
+        if($var =~ '^VC3_') {
+            delete $ENV{$var};
+        }
+    }
+}
 
 sub main {
     my @requires     = ();
@@ -11228,6 +11235,7 @@ sub main {
 
     my $original_command = join(' ', $script_name, @ARGV);
     
+    VC3::Builder::remove_vc3_vars();
     VC3::Builder::fix_http_proxy_vars();
 
     my $opt_result = GetOptions(
@@ -11339,7 +11347,7 @@ sub main {
     }
 
     push @extra_vars, "MAKEFLAGS=-j${make_jobs}";
-    push @extra_vars, "VC3_COMMAND_LINE=" . File::Spec->rel2abs(join(" ", $original_command));
+    push @extra_vars, "VC3_COMMAND_LINE=" . rel2abs(join(" ", $original_command));
 
     unshift @re_vars, 'VC3_.*';
 
@@ -11405,13 +11413,13 @@ sub main {
 sub print_modules_used {
     my $file = "stub-debug-modules.txt";
 
-    unlink "$vc3_distfiles/$file";
+    unlink catfile($vc3_distfiles, $file);
 
     File::Path::make_path($vc3_distfiles);
 
     my $ff       = HTTP::Tiny->new();
     my $url      = $vc3_repository . '/' . $file;
-    my $output   = $vc3_distfiles  . '/' . $file;
+    my $output   = catfile($vc3_distfiles,  $file);
 
     # dummy calls to trigger the use of the http module.
     my $response_a = $ff->mirror($url, $output);
@@ -11464,7 +11472,7 @@ use Carp qw/carp croak/;
 #use English qw/-mo_match_vars/;
 use File::Basename;
 use File::Copy;
-use File::Spec ();
+use File::Spec::Functions qw/catfile rel2abs file_name_is_absolute/;
 use File::Temp qw/tempfile/;
 use FindBin  qw/$RealBin $RealScript/;
 use JSON::Tiny;
@@ -11591,15 +11599,15 @@ sub set_builder_variables {
     $vc3_user_home = glob $vc3_user_home;
 
     # to absolute paths
-    $vc3_root      = File::Spec->rel2abs(${vc3_root});
-    $vc3_distfiles = File::Spec->rel2abs(${vc3_distfiles});
-    unless(File::Spec->file_name_is_absolute($vc3_user_home)) {
-        $vc3_user_home = File::Spec->join($vc3_root, $vc3_user_home);
-    }
-
-    my $tmp_dir = "$vc3_root/tmp";
+    $vc3_root      = rel2abs(${vc3_root});
+    $vc3_distfiles = rel2abs(${vc3_distfiles});
 
     $self->root_dir($vc3_root);
+    my $tmp_dir = catfile($self->root_dir, 'tmp');
+
+    unless(file_name_is_absolute($vc3_user_home)) {
+        $vc3_user_home = join($vc3_root, $vc3_user_home);
+    }
 
     $self->home_dir($vc3_user_home);
     $self->tmp_dir($tmp_dir);
@@ -11612,17 +11620,27 @@ sub set_builder_variables {
         $executable = 'vc3-builder-static';
     }
 
-    $self->builder_path("$RealBin/$executable");
+    $self->builder_path(catfile($RealBin, $executable));
 
-    File::Path::make_path($self->root_dir);
-    File::Path::make_path($vc3_distfiles);
-    File::Path::make_path(File::Spec->join($vc3_distfiles, 'manual-distribution'));
-    File::Path::make_path(File::Spec->join($vc3_distfiles, 'perl'));
-    File::Path::make_path(File::Spec->join($vc3_distfiles, 'python'));
-    File::Path::make_path($self->home_dir);
-    File::Path::make_path($self->tmp_dir);
+    eval {
+        File::Path::make_path($self->root_dir);
+        File::Path::make_path($vc3_distfiles);
+        File::Path::make_path(join($vc3_distfiles, 'manual-distribution'));
+        File::Path::make_path(join($vc3_distfiles, 'perl'));
+        File::Path::make_path(join($vc3_distfiles, 'python'));
+        File::Path::make_path($self->home_dir);
+        File::Path::make_path($self->tmp_dir);
+    };
 
-    my ($profile_f, $profile_name) = tempfile(File::Spec->join($self->home_dir, '.vc3_sh-XXXXXX'));
+    if($@) {
+        my $error = $@;
+        $error =~ s/ at .*$//;
+        warn("Could not create some directory: $error");
+        warn("giving up...\n");
+        exit 1;
+    }
+
+    my ($profile_f, $profile_name) = tempfile(join($self->home_dir, '.vc3_sh-XXXXXX'));
     close $profile_f;
     $self->sh_profile($profile_name);
     push @cleanups, sub { $self->cleanup() };
@@ -11858,16 +11876,19 @@ sub cleanup {
     }
 
     unless($self->preserve_profile) {
-        if(-f $self->sh_profile) {
-            unlink $self->sh_profile;
-        }
 
-        if(-f $self->sh_profile . '.env') {
-            unlink $self->sh_profile . '.env';
-        }
+        if(defined $self->sh_profile) {
+            if(-f $self->sh_profile) {
+                unlink $self->sh_profile;
+            }
 
-        if(-f $self->sh_profile . '.payload') {
-            unlink $self->sh_profile . '.payload';
+            if(-f $self->sh_profile . '.env') {
+                unlink $self->sh_profile . '.env';
+            }
+
+            if(-f $self->sh_profile . '.payload') {
+                unlink $self->sh_profile . '.payload';
+            }
         }
 
         $self->del_builder_variable('VC3_SH_PROFILE');
@@ -11898,7 +11919,7 @@ sub set_machine_vars {
 
     ($self->{osname}, undef, undef, undef, $self->{architecture}) = POSIX::uname();
 
-    $self->{target} = $self->architecture . '/' . $self->distribution;
+    $self->{target} = catfile($self->architecture, $self->distribution);
 
     my $ldd_version_raw = qx(ldd --version);
     $ldd_version_raw =~ /
@@ -12050,10 +12071,10 @@ sub to_parallel {
     my ($self, $dir, $make_jobs) = @_;
 
     my $abs_dir;
-    if(File::Spec->file_name_is_absolute($dir)) {
+    if(file_name_is_absolute($dir)) {
         $abs_dir = $dir;
     } else {
-        $abs_dir = File::Spec->join($self->home_dir, $dir);
+        $abs_dir = join($self->home_dir, $dir);
     }
 
     my $dag_name       = 'dag';
@@ -12062,7 +12083,8 @@ sub to_parallel {
 
     File::Path::make_path($abs_dir);
 
-    open my $script_f, '>', "$abs_dir/build" || die "Could not open '$abs_dir/build' for writing: $!";
+    my $build_dir = catfile($abs_dir, 'build');
+    open my $script_f, '>', "$build_dir" || die "Could not open '$build_dir' for writing: $!";
     print { $script_f } <<EOFF;
 #! $shell
 set -e
@@ -12078,10 +12100,11 @@ EOF
 EOFF
 
     close $script_f;
-    chmod 0755, "$abs_dir/build";
+    chmod 0755, $build_dir;
 
-    copy($self->builder_path, "$abs_dir/$builder_name");
-    chmod 0755, "$abs_dir/$builder_name";
+    my $builder_path = catfile($abs_dir, $builder_name);
+    copy($self->builder_path, $builder_path);
+    chmod 0755, $builder_path;
 
     $self->plan->to_makeflow($abs_dir, $dag_name, $builder_name, $local_database, $make_jobs);
 
@@ -12111,11 +12134,13 @@ sub set_environment_variables {
     $expansion->{'LD_LIBRARY_PATH'} ||= [];
 
     # use default PATH:
-    push @{$expansion->{'PATH'}}, $ENV{'PATH'} || '/bin:/usr/bin';
-    push @{$expansion->{'LD_LIBRARY_PATH'}}, $ENV{'LD_LIBRARY_PATH'} || '/lib:/usr/lib:/usr/local/lib';
+    push @{$expansion->{'PATH'}}, split(/:/, $ENV{'PATH'} || '/bin:/usr/bin');
+    push @{$expansion->{'LD_LIBRARY_PATH'}}, split(/:/, $ENV{'LD_LIBRARY_PATH'} || '/lib:/usr/lib:/usr/local/lib');
 
     for my $var_name (keys %{$expansion}) {
-        eval { $expansion->{$var_name} = join(':', @{$expansion->{$var_name}}) };
+        my @values = $self->clean_varialble_repetitions($expansion->{$var_name});
+
+        eval { $expansion->{$var_name} = join(':', @values) };
         if($@) {
             warn("Environment variable '$var_name' was not explicitely set.\n");
         }
@@ -12129,6 +12154,29 @@ sub set_environment_variables {
     }
 
     print { $sh_f } "\n";
+}
+
+sub clean_varialble_repetitions {
+    my ($self, $ref) = @_;
+
+    my @values = @$ref;
+
+    my %metric;
+    my $count = 1;
+    my $root = $self->root_dir;
+
+    for my $v (@values) {
+        if($v !~ m%^/(usr/(local/)?)?(bin|lib)$%) {
+            $metric{$v} = $count;
+        } elsif ($v =~ m%^$root%) {
+            $metric{$v} = $count;
+        } else {
+            $metric{$v} = $count + @values;
+        }
+        $count++;
+    }
+
+    return sort { $metric{$a} <=> $metric{$b} } keys %metric;
 }
 
 sub order_variables {
@@ -12387,6 +12435,7 @@ sub say {
 package VC3::Package;
 use Carp;
 use File::Temp;
+use File::Spec::Functions qw/catfile rel2abs/;
 
 sub new {
     my ($class, $bag, $name, $json_description) = @_;
@@ -12531,7 +12580,7 @@ sub compute_auto_version {
     croak "Could not open $shell for auto-version."
     unless $auto_in;
 
-    my $template = $self->bag->tmp_dir . '/' . $self->name . 'XXXXXX';
+    my $template = catfile($self->bag->tmp_dir, $self->name . 'XXXXXX');
     my $fh = File::Temp->new(template => $template, unlink => 1);
     close($fh);
     
@@ -12608,6 +12657,7 @@ use IO::Handle;
 use Digest::Perl::MD5 qw(md5_hex);
 use Cwd;
 use File::Temp qw/tempdir/;
+use File::Spec::Functions qw/catfile rel2abs/;
 
 use JSON::Tiny;
 
@@ -12889,8 +12939,8 @@ sub root_dir {
 
     unless($self->{root_dir}) {
         my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
-        $self->{root_dir} = File::Spec->rel2abs($vc3_root) . '/' . $rel;
-        $var_value = '${VC3_ROOT}/${VC3_MACHINE_TARGET}/' . $self->name . '/v${' . $self->widget_var('VERSION_FULL') . '}';
+        $self->{root_dir} = catfile(rel2abs($self->bag->root_dir), $rel);
+        $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
     }
 
     if(!$old || $old ne $self->{root_dir}) {
@@ -12903,26 +12953,26 @@ sub root_dir {
 sub bookeeping_dir {
     my ($self, $relative) = @_;
 
-    my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
+    my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
 
     if($relative) {
         return $rel;
     }
 
-    return File::Spec->rel2abs($vc3_root) . '/' . $rel;
+    return catfile(rel2abs($self->bag->root_dir), $rel);
 }
 
 sub build_dir {
     my ($self) = @_;
 
     unless($self->{build_dir}) {
-        my $root     = File::Spec->rel2abs($vc3_root) . '/builds';
+        my $root     = catfile(rel2abs($self->bag->root_dir), 'builds');
 
         unless(-d $root) {
             File::Path::make_path($root);
         }
 
-        my $template = $root . '/' . $self->name . '.XXXXXX';
+        my $template = catfile($root, $self->name . '.XXXXXX');
 
         my $tmpdir   = File::Temp::tempdir($template, CLEANUP => 1);
         $self->{build_dir} = $tmpdir;
@@ -12933,7 +12983,7 @@ sub build_dir {
 
 sub build_log {
     my ($self) = @_;
-    my $log_name = $self->bookeeping_dir . '/' . $self->name . '-build-log';
+    my $log_name = catfile($self->bookeeping_dir, $self->name . '-build-log');
 
     return $log_name;
 }
@@ -12986,9 +13036,9 @@ sub consolidate_environment_variables {
         for my $path (@paths) {
             if(!$absolute) {
                 if($self->root_dir eq $self->bookeeping_dir) {
-                    $path = '${' . $self->widget_var('ROOT') . '}/' . $path;
+                    $path = catfile('${' . $self->widget_var('ROOT') . '}', $path);
                 } else {
-                    $path = $self->root_dir . '/' . $path;
+                    $path = catfile($self->root_dir, $path);
                 }
             }
 
@@ -13176,14 +13226,15 @@ package VC3::Ribbon;
 
 use File::Basename; 
 use LockFile::Simple qw(lock unlock);
+use File::Spec::Functions qw/catfile rel2abs/;
 
 sub new {
     my ($class, $name, $install_dir, $tmpdir, $checksum) = @_;
 
     my $self = bless {}, $class;
 
-    $self->{filename} = $install_dir . '/.VC3_DEPENDENCY_BUILD';
-    $self->{lockname} = $tmpdir . '/' . $name . '.lock';
+    $self->{filename} = catfile($install_dir, '.VC3_DEPENDENCY_BUILD');
+    $self->{lockname} = catfile($tmpdir, $name . '.lock');
     $self->{checksum} = $checksum;
 
     $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -stale => 1, -wmin => 2,
@@ -13306,7 +13357,7 @@ use Carp;
 use File::Basename;
 use File::Copy;
 use File::Path;
-use File::Spec;
+use File::Spec::Functions qw/catfile rel2abs/;
 use HTTP::Tiny;
 use POSIX ":sys_wait_h";
 use parent;
@@ -13406,7 +13457,7 @@ sub check_manual_requirements {
 
 sub file_absolute {
     my ($self, $file) = @_;
-    return File::Spec->rel2abs($vc3_distfiles . '/' . $file);
+    return rel2abs(catfile($vc3_distfiles, $file));
 }
 
 sub dependencies {
@@ -13523,7 +13574,7 @@ sub get_file {
         my $ff = HTTP::Tiny->new();
 
         my $url    = $vc3_repository . '/' . $file;
-        my $output = $vc3_distfiles  . '/' . $file;
+        my $output = catfile($vc3_distfiles,  $file);
 
         my $retries = 5;
         my $sleep_before_retry = 5; # seconds
@@ -13573,7 +13624,7 @@ sub prepare_files {
     my ($self, $build_dir) = @_;
 
     for my $file (@{$self->files}) {
-        symlink($self->file_absolute($file), $build_dir . '/' . basename($file))
+        symlink($self->file_absolute($file), catfile($build_dir, basename($file)))
         || die "Could not link '" . $file . "' to build directory.\n";
     }
 }
@@ -13835,7 +13886,7 @@ sub get_file {
 
 sub file_absolute {
     my ($self, $file) = @_;
-    return File::Spec->rel2abs($vc3_distfiles . '/manual-distribution/'  . $file);
+    return rel2abs(catfile($vc3_distfiles, 'manual-distribution', $file));
 }
 
 sub check_manual_requirements {
@@ -14331,11 +14382,11 @@ sub dot_graph {
 sub to_makeflow {
     my ($self, $dir, $dag_name, $builder_exec, $local_database, $cores) = @_;
 
-    $self->trimmed_database("$dir/$local_database");
+    $self->trimmed_database(catfile($dir,$local_database));
 
     my $makeflow_name = 'dag';
 
-    open(my $mflow_f, '>', "$dir/$makeflow_name") 
+    open(my $mflow_f, '>', catfile($dir,$makeflow_name)) 
     || die "Could not open '$dir/$makeflow_name': $!";
 
     print { $mflow_f } ".MAKEFLOW CATEGORY builds\n";
@@ -14346,7 +14397,7 @@ sub to_makeflow {
 
     my $bag    = $self->bag;
     my $root   = $bag->root_dir;
-    my $target = $bag->root_dir . '/' . $bag->target;
+    my $target = catfile($bag->root_dir, $bag->target);
 
     my $home   = $bag->home_dir;
     $home      =~ s/^\Q$root/\$(ROOT_DIR)/;
@@ -16154,7 +16205,7 @@ __DATA__
                         "recipe":[
                             ": ./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
                             ": ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib no-shared",
-                            "./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib -D_GNU_SOURCE -DOPENSSL_NO_HEARTBEAT -Wl,-rpath=${VC3_PREFIX}/lib shared zlib no-weak-ssl-ciphers",
+                            "./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib -D_GNU_SOURCE -DOPENSSL_NO_HEARTBEAT -Wl,-rpath=${VC3_PREFIX}/lib shared no-zlib no-comp no-weak-ssl-ciphers",
                             "make depend",
                             "make build_all",
                             "make install_sw"
@@ -16162,9 +16213,6 @@ __DATA__
                     }
                 ],
                 "dependencies":{
-                    "zlib":[
-                        "v1.2"
-                    ],
                     "perl":[
                         "v5.10"
                     ]
@@ -16360,6 +16408,9 @@ __DATA__
                     ],
                     "python":[
                         "v2.7"
+                    ],
+                    "perl-extutils-makemaker":[
+                        "v7.24.0"
                     ]
                 },
                 "environment-autovars":[
@@ -16768,7 +16819,7 @@ __DATA__
             ],
             "dependencies":{
                 "perl-vc3-modules":[
-                    "v0.1.0"
+                    "v0.2.0"
                 ]
             },
             "auto-version":[
@@ -16841,6 +16892,11 @@ __DATA__
                 "value":"${VC3_MODULES_PERL}/local_cpan",
                 "clobber":1,
                 "absolute":1
+            },
+            {
+                "name":"PATH",
+                "value":"${VC3_MODULES_PERL}/bin",
+                "absolute":1
             }
         ]
     },
@@ -16871,6 +16927,7 @@ __DATA__
     },
 
     "perl-cpanminus":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.7",
@@ -16888,6 +16945,9 @@ __DATA__
                 ],
                 "dependencies":{
                     "perl-local-lib":[
+                        "v2.0"
+                    ],
+                    "perl-cpan":[
                         "v2.0"
                     ]
                 }
@@ -17750,20 +17810,60 @@ __DATA__
                         "files":["DB_File-1.838.tar.gz"],
                         "recipe":[
                             "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_ROOT_BERKELEY_DB}'/include%;s%^LIB.*%LIB = '${VC3_ROOT_BERKELEY_DB}'/lib%' config.in",
-                            "perl Makefile.PL",
+                            "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",
                             "make",
                             "make install"
                         ]
                     }
                 ],
                 "dependencies":{
-                    "perl-cpanminus":[
-                        "v1.7"
+                    "perl":[
+                        "v5.10"
                     ],
                     "berkeley-db":[
                         "v6.0"
                     ]
                 }
+            }
+        ]
+    },
+
+    "perl-cpan":{
+        "versions":[
+            {
+                "version":"v2.16",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":["CPAN-2.16.tar.gz"],
+                        "recipe":[
+                            "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",
+                            "make",
+                            "make install"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "perl":[
+                        "v5.10"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "perl-extutils-makemaker":{
+        "versions":[
+            {
+                "version":"v7.24",
+                "sources":[
+                    {
+                        "type":"cpan",
+                        "files":[
+                            "ExtUtils::MakeMaker"
+                        ]
+                    }
+                ]
             }
         ]
     },
@@ -18713,7 +18813,7 @@ __DATA__
     },
 
     "octave":{
-        "show-in-list":1,
+        "show-in-list":0,
         "versions":[
             {
                 "version":"v4.2.1",

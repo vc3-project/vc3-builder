@@ -11445,7 +11445,7 @@ sub print_modules_used {
     File::Path::make_path($vc3_distfiles);
 
     my $ff       = HTTP::Tiny->new();
-    my $url      = catfile($vc3_repository, $file);
+    my $url      = $vc3_repository . '/' . $file;
     my $output   = catfile($vc3_distfiles,  $file);
 
     # dummy calls to trigger the use of the http module.

@@ -11048,9 +11048,9 @@ $SIG{ALRM} = \&cleanup_signal_handler;
 select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
 my $pwd            = getcwd();
-my $vc3_root       = envvar_writable_dir('VC3_ROOT',       "${pwd}/vc3-root");
-my $vc3_distfiles  = envvar_writable_dir('VC3_DISTFILES',  "${pwd}/vc3-distfiles");
-my $vc3_user_home  = envvar_writable_dir('VC3_USER_HOME',  "vc3-home");
+my $vc3_root       = envvar_writable_dir('VC3_ROOT',       catfile(${pwd}, 'vc3-root'));
+my $vc3_distfiles  = envvar_writable_dir('VC3_DISTFILES',  catfile(${pwd}, 'vc3-distfiles'));
+my $vc3_user_home  = envvar_writable_dir('VC3_USER_HOME',  catfile($vc3_root, 'vc3-home'));
 my $vc3_repository = "http://download.virtualclusters.org/builder-files";
 
 my $shell          = '/bin/sh';

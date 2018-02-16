@@ -13600,7 +13600,7 @@ sub get_file {
 
         my $ff = HTTP::Tiny->new();
 
-        my $url    = catfile($vc3_repository, $file);
+        my $url    = $vc3_repository . '/' . $file;
         my $output = catfile($vc3_distfiles,  $file);
 
         my $retries = 5;

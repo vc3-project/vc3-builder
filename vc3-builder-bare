@@ -1140,25 +1140,7 @@ sub set_environment_variables {
     push @{$expansion->{'LD_LIBRARY_PATH'}}, split(/:/, $ENV{'LD_LIBRARY_PATH'} || '/lib:/usr/lib:/usr/local/lib');
 
     for my $var_name (keys %{$expansion}) {
-        my @values = @{$expansion->{$var_name}};
-
-        if(grep /$var_name/, qw(PATH LD_LIBRARY_PATH)) {
-            my %metric;
-            my $count = 1;
-            my $root = $self->root_dir;
-
-            for my $v (@values) {
-                if($v !~ m%^/(usr/(local/)?)?(bin|lib)$%) {
-                    $metric{$v} = $count;
-                } elsif ($v =~ m%^$root%) {
-                    $metric{$v} = $count;
-                } else {
-                    $metric{$v} = $count + @values;
-                }
-                $count++;
-            }
-            @values = sort { $metric{$a} <=> $metric{$b} } keys %metric;
-        }
+        my @values = $self->clean_varialble_repetitions($expansion->{$var_name});
 
         eval { $expansion->{$var_name} = join(':', @values) };
         if($@) {
@@ -1174,6 +1156,29 @@ sub set_environment_variables {
     }
 
     print { $sh_f } "\n";
+}
+
+sub clean_varialble_repetitions {
+    my ($self, $ref) = @_;
+
+    my @values = @$ref;
+
+    my %metric;
+    my $count = 1;
+    my $root = $self->root_dir;
+
+    for my $v (@values) {
+        if($v !~ m%^/(usr/(local/)?)?(bin|lib)$%) {
+            $metric{$v} = $count;
+        } elsif ($v =~ m%^$root%) {
+            $metric{$v} = $count;
+        } else {
+            $metric{$v} = $count + @values;
+        }
+        $count++;
+    }
+
+    return sort { $metric{$a} <=> $metric{$b} } keys %metric;
 }
 
 sub order_variables {

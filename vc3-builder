@@ -11048,9 +11048,9 @@ $SIG{ALRM} = \&cleanup_signal_handler;
 select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
 my $pwd            = getcwd();
-my $vc3_root       = envvar_writable_dir('VC3_ROOT',       catfile(${pwd}, 'vc3-root'));
-my $vc3_distfiles  = envvar_writable_dir('VC3_DISTFILES',  catfile(${pwd}, 'vc3-distfiles'));
-my $vc3_user_home  = $ENV{'VC3_USER_HOME'} || 'vc3-home';
+my $vc3_root       = catfile(${pwd}, 'vc3-root');
+my $vc3_distfiles  = catfile(${pwd}, 'vc3-distfiles');
+my $vc3_user_home  = 'vc3-home';
 my $vc3_repository = "http://download.virtualclusters.org/builder-files";
 
 my $shell          = '/bin/sh';
@@ -11194,33 +11194,6 @@ sub remove_vc3_vars() {
             delete $ENV{$var};
         }
     }
-}
-
-sub envvar_writable_dir {
-    my ($var, $default) = @_;
-
-    my $dir = $ENV{$var};
-
-    unless($dir) {
-        return $default;
-    }
-
-    my $good = 1;
-    unless(-d $dir) {
-        warn "directory '$var=$dir' does not exist.\n";
-        return $dir;
-    }
-
-    my ($r, $w, $x, $d) = (-r $dir, -w _, -x _, -d _);
-    unless($r and $w and $x and $d) {
-        $good = 0;
-    }
-
-    unless($good) {
-        warn "directory '$var=$dir' is not writable\n";
-    }
-
-    return $dir;
 }
 
 sub main {

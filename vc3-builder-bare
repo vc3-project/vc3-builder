@@ -173,8 +173,9 @@ sub envvar_writable_dir {
 
     my $dir = $ENV{$var};
 
-    unless(defined $dir) {
-        return $default;
+    if(defined $dir) {
+        # don't confuse this builder with other builder's variables.
+        delete $ENV{$var};
     }
 
     unless($dir) {
@@ -182,7 +183,6 @@ sub envvar_writable_dir {
     }
 
     my $good = 1;
-
     unless(-d $dir) {
         File::Path::make_path($dir, {error => \my $err, mode => 0755}  );
         if(@$err) {

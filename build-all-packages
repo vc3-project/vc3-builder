@@ -1,0 +1,10 @@
+#! /bin/sh
+
+set -e
+
+./vc3-builder --list |
+while read p
+do
+	./vc3-builder "$@" --require ${p} --no-run
+done
+

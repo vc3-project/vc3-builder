@@ -584,7 +584,7 @@ sub set_builder_variables {
     my $tmp_dir = catfile($vc3_root, 'tmp');
 
     unless(file_name_is_absolute($vc3_user_home)) {
-        $vc3_user_home = join($vc3_root, $vc3_user_home);
+        $vc3_user_home = catfile($vc3_root, $vc3_user_home);
     }
 
     $self->home_dir($vc3_user_home);
@@ -1916,7 +1916,7 @@ sub root_dir {
     }
 
     unless($self->{root_dir}) {
-        my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
+        my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
         $self->{root_dir} = catfile(rel2abs($vc3_root), $rel);
         $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
     }

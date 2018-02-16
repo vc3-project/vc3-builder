@@ -11207,10 +11207,8 @@ sub envvar_writable_dir {
 
     my $good = 1;
     unless(-d $dir) {
-        File::Path::make_path($dir, {error => \my $err, mode => 0755}  );
-        if(@$err) {
-            $good = 0;
-        }
+        warn "directory '$var=$dir' does not exist.\n";
+        return $dir;
     }
 
     my ($r, $w, $x, $d) = (-r $dir, -w _, -x _, -d _);
@@ -11634,9 +11632,8 @@ sub set_builder_variables {
         $vc3_user_home = join($vc3_root, $vc3_user_home);
     }
 
-    my $tmp_dir = catfile($vc3_root, 'tmp');
-
     $self->root_dir($vc3_root);
+    my $tmp_dir = catfile($self->vc3_root, 'tmp');
 
     $self->home_dir($vc3_user_home);
     $self->tmp_dir($tmp_dir);

@@ -3789,7 +3789,6 @@
     },
 
     "trf":{
-        "show-in-list":1,
         "versions":[
             {
                 "version":"v4.9",

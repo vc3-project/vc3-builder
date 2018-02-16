@@ -4118,7 +4118,7 @@
     },
 
     "octave":{
-        "show-in-list":1,
+        "show-in-list":0,
         "versions":[
             {
                 "version":"v4.2.1",

@@ -150,8 +150,6 @@ sub cleanup_signal_handler {
 }
 
 sub fix_http_proxy_vars {
-    my ($self) = @_;
-
     for my $var (qw(http_proxy HTTP_PROXY)) {
         my $val = $ENV{$var};
 
@@ -168,15 +166,18 @@ sub fix_http_proxy_vars {
     }
 }
 
+sub remove_vc3_vars() {
+    for my $var (keys %ENV) {
+        if($var =~ '^VC3_') {
+            delete $ENV{$var};
+        }
+    }
+}
+
 sub envvar_writable_dir {
     my ($var, $default) = @_;
 
     my $dir = $ENV{$var};
-
-    if(defined $dir) {
-        # don't confuse this builder with other builder's variables.
-        delete $ENV{$var};
-    }
 
     unless($dir) {
         return $default;
@@ -241,6 +242,7 @@ sub main {
 
     my $original_command = join(' ', $script_name, @ARGV);
     
+    VC3::Builder::remove_vc3_vars();
     VC3::Builder::fix_http_proxy_vars();
 
     my $opt_result = GetOptions(

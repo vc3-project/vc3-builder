@@ -1746,6 +1746,9 @@
                     ],
                     "python":[
                         "v2.7"
+                    ],
+                    "perl-vc3-modules":[
+                        "v0.1.0"
                     ]
                 },
                 "environment-autovars":[

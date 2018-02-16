@@ -2230,6 +2230,11 @@
                 "value":"${VC3_MODULES_PERL}/local_cpan",
                 "clobber":1,
                 "absolute":1
+            },
+            {
+                "name":"PATH",
+                "value":"${VC3_MODULES_PERL}/bin",
+                "absolute":1
             }
         ]
     },
@@ -2260,6 +2265,7 @@
     },
 
     "perl-cpanminus":{
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.7",
@@ -2277,6 +2283,9 @@
                 ],
                 "dependencies":{
                     "perl-local-lib":[
+                        "v2.0"
+                    ],
+                    "perl-cpan":[
                         "v2.0"
                     ]
                 }
@@ -3139,18 +3148,42 @@
                         "files":["DB_File-1.838.tar.gz"],
                         "recipe":[
                             "sed -i -e 's%^INCLUDE.*%INCLUDE = '${VC3_ROOT_BERKELEY_DB}'/include%;s%^LIB.*%LIB = '${VC3_ROOT_BERKELEY_DB}'/lib%' config.in",
-                            "perl Makefile.PL",
+                            "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",
                             "make",
                             "make install"
                         ]
                     }
                 ],
                 "dependencies":{
-                    "perl-cpanminus":[
-                        "v1.7"
+                    "perl":[
+                        "v5.10"
                     ],
                     "berkeley-db":[
                         "v6.0"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "perl-cpan":{
+        "versions":[
+            {
+                "version":"v2.16",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":["CPAN-2.16.tar.gz"],
+                        "recipe":[
+                            "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",
+                            "make",
+                            "make install"
+                        ]
+                    }
+                ],
+                "dependencies":{
+                    "perl":[
+                        "v5.10"
                     ]
                 }
             }

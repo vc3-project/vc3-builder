@@ -11033,6 +11033,7 @@ eval {use Cwd; use lib getcwd . "/builder-pack/fatlib";};
 package VC3::Builder;
 
 use English qw/-mo_match_vars/;
+use File::Path;
 use Getopt::Long qw/GetOptions/;
 use Tie::RefHash;
 use Cwd;
@@ -11046,10 +11047,10 @@ $SIG{ALRM} = \&cleanup_signal_handler;
 select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 
 my $pwd            = getcwd();
-my $vc3_root       = $ENV{VC3_ROOT}       || "${pwd}/vc3-root";
-my $vc3_distfiles  = $ENV{VC3_DISTFILES}  || "${pwd}/vc3-distfiles";
-my $vc3_user_home  = $ENV{VC3_USER_HOME}  || "vc3-home";
-my $vc3_repository = $ENV{VC3_REPOSITORY} || "http://download.virtualclusters.org/builder-files";
+my $vc3_root       = envvar_writable_dir('VC3_ROOT',       "${pwd}/vc3-root");
+my $vc3_distfiles  = envvar_writable_dir('VC3_DISTFILES',  "${pwd}/vc3-distfiles");
+my $vc3_user_home  = envvar_writable_dir('VC3_USER_HOME',  "vc3-home");
+my $vc3_repository = "http://download.virtualclusters.org/builder-files";
 
 my $shell          = '/bin/sh';
 
@@ -11188,6 +11189,39 @@ sub fix_http_proxy_vars {
     }
 }
 
+sub envvar_writable_dir {
+    my ($var, $default) = @_;
+
+    my $dir = $ENV{$var};
+
+    unless(defined $dir) {
+        return $default;
+    }
+
+    unless($dir) {
+        return $default;
+    }
+
+    my $good = 1;
+
+    unless(-d $dir) {
+        File::Path::make_path($dir, {error => \my $err, mode => 0755}  );
+        if(@$err) {
+            $good = 0;
+        }
+    }
+
+    my ($r, $w, $x, $d) = (-r $dir, -w _, -x _, -d _);
+    unless($r and $w and $x and $d) {
+        $good = 0;
+    }
+
+    unless($good) {
+        warn "directory '$var=$dir' is not writable\n";
+    }
+
+    return $dir;
+}
 
 sub main {
     my @requires     = ();
@@ -11614,13 +11648,23 @@ sub set_builder_variables {
 
     $self->builder_path("$RealBin/$executable");
 
-    File::Path::make_path($self->root_dir);
-    File::Path::make_path($vc3_distfiles);
-    File::Path::make_path(File::Spec->join($vc3_distfiles, 'manual-distribution'));
-    File::Path::make_path(File::Spec->join($vc3_distfiles, 'perl'));
-    File::Path::make_path(File::Spec->join($vc3_distfiles, 'python'));
-    File::Path::make_path($self->home_dir);
-    File::Path::make_path($self->tmp_dir);
+    eval {
+        File::Path::make_path($self->root_dir);
+        File::Path::make_path($vc3_distfiles);
+        File::Path::make_path(File::Spec->join($vc3_distfiles, 'manual-distribution'));
+        File::Path::make_path(File::Spec->join($vc3_distfiles, 'perl'));
+        File::Path::make_path(File::Spec->join($vc3_distfiles, 'python'));
+        File::Path::make_path($self->home_dir);
+        File::Path::make_path($self->tmp_dir);
+    };
+
+    if($@) {
+        my $error = $@;
+        $error =~ s/ at .*$//;
+        warn("Could not create some directory: $error");
+        warn("giving up...\n");
+        exit 1;
+    }
 
     my ($profile_f, $profile_name) = tempfile(File::Spec->join($self->home_dir, '.vc3_sh-XXXXXX'));
     close $profile_f;
@@ -11858,16 +11902,19 @@ sub cleanup {
     }
 
     unless($self->preserve_profile) {
-        if(-f $self->sh_profile) {
-            unlink $self->sh_profile;
-        }
 
-        if(-f $self->sh_profile . '.env') {
-            unlink $self->sh_profile . '.env';
-        }
+        if(defined $self->sh_profile) {
+            if(-f $self->sh_profile) {
+                unlink $self->sh_profile;
+            }
 
-        if(-f $self->sh_profile . '.payload') {
-            unlink $self->sh_profile . '.payload';
+            if(-f $self->sh_profile . '.env') {
+                unlink $self->sh_profile . '.env';
+            }
+
+            if(-f $self->sh_profile . '.payload') {
+                unlink $self->sh_profile . '.payload';
+            }
         }
 
         $self->del_builder_variable('VC3_SH_PROFILE');

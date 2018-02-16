@@ -2157,7 +2157,7 @@
             ],
             "dependencies":{
                 "perl-vc3-modules":[
-                    "v0.1.0"
+                    "v0.2.0"
                 ]
             },
             "auto-version":[
@@ -2167,6 +2167,11 @@
                 {
                     "name":"PATH",
                     "value":"bin"
+                },
+                {
+                    "name":"PERL5LIB",
+                    "value":"${VC3_MODULES_PERL_LOCAL_CPAN}",
+                    "absolute":1
                 },
                 {
                     "name":"PERL5LIB",

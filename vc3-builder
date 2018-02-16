@@ -11606,7 +11606,7 @@ sub set_builder_variables {
     my $tmp_dir = catfile($self->root_dir, 'tmp');
 
     unless(file_name_is_absolute($vc3_user_home)) {
-        $vc3_user_home = join($self->root_dir, '..', '..', $vc3_user_home);
+        $vc3_user_home = join($vc3_root, $vc3_user_home);
     }
 
     $self->home_dir($vc3_user_home);

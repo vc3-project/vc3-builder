@@ -166,13 +166,6 @@ sub fix_http_proxy_vars {
     }
 }
 
-sub remove_vc3_vars() {
-    for my $var (keys %ENV) {
-        if($var =~ '^VC3_') {
-            delete $ENV{$var};
-        }
-    }
-}
 
 sub main {
     my @requires     = ();
@@ -213,7 +206,6 @@ sub main {
 
     my $original_command = join(' ', $script_name, @ARGV);
     
-    VC3::Builder::remove_vc3_vars();
     VC3::Builder::fix_http_proxy_vars();
 
     my $opt_result = GetOptions(
@@ -581,7 +573,7 @@ sub set_builder_variables {
     $vc3_distfiles = rel2abs(${vc3_distfiles});
 
     $self->root_dir($vc3_root);
-    my $tmp_dir = catfile($self->root_dir, 'tmp');
+    my $tmp_dir = catfile($vc3_root, 'tmp');
 
     unless(file_name_is_absolute($vc3_user_home)) {
         $vc3_user_home = join($vc3_root, $vc3_user_home);
@@ -603,9 +595,9 @@ sub set_builder_variables {
     eval {
         File::Path::make_path($self->root_dir);
         File::Path::make_path($vc3_distfiles);
-        File::Path::make_path(join($vc3_distfiles, 'manual-distribution'));
-        File::Path::make_path(join($vc3_distfiles, 'perl'));
-        File::Path::make_path(join($vc3_distfiles, 'python'));
+        File::Path::make_path(catfile($vc3_distfiles, 'manual-distribution'));
+        File::Path::make_path(catfile($vc3_distfiles, 'perl'));
+        File::Path::make_path(catfile($vc3_distfiles, 'python'));
         File::Path::make_path($self->home_dir);
         File::Path::make_path($self->tmp_dir);
     };
@@ -618,7 +610,7 @@ sub set_builder_variables {
         exit 1;
     }
 
-    my ($profile_f, $profile_name) = tempfile(join($self->home_dir, '.vc3_sh-XXXXXX'));
+    my ($profile_f, $profile_name) = tempfile(catfile($self->home_dir, '.vc3_sh-XXXXXX'));
     close $profile_f;
     $self->sh_profile($profile_name);
     push @cleanups, sub { $self->cleanup() };
@@ -1052,7 +1044,7 @@ sub to_parallel {
     if(file_name_is_absolute($dir)) {
         $abs_dir = $dir;
     } else {
-        $abs_dir = join($self->home_dir, $dir);
+        $abs_dir = catfile($self->home_dir, $dir);
     }
 
     my $dag_name       = 'dag';
@@ -1917,7 +1909,7 @@ sub root_dir {
 
     unless($self->{root_dir}) {
         my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
-        $self->{root_dir} = catfile(rel2abs($self->bag->root_dir), $rel);
+        $self->{root_dir} = catfile(rel2abs($vc3_root), $rel);
         $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
     }
 
@@ -1937,14 +1929,14 @@ sub bookeeping_dir {
         return $rel;
     }
 
-    return catfile(rel2abs($self->bag->root_dir), $rel);
+    return catfile(rel2abs($vc3_root), $rel);
 }
 
 sub build_dir {
     my ($self) = @_;
 
     unless($self->{build_dir}) {
-        my $root     = catfile(rel2abs($self->bag->root_dir), 'builds');
+        my $root     = catfile(rel2abs($vc3_root), 'builds');
 
         unless(-d $root) {
             File::Path::make_path($root);

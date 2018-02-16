@@ -28,7 +28,7 @@ select(STDOUT); $OUTPUT_AUTOFLUSH = 1;
 my $pwd            = getcwd();
 my $vc3_root       = envvar_writable_dir('VC3_ROOT',       catfile(${pwd}, 'vc3-root'));
 my $vc3_distfiles  = envvar_writable_dir('VC3_DISTFILES',  catfile(${pwd}, 'vc3-distfiles'));
-my $vc3_user_home  = envvar_writable_dir('VC3_USER_HOME',  catfile($vc3_root, 'vc3-home'));
+my $vc3_user_home  = $ENV{'VC3_USER_HOME'} || 'vc3-home';
 my $vc3_repository = "http://download.virtualclusters.org/builder-files";
 
 my $shell          = '/bin/sh';
@@ -1944,7 +1944,7 @@ sub root_dir {
 
     unless($self->{root_dir}) {
         my $rel = join('/', map { "$_" } ($self->bag->target, $self->name, $self->version->normal));
-        $self->{root_dir} = catfile(rel2abs($vc3_root), $rel);
+        $self->{root_dir} = catfile(rel2abs($self->root_dir), $rel);
         $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
     }
 
@@ -1964,14 +1964,14 @@ sub bookeeping_dir {
         return $rel;
     }
 
-    return catfile(rel2abs($vc3_root), $rel);
+    return catfile(rel2abs($self->root_dir), $rel);
 }
 
 sub build_dir {
     my ($self) = @_;
 
     unless($self->{build_dir}) {
-        my $root     = catfile(rel2abs($vc3_root), 'builds');
+        my $root     = catfile(rel2abs($self->root_dir), 'builds');
 
         unless(-d $root) {
             File::Path::make_path($root);

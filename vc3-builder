@@ -16320,7 +16320,7 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
-                "version":"v1.0",
+                "version":"auto",
                 "sources":[
                     {
                         "type":"system",
@@ -16367,6 +16367,9 @@ __DATA__
                     "PATH"
                 ]
             }
+        ],
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: $(wget --version | head -n1 | sed -r 's/GNU Wget (([0-9]+.?)+).*/\\1/')"
         ]
     },
 

@@ -17029,7 +17029,7 @@ __DATA__
                     {
                         "type":"generic",
                         "recipe":[
-                            "pip install --user virtualenv"
+                            "pip install virtualenv"
                         ]
                     }
                 ],

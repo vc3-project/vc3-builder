@@ -2364,7 +2364,7 @@
                     {
                         "type":"generic",
                         "recipe":[
-                            "pip install --user virtualenv"
+                            "pip install virtualenv"
                         ]
                     }
                 ],

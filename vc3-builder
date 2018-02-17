@@ -12464,10 +12464,14 @@ sub new {
 }
 
 sub widgets {
-    my ($self, $new_widgets) = @_;
+    my ($self, $new_widgets_spec) = @_;
 
-    if($new_widgets) {
-        my @widgets = map { VC3::Widget->new($self, $_) } @{$new_widgets};
+    if($new_widgets_spec) {
+        my @widgets;
+        for my $s (@{$new_widgets_spec}) {
+            my $w = VC3::Widget->new($self, $s);
+            push @widgets, $w if $w;
+        }
 
         $self->{widgets} = \@widgets;
     }
@@ -12671,7 +12675,10 @@ sub new {
     $self->package($pkg);
 
     if($json_description->{version} eq 'auto') {
-        $self->version($pkg->compute_auto_version(''));
+        eval { $self->version($pkg->compute_auto_version('')) };
+        if($@) {
+            return undef;
+        }
     } else {
         $self->version($json_description->{version});
     }
@@ -16797,6 +16804,9 @@ __DATA__
                 "sources":[
                     {
                         "type":"system",
+                        "prerequisites":[
+                            "which perl"
+                        ],
                         "recipe":[
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                         ]
@@ -17493,6 +17503,9 @@ __DATA__
                 "sources":[
                     {
                         "type":"system",
+                        "prerequisites":[
+                            "which python"
+                        ],
                         "recipe":[
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",

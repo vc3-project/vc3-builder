@@ -2132,6 +2132,9 @@
                 "sources":[
                     {
                         "type":"system",
+                        "prerequisites":[
+                            "which perl"
+                        ],
                         "recipe":[
                             "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                         ]
@@ -2828,6 +2831,9 @@
                 "sources":[
                     {
                         "type":"system",
+                        "prerequisites":[
+                            "which python"
+                        ],
                         "recipe":[
                             "cmd=$(which python)",
                             "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",

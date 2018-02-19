@@ -16107,17 +16107,16 @@ __DATA__
                 ]
             },
             {
-                "version":"v3.5.2",
+                "version":"v3.10.2",
                 "sources":[
                     {
-                        "type":"tarball",
+                        "type":"binary",
                         "files":[
-                            "cmake-3.5.2.tar.gz"
+                            "cmake-3.10.2-Linux-x86_64.tar.gz"
                         ],
                         "recipe":[
-                            "./bootstrap --prefix=${VC3_PREFIX}",
-                            "make",
-                            "make install"
+                            "mkdir -p ${VC3_PREFIX}",
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cmake-3.10.2-Linux-x86_64.tar.gz"
                         ]
                     }
                 ]
@@ -16128,6 +16127,30 @@ __DATA__
         ],
         "environment-autovars":[
             "PATH"
+        ]
+    },
+
+
+    "cmake-disable":{
+        "versions":[
+            {
+                "version":"v3.5.2",
+                "sources":[
+                    {
+                        "type":"tarball",
+                        "files":[
+                            "cmake-3.5.2.tar.gz"
+                        ],
+                        "recipe":[
+                            "prefix=$(echo ${VC3_PREFIX} | sed -e 's/#/_/g')",
+                            "./bootstrap --prefix=${prefix}",
+                            ": ./bootstrap --prefix=${VC3_PREFIX}",
+                            "make",
+                            "make install"
+                        ]
+                    }
+                ]
+            }
         ]
     },
 

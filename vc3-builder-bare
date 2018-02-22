@@ -495,18 +495,40 @@ sub list_packages() {
         @ps = grep { $_->show_in_list } @ps;
     }
 
-    @ps = sort { $a->name cmp $b->name } @ps;
-
+    my %tags;
     for my $p (@ps) {
-        my $printed = {};
-        my $ws = $p->widgets;
+        my @ts = $p->tags ? @{$p->tags} : ('other');
 
-        for my $w (@{$ws}) {
-            my $str = $p->name . ':' . $w->version;
+        for my $t (@ts) {
+            $tags{$t} ||= [];
+            push $tags{$t}, $p;
+        }
+    }
 
-            unless(defined $printed->{$str}) {
-                $printed->{$str} = 1;
-                print "$str\n";
+    my @tagnames = sort { $a cmp $b } keys %tags;
+
+    @tagnames = grep { ! m/other/ } @tagnames;
+    push @tagnames, 'other';
+
+    for my $t (@tagnames) {
+        if(defined $tags{$t}) {
+
+            my @ps = sort { $a->name cmp $b->name } @{$tags{$t}};
+
+            print "\n--- $t\n";
+
+            for my $p (@ps) {
+                my $printed = {};
+                my $ws = $p->widgets;
+
+                for my $w (@{$ws}) {
+                    my $str = $p->name . ':' . $w->version;
+
+                    unless(defined $printed->{$str}) {
+                        $printed->{$str} = 1;
+                        print "$str\n";
+                    }
+                }
             }
         }
     }
@@ -1458,7 +1480,9 @@ sub new {
     $self->phony($json_description->{phony});
     $self->operating_system($json_description->{operating_system});
     $self->auto_version($json_description->{'auto-version'});
+
     $self->show_in_list($json_description->{'show-in-list'});
+    $self->tags($json_description->{'tags'});
 
     if($json_description->{versions}) {
         $self->widgets($json_description->{versions});
@@ -1649,6 +1673,14 @@ sub show_in_list {
     $self->{show_in_list} = $new_show if($new_show);
 
     return $self->{show_in_list};
+}
+
+sub tags {
+    my ($self, $new_tags) = @_;
+
+    $self->{tags} = $new_tags if($new_tags);
+
+    return $self->{tags};
 }
 
 sub operating_system {

@@ -1668,7 +1668,7 @@ sub compute_auto_version {
 sub phony {
     my ($self, $new_phony) = @_;
 
-    $self->{phony} = $new_phony if($new_phony);
+    $self->{phony} = $new_phony if(defined $new_phony);
 
     return $self->{phony};
 }
@@ -1676,7 +1676,7 @@ sub phony {
 sub show_in_list {
     my ($self, $new_show) = @_;
 
-    $self->{show_in_list} = $new_show if($new_show);
+    $self->{show_in_list} = $new_show if(defined $new_show);
 
     return $self->{show_in_list};
 }
@@ -1717,13 +1717,14 @@ sub new {
     my $self = bless {}, $class;
 
     $self->package($pkg);
+    $self->available(1);
 
     if($json_description->{version} eq 'auto') {
+        $self->from_system(1);
         eval { $self->version($pkg->compute_auto_version('')) };
         if($@) {
-            return undef;
+            $self->available(0);
         }
-        $self->from_system(1);
     } else {
         $self->version($json_description->{version});
         $self->from_system(0);
@@ -1738,24 +1739,25 @@ sub new {
     $self->phony($json_description->{phony});
     $self->operating_system($json_description->{operating_system});
 
-    # set root dir
-    $self->root_dir();
+    if($self->available) {
+        # set root dir
+        $self->root_dir();
 
-    my $majminbug = $self->version->normal;
-    $majminbug =~ s/^v([0-9]+\.[0-9]+\.[0-9]+)/$1/;
+        my $majminbug = $self->version->normal;
+        $majminbug =~ s/^v([0-9]+\.[0-9]+\.[0-9]+)/$1/;
 
-    my $majmin = $self->version->normal;
-    $majmin    =~ s/^v([0-9]+\.[0-9]+)\..*/$1/;
+        my $majmin = $self->version->normal;
+        $majmin    =~ s/^v([0-9]+\.[0-9]+)\..*/$1/;
 
-    $self->add_widget_variable('VERSION', $majmin);
-    $self->add_widget_variable('VERSION_FULL', $majminbug);
+        $self->add_widget_variable('VERSION', $majmin);
+        $self->add_widget_variable('VERSION_FULL', $majminbug);
+    }
 
     unless($self->sources) {
         my $null_source = {};
         $null_source->{type}   = 'generic';
         $null_source->{phony}  = 1;
         $null_source->{local}  = 1;
-        $null_source->{from_system}  = 1;
         $null_source->{recipe} = ['echo "no explicit recipe given"'];
 
         $self->sources([$null_source]);
@@ -1962,7 +1964,7 @@ sub environment_autovars {
 sub phony {
     my ($self, $new_phony) = @_;
 
-    $self->{phony} = $new_phony if($new_phony);
+    $self->{phony} = $new_phony if(defined $new_phony);
 
     my $phony = $self->{phony} || $self->package->phony;
 
@@ -1972,9 +1974,17 @@ sub phony {
 sub from_system {
     my ($self, $new_from_system) = @_;
 
-    $self->{from_system} = $new_from_system if($new_from_system);
+    $self->{from_system} = $new_from_system if(defined $new_from_system);
 
     return $self->{from_system};
+}
+
+sub available {
+    my ($self, $new_available) = @_;
+
+    $self->{available} = $new_available if(defined $new_available);
+
+    return $self->{available};
 }
 
 sub operating_system {
@@ -2453,7 +2463,7 @@ sub new {
 sub phony {
     my ($self, $new_phony) = @_;
 
-    $self->{phony} = $new_phony if($new_phony);
+    $self->{phony} = $new_phony if(defined $new_phony);
 
     return $self->{phony};
 }
@@ -2461,7 +2471,7 @@ sub phony {
 sub operating_system {
     my ($self, $new_operating_system) = @_;
 
-    $self->{operating_system} = $new_operating_system if($new_operating_system);
+    $self->{operating_system} = $new_operating_system if(defined $new_operating_system);
 
     return $self->{operating_system};
 }
@@ -3122,6 +3132,10 @@ sub add_target {
 
     my $available = $self->bag->widgets_of($name);
     for my $widget (@{$available}) {
+
+        unless($widget->available) {
+            next;
+        }
 
         if($self->add_widget($widget, $min, $max)) {
             $self->bag->{indent_level}--;

@@ -1017,36 +1017,6 @@
         ]
     },
 
-    "cvmfs-native":{
-        "versions":[
-            {
-                "version":"auto",
-                "sources":[
-                    {
-                        "type":"generic",
-                        "local":1,
-                        "prerequisites":[
-                            "stat /cvmfs/cms.cern.ch"
-                        ],
-                        "recipe":[
-                            "echo /cvmfs"
-                        ]
-                    }
-                ]
-            }
-        ],
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(cvmfs2 -V | sed -r -e 's/CernVM-FS version\\s+([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
-        ],
-        "environment-variables":[
-            {
-                "name":"VC3_PARROT_EXTRA_OPTIONS",
-                "value":"-M /cvmfs=/cvmfs",
-                "absolute":1
-            }
-        ]
-    },
-
     "cvmfs-parrot-libcvmfs":{
         "versions":[
             {
@@ -1075,12 +1045,27 @@
         "show-in-list":1,
         "versions":[
             {
-                "version":"v2.4.0",
-                "dependencies":{
-                    "cvmfs-native":[
-                        "v2.4.0"
-                    ]
-                }
+                "version":"auto",
+                "phony":1,
+                "sources":[
+                    {
+                        "type":"system",
+                        "local":1,
+                        "prerequisites":[
+                            "stat /cvmfs/cms.cern.ch"
+                        ],
+                        "recipe":[
+                            "echo \"VC3_ROOT_SYSTEM: /\""
+                        ]
+                    }
+                ],
+                "environment-variables":[
+                    {
+                        "name":"VC3_PARROT_EXTRA_OPTIONS",
+                        "value":"-M /cvmfs=/cvmfs",
+                        "absolute":1
+                    }
+                ]
             },
             {
                 "version":"v2.4.0",
@@ -1090,6 +1075,9 @@
                     ]
                 }
             }
+        ],
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: $(cvmfs2 -V | sed -r -e 's/CernVM-FS version\\s+([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
         ]
     },
 

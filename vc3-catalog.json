@@ -124,6 +124,7 @@
     },
 
     "scala":{
+        "tags":["programming languages"],
         "show-in-list":1,
         "versions":[
             {
@@ -155,6 +156,7 @@
     },
 
     "spark":{
+        "tags":["job execution engines"],
         "show-in-list":1,
         "versions":[
             {
@@ -192,6 +194,7 @@
     },
 
     "pax":{
+        "tags":["file utilities"],
         "show-in-list":1,
         "versions":[
             {
@@ -217,6 +220,7 @@
     },
 
     "sharutils":{
+        "tags":["file utilities"],
         "show-in-list":1,
         "versions":[
             {
@@ -237,6 +241,7 @@
     },
 
     "gcc":{
+        "tags":["compilation tools", "programming languages"],
         "show-in-list":1,
         "versions":[
             {
@@ -268,6 +273,7 @@
     },
 
     "make":{
+        "tags":["compilation tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -592,6 +598,7 @@
     },
 
     "vc3-builder":{
+        "tags":["environment tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -910,6 +917,7 @@
     },
 
     "icecube-argonne-demo":{
+        "tags":["demos"],
         "show-in-list":1,
         "versions":[
             {
@@ -941,6 +949,7 @@
     },
 
     "icecube-environment":{
+        "tags":["environments"],
         "show-in-list":1,
         "versions":[
             {
@@ -961,6 +970,7 @@
     },
 
     "oasis-environment":{
+        "tags":["environments"],
         "show-in-list":1,
         "versions":[
             {
@@ -1058,6 +1068,7 @@
     },
 
     "cvmfs":{
+        "tags":["file systems"],
         "show-in-list":1,
         "versions":[
             {
@@ -1080,6 +1091,7 @@
     },
 
     "parrot-wrapper":{
+        "tags":["file systems"],
         "show-in-list":1,
         "versions":[
             {
@@ -1281,6 +1293,7 @@
     },
 
     "cctools":{
+        "tags":["workflow tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -1311,6 +1324,7 @@
     },
 
     "cctools-unstable":{
+        "tags":["workflow tools"],
         "show-in-list":1,
         "phony":1,
         "versions":[
@@ -1383,6 +1397,7 @@
     },
 
     "swig":{
+        "tags":["compilation tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -1415,6 +1430,7 @@
     },
 
     "patch":{
+        "tags":["file utilities", "compilation tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -1435,6 +1451,7 @@
     },
 
     "cmake":{
+        "tags":["compilation tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -1670,6 +1687,7 @@
     },
 
     "curl":{
+        "tags":["data transfer tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -1711,6 +1729,7 @@
     },
 
     "wget":{
+        "tags":["data transfer tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -1768,6 +1787,7 @@
     },
 
     "git":{
+        "tags":["source version control", "compilation tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -2184,6 +2204,7 @@
     },
 
     "perl":{
+        "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
         "versions":[
             {
@@ -2327,6 +2348,7 @@
     },
 
     "perl-cpanminus":{
+        "tags":["perl packages"],
         "show-in-list":1,
         "versions":[
             {
@@ -2356,6 +2378,7 @@
     },
 
     "python-setuptools":{
+        "tags":["python packages"],
         "show-in-list":1,
         "versions":[
             {
@@ -2384,6 +2407,7 @@
     },
 
     "python-pip":{
+        "tags":["python packages"],
         "show-in-list":1,
         "versions":[
             {
@@ -2421,6 +2445,7 @@
     },
 
     "python-virtualenv":{
+        "tags":["python packages"],
         "show-in-list":1,
         "versions":[
             {
@@ -2883,6 +2908,7 @@
 
 
     "python":{
+        "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
         "versions":[
             {
@@ -3039,6 +3065,7 @@
     },
 
     "mash": {
+        "tags":["bioinformatic tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -3064,6 +3091,7 @@
 
 
     "xrootd": {
+        "tags":["data transfer tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -3099,6 +3127,7 @@
     },
 
     "irods":{
+        "tags":["file systems"],
         "show-in-list":1,
         "versions":[
             {
@@ -3181,6 +3210,7 @@
     },
 
     "perl-bioperl":{
+        "tags":["bioinformatics tools", "perl packages"],
         "show-in-list":1,
         "versions":[
             {
@@ -3451,6 +3481,7 @@
     },
 
     "hmmer":{
+        "tags":["bioinformatics tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -3477,6 +3508,7 @@
     },
 
     "openmpi":{
+        "tags":["compilation tools", "hpc"],
         "show-in-list":1,
         "versions":[
             {
@@ -3501,6 +3533,7 @@
     },
 
     "ncbi-blast":{
+        "tags":["bioinformatics tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -3556,6 +3589,7 @@
     },
 
     "ncbi-rmblastn":{
+        "tags":["bioinformatics tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -3616,6 +3650,7 @@
     },
 
     "sqlite3":{
+        "tags":["databases"],
         "show-in-list":1,
         "versions":[
             {
@@ -3640,6 +3675,7 @@
     },
 
     "exonerate":{
+        "tags":["bioinformatics tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -3672,6 +3708,7 @@
     },
 
     "snap":{
+        "tags":["bioinformatics tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -3827,6 +3864,7 @@
     },
 
     "augustus":{
+        "tags":["bioinformatics tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -4116,6 +4154,7 @@
     },
 
     "charm":{
+        "tags":["compilation tools", "hpc"],
         "show-in-list":1,
         "versions":[
             {
@@ -4166,6 +4205,7 @@
     },
 
     "tcl":{
+        "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
         "versions":[
             {
@@ -4218,6 +4258,7 @@
     },
 
     "octave":{
+        "tags":["scripting languages", "programming languages"],
         "show-in-list":0,
         "versions":[
             {
@@ -4271,6 +4312,7 @@
     },
 
     "qrupdate":{
+        "tags":["numerical methods tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -4304,6 +4346,7 @@
     },
 
     "hdf5":{
+        "tags":["data management tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -4330,6 +4373,7 @@
     },
 
     "qhull":{
+        "tags":["numerical methods tools"],
         "show-in-list":1,
         "versions":[
             {
@@ -4377,7 +4421,8 @@
     },
 
     "arpack":{
-        "show-in-list":1,
+        "tags":["numerical methods libraries"],
+        "show-in-list":0,
         "versions":[
             {
                 "version":"v3.4.0",
@@ -4416,7 +4461,8 @@
     },
 
     "lapack":{
-        "show-in-list":1,
+        "tags":["numerical methods libraries"],
+        "show-in-list":0,
         "versions":[
             {
                 "version":"v3.7.0",
@@ -4469,7 +4515,8 @@
     },
 
     "openblas":{
-        "show-in-list":1,
+        "tags":["numerical methods libraries"],
+        "show-in-list":0,
         "versions":[
             {
                 "version":"v0.2.19",
@@ -4495,6 +4542,7 @@
     },
 
     "musl":{
+        "tags":["compilation tools", "programming languages"],
         "show-in-list":1,
         "versions":[
             {

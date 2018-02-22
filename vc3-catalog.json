@@ -1020,7 +1020,7 @@
     "cvmfs-native":{
         "versions":[
             {
-                "version":"v2.4.0",
+                "version":"auto",
                 "sources":[
                     {
                         "type":"generic",
@@ -1034,6 +1034,9 @@
                     }
                 ]
             }
+        ],
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: $(cvmfs2 -V | sed -r -e 's/CernVM-FS version\\s+([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
         ],
         "environment-variables":[
             {

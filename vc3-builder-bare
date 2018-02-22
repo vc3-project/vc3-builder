@@ -117,7 +117,9 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --list                List general packages available.
 
-  --list-all            List all the packages available, even vc3-internals.
+  --list=section        List general packages available, classified by sections.
+
+  --list=all            List all the packages available, even vc3-internals.
 
   Developers options:
   --debug               On a builder error, print the full back-trace. 
@@ -197,8 +199,7 @@ sub main {
     my $dot_output;
     my $parallel_dir;       
     my $to_script;
-    my $list_general;
-    my $list_all;
+    my $list_option;
 
     my @databases   = ();
     my @extra_vars  = ();
@@ -245,8 +246,7 @@ sub main {
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
         "prestage" => \$prestage,
-        "list"     => \$list_general,
-        "list-all" => \$list_all,
+        "list:s"   => \$list_option,
 
         "interactive" => \$interactive_run,
 
@@ -293,7 +293,7 @@ sub main {
         $dry_run = 1;
     }
 
-    if(defined $list_general or defined $list_all) {
+    if(defined $list_option) {
         $silent  = 1;
         $dry_run = 1;
     }
@@ -348,8 +348,8 @@ sub main {
         $bag->plan->to_script($to_script);
     }
 
-    if(defined $list_general or defined $list_all) {
-        $bag->list_packages($list_all);
+    if(defined $list_option) {
+        $bag->list_packages($list_option);
     }
 
 
@@ -487,17 +487,19 @@ sub new {
 }
 
 sub list_packages() {
-    my ($self, $all) = @_;
+    my ($self, $option) = @_;
 
     my @ps = values %{$self->{packages}};
 
-    if((not defined $all) or not $all) {
+    if($option ne 'all') {
         @ps = grep { $_->show_in_list } @ps;
     }
 
+    my $by_tags = ($option eq 'section');
+
     my %tags;
     for my $p (@ps) {
-        my @ts = $p->tags ? @{$p->tags} : ('other');
+        my @ts = ($by_tags && $p->tags) ? @{$p->tags} : ('other');
 
         for my $t (@ts) {
             $tags{$t} ||= [];
@@ -515,14 +517,18 @@ sub list_packages() {
 
             my @ps = sort { $a->name cmp $b->name } @{$tags{$t}};
 
-            print "\n--- $t\n";
+            if($by_tags) {
+                print "\n--- $t\n";
+            }
 
             for my $p (@ps) {
                 my $printed = {};
                 my $ws = $p->widgets;
 
                 for my $w (@{$ws}) {
-                    my $str = $p->name . ':' . $w->version;
+                    my $version = $w->from_system ? 'auto' : $w->version;
+
+                    my $str = $p->name . ':' . $version;
 
                     unless(defined $printed->{$str}) {
                         $printed->{$str} = 1;
@@ -1717,8 +1723,10 @@ sub new {
         if($@) {
             return undef;
         }
+        $self->from_system(1);
     } else {
         $self->version($json_description->{version});
+        $self->from_system(0);
     }
 
     $self->sources($json_description->{sources});
@@ -1747,6 +1755,7 @@ sub new {
         $null_source->{type}   = 'generic';
         $null_source->{phony}  = 1;
         $null_source->{local}  = 1;
+        $null_source->{from_system}  = 1;
         $null_source->{recipe} = ['echo "no explicit recipe given"'];
 
         $self->sources([$null_source]);
@@ -1958,6 +1967,14 @@ sub phony {
     my $phony = $self->{phony} || $self->package->phony;
 
     return $phony;
+}
+
+sub from_system {
+    my ($self, $new_from_system) = @_;
+
+    $self->{from_system} = $new_from_system if($new_from_system);
+
+    return $self->{from_system};
 }
 
 sub operating_system {

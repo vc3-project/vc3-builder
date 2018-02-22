@@ -11886,6 +11886,10 @@ sub cleanup {
                 unlink $self->sh_profile . '.env';
             }
 
+            if(-f $self->sh_profile . '.prologue') {
+                unlink $self->sh_profile . '.prologue';
+            }
+
             if(-f $self->sh_profile . '.payload') {
                 unlink $self->sh_profile . '.payload';
             }
@@ -12227,7 +12231,7 @@ sub order_variables {
 sub set_profile {
     my ($self, $profile_file, @command_and_args) = @_;
 
-    my ($env_file, $pay_file) = ($profile_file . '.env', $profile_file . '.payload');
+    my ($env_file, $prog_file, $pay_file) = ($profile_file . '.env', $profile_file . '.prologue', $profile_file . '.payload');
 
 
     # write to env file
@@ -12236,6 +12240,29 @@ sub set_profile {
     print { $sh_f_env } "#! $shell\n\n";
     $self->set_environment_variables($sh_f_env);
     close($sh_f_env);
+
+    # write to prologue file
+    open(my $sh_f_prog, '>', $prog_file)
+    || die "Could not open file $prog_file $!";
+    print { $sh_f_prog } "#! $shell\n\n";
+
+    print { $sh_f_prog } <<EOFP;
+redirection=''
+if [ "\${VC3_INSIDE_WRAPPER_SCRIPT}" != yes ]
+then
+# if not inside the wrapper, we can't guarantee prologues work. Here we redirect all errors to /dev/null.
+
+    redirection='2> /dev/null'
+fi
+
+EOFP
+
+    for my $prog_line (@{$self->consolidate_prologue}) {
+        print { $sh_f_prog } "$prog_line \${redirection}";
+        print { $sh_f_prog } "\n";
+    }
+
+    print { $sh_f_prog } "\n";
 
     # write to payload file
     open(my $sh_f_pay, '>', $pay_file)
@@ -12253,10 +12280,10 @@ fi
 
 EOFP
 
-    for my $prog_line (@{$self->consolidate_prologue}) {
-        print { $sh_f_pay } $prog_line;
-        print { $sh_f_pay } "\n";
-    }
+    print { $sh_f_pay } 'cw="$(readlink -f $( cd "$( dirname "$0" )" && pwd ))"';
+    print { $sh_f_pay } "\n\n";
+    print { $sh_f_pay } '. $cw/' . basename($prog_file) . "\n\n";
+
 
     print { $sh_f_pay } join(' ', @command_and_args);
     print { $sh_f_pay } "\n";
@@ -12302,6 +12329,7 @@ EOFP
 
     $self->add_builder_variable('VC3_SH_PROFILE', $profile_file);
     $self->add_builder_variable('VC3_SH_PROFILE_ENV', $env_file);
+    $self->add_builder_variable('VC3_SH_PROFILE_PROLOGUE', $prog_file);
     $self->add_builder_variable('VC3_SH_PROFILE_PAYLOAD', $pay_file);
 }
 

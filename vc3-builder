@@ -11927,7 +11927,7 @@ sub cleanup {
             }
         }
 
-        $self->del_builder_variable('VC3_SH_PROFILE');
+        $self->del_builder_variable('VC3_SH_PROFILE_ENV');
         $self->del_builder_variable('VC3_SH_PROFILE_WRAPPER');
     }
 
@@ -12382,7 +12382,7 @@ EOFP
     close($sh_f_wrap);
     chmod 0755, $wrap_file;
 
-    $self->add_builder_variable('VC3_SH_PROFILE',         $profile_file);
+    $self->add_builder_variable('VC3_SH_PROFILE_ENV',     $profile_file);
     $self->add_builder_variable('VC3_SH_PROFILE_WRAPPER', $wrap_file);
 }
 

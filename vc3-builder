@@ -15775,6 +15775,25 @@ __DATA__
         ]
     },
 
+    "atlas-local-root-base-environment":{
+        "tags":["environments"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v1.0",
+                "prologue": [
+                    "export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase",
+                    "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh"
+                ],
+                "dependencies":{
+                    "cvmfs":[
+                        "v2.0"
+                    ]
+                }
+            }
+        ]
+    },
+
 
    "vc3-glidein":{
         "versions": [

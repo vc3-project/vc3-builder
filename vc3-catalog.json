@@ -1081,7 +1081,7 @@
                 "environment-variables":[
                     {
                         "name":"VC3_PARROT_EXTRA_OPTIONS",
-                        "value":"-M /cvmfs=/cvmfs",
+                        "value":"--disable-service cvmfs",
                         "absolute":1
                     }
                 ]

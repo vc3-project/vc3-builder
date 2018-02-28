@@ -2446,10 +2446,9 @@
         "environment-variables":
         [
             {
-                "name":"PIP_PREFIX",
-                "value":"${VC3_MODULES_PYTHON}",
-                "absolute":1,
-                "clobber":1
+                "name":"PYTHONPATH",
+                "value":"${HOME}/.local/lib/python${VC3_VERSION_PYTHON}/site-packages",
+                "absolute":1
             }
         ]
     },
@@ -2464,7 +2463,7 @@
                     {
                         "type":"generic",
                         "recipe":[
-                            "pip install virtualenv"
+                            "pip install --user virtualenv"
                         ]
                     }
                 ],
@@ -2478,26 +2477,22 @@
     },
 
     "python-yaml":{
+        "tags":["python packages"],
+        "show-in-list":1,
         "versions":[
             {
-                "version":"v3.12",
+                "version":"v1.0.0",
                 "sources":[
                     {
-                        "type":"tarball",
-                        "files":[
-                            "PyYAML-3.12.tar.gz"
-                        ],
+                        "type":"generic",
                         "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
+                            "pip install --user pyYAML"
                         ]
                     }
                 ],
                 "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
+                    "python-pip":[
+                        "v1.8"
                     ]
                 }
             }

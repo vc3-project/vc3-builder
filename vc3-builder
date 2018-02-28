@@ -11525,7 +11525,7 @@ sub list_packages() {
 
         for my $t (@ts) {
             $tags{$t} ||= [];
-            push $tags{$t}, $p;
+            push @{$tags{$t}}, $p;
         }
     }
 

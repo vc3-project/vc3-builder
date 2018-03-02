@@ -12170,7 +12170,7 @@ sub set_environment_variables {
     $expansion->{'LD_LIBRARY_PATH'} ||= [];
 
     # use default PATH:
-    push @{$expansion->{'PATH'}}, split(/:/, $ENV{'PATH'} || '/bin:/usr/bin');
+    push @{$expansion->{'PATH'}}, split(/:/, $ENV{'PATH'} || '/bin:/usr/bin:/usr/local/bin');
     push @{$expansion->{'LD_LIBRARY_PATH'}}, split(/:/, $ENV{'LD_LIBRARY_PATH'} || '/lib:/usr/lib:/usr/local/lib');
 
     for my $var_name (keys %{$expansion}) {
@@ -12661,9 +12661,15 @@ sub compute_auto_version {
         die "I don't know how to compute the version of '" . $self->name . "'\n";
     }
 
-    $self->bag->add_builder_variable('VC3_PREFIX', $root);
+    if($root) {
+        $self->bag->add_builder_variable('VC3_PREFIX', $root);
+    }
+
     my ($pid, $auto_in) = $self->bag->shell();
-    $self->bag->del_builder_variable('VC3_PREFIX');
+
+    if($root) {
+        $self->bag->del_builder_variable('VC3_PREFIX');
+    }
 
     croak "Could not open $shell for auto-version."
     unless $auto_in;
@@ -12678,7 +12684,10 @@ sub compute_auto_version {
     print { $auto_in } 'exec 1> ' . $fname . "\n";
     print { $auto_in } "exec 2>&1\n";
     print { $auto_in } "set -ex\n";
-    print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
+
+    if($root) {
+        print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
+    }
 
     for my $step (@{$self->auto_version}) {
         print { $auto_in } "$step\n";
@@ -12769,7 +12778,7 @@ sub new {
 
     if($json_description->{version} eq 'auto') {
         $self->from_system(1);
-        eval { $self->version($pkg->compute_auto_version('')) };
+        eval { $self->version($pkg->compute_auto_version()) };
         if($@) {
             $self->available(0);
         }
@@ -16376,6 +16385,21 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
+                "version":"auto",
+                "sources":[
+                    {
+                        "type":"system",
+                        "prerequisites":[
+                            "which git"
+                        ],
+                        "recipe":[
+                            "bin=$(dirname $(which git))",
+                            "echo VC3_ROOT_SYSTEM: ${bin%%bin}"
+                        ]
+                    }
+                ]
+            },
+            {
                 "version":"v2.12.0",
                 "sources":[
                     {
@@ -16419,6 +16443,10 @@ __DATA__
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
                 ]
             }
+        ],
+        "auto-version":[
+            "echo $PATH >> /tmp/o",
+            "echo VC3_VERSION_SYSTEM: $(git --version | sed -r -e 's/git version (([0-9]+\\.){2}[0-9]+).*/\\1/')"
         ]
     },
 

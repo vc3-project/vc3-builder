@@ -931,8 +931,8 @@
                             "icecube-argonne-demo-01.tar.gz"
                         ],
                         "recipe":[
-                            "mkdir -p ${HOME}/icecube-argonne-demo-01",
-                            "tar -C ${HOME}/icecube-argonne-demo-01 --strip-components=1 -xpf icecube-argonne-demo-01.tar.gz"
+                            "mkdir -p ${VC3_INSTALL_USER_HOME}/icecube-argonne-demo-01",
+                            "tar -C ${VC3_INSTALL_USER_HOME}/icecube-argonne-demo-01 --strip-components=1 -xpf icecube-argonne-demo-01.tar.gz"
                         ]
                     }
                 ],

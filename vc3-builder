@@ -11676,6 +11676,7 @@ sub set_builder_variables {
     $self->add_builder_variable('VC3_ROOT',         $vc3_root);
     $self->add_builder_variable('VC3_DISTFILES',    $vc3_distfiles);
     $self->add_builder_variable('VC3_BUILDER_PATH', $self->builder_path);
+    $self->add_builder_variable('VC3_INSTALL_USER_HOME', $self->home_dir);
     $self->add_builder_variable('TMP',              $self->tmp_dir);
     $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'xterm');
     $self->add_builder_variable('CC',               $ENV{'CC'}   || 'gcc');
@@ -15227,6 +15228,11 @@ __DATA__
                 "clobber":1
             },
             {
+                "name":"PYTHONPATH",
+                "value":"${APF_HOME}/lib/python",
+                "absolute":1
+            },
+            {
                 "name":"PATH",
                 "value":"${APF_HOME}/bin",
                 "absolute":1
@@ -15354,6 +15360,11 @@ __DATA__
             {
                 "name":"PATH",
                 "value":"${VC3_SERVICES_HOME}/bin",
+                "absolute":1
+            },
+            {
+                "name":"PYTHONPATH",
+                "value":"${VC3_SERVICES_HOME}/lib/python",
                 "absolute":1
             }
         ]
@@ -18352,8 +18363,8 @@ __DATA__
                             "maker-example-ecoli-01.tar.gz"
                         ],
                         "recipe":[
-                            "mkdir -p ${HOME}/maker-example-ecoli-01",
-                            "tar -C ${HOME}/maker-example-ecoli-01 --strip-components=1 -xpf maker-example-ecoli-01.tar.gz"
+                            "mkdir -p ${VC3_INSTALL_USER_HOME}/maker-example-ecoli-01",
+                            "tar -C ${VC3_INSTALL_USER_HOME}/maker-example-ecoli-01 --strip-components=1 -xpf maker-example-ecoli-01.tar.gz"
                         ]
                     }
                 ],

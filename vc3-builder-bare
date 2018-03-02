@@ -654,6 +654,7 @@ sub set_builder_variables {
     $self->add_builder_variable('VC3_ROOT',         $vc3_root);
     $self->add_builder_variable('VC3_DISTFILES',    $vc3_distfiles);
     $self->add_builder_variable('VC3_BUILDER_PATH', $self->builder_path);
+    $self->add_builder_variable('VC3_INSTALL_USER_HOME', $self->home_dir);
     $self->add_builder_variable('TMP',              $self->tmp_dir);
     $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'xterm');
     $self->add_builder_variable('CC',               $ENV{'CC'}   || 'gcc');

@@ -15218,7 +15218,7 @@ __DATA__
                             "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                             "[ -d vc3-factory-plugins ] || git clone https://github.com/vc3-project/vc3-factory-plugins.git",
                             "cd vc3-factory-plugins",
-                            "find . autopyfactory/plugins -name '*.py' | pax -r -w ${VC3_SERVICES_HOME}/lib/python/",
+                            "find . autopyfactory/plugins -name '*.py' | pax -r -w ${VC3_SERVICES_HOME}/lib/python${VC3_VERSION_PYTHON}/",
                             "cp -r etc/*.conf ${VC3_SERVICES_HOME}/etc"
                         ]
                     }
@@ -15265,7 +15265,7 @@ __DATA__
                             "mkdir -p ${home}/lib/python",
                             "mkdir -p ${home}/bin",
                             "mkdir -p ${home}/etc",
-                            "mkdir -p ${home}/var",
+                            "mkdir -p ${home}/var/log/vc3",
                             "pip install --user requests==2.7.0 cherrypy==3.2.2 pyYAML"
                         ]
                     }
@@ -15340,7 +15340,8 @@ __DATA__
                             "cd ${VC3_INSTALL_USER_HOME}/git/credible",
                             "rm -rf build",
                             "python setup.py install --user",
-                            "credroot=${VC3_INSTALL_USER_HOME}/var/credible/ssca/defaultca/intermediate",
+                            "credroot=${VC3_SERVICES_HOME}/var/credible/ssca/defaultca/intermediate",
+                            "cp etc/credible.conf{,.sample} etc/openssl.cnf.*.template ${VC3_SERVICES_HOME}/etc",
                             "missing=0",
                             "[ -f $credroot/certs/localhost.cert.pem ]      || missing=1",
                             "[ -f $credroot/certs/ca-chain.cert.pem ]       || missing=1",
@@ -15349,12 +15350,10 @@ __DATA__
                             "[ -f $credroot/private/VC3Admin.keynopw.pem ]  || missing=1",
                             "if [ \"$missing\" = 1 ]; then",
                             "   mkdir -p ${credroot}/private",
-                            "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d hostcert localhost > /dev/null",
-                            "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf certchain",
+                            "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf -d hostcert localhost > /dev/null",
+                            "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf certchain",
 
-                            "   ~/vc3-services/bin/credible -c ~/git/credible/etc/credible.conf -d usercert VC3Admin > /dev/null",
-                            "   cp etc/credible.conf{,.sample} etc/openssl.cnf.*.template ${VC3_SERVICES_HOME}/etc",
-                                
+                            "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf -d usercert VC3Admin > /dev/null",
                             "fi"
                         ]
                     }

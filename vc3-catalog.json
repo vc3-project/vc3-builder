@@ -1193,14 +1193,16 @@
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.5-x86_64-redhat7.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.5-x86_64-redhat7.tar.gz",
+                            "mkdir -p $(python -m site --user-site)",
+                            "cp -r ${VC3_PREFIX}/lib/python2.7/site-packages $(python -m site --user-site)"
                         ],
                         "dependencies":{
                             "perl":[
-                                "v5.16", "v5.16.3"
+                                "v5.16"
                             ],
                             "python":[
-                                "v2.7.0", "v2.7.12"
+                                "v2.7.0"
                             ]
                         }
                     },
@@ -1214,14 +1216,16 @@
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.5-x86_64-redhat6.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.5-x86_64-redhat6.tar.gz",
+                            "mkdir -p $(python -m site --user-site)",
+                            "cp -r ${VC3_PREFIX}/lib/python2.6/site-packages $(python -m site --user-site)"
                         ],
                         "dependencies":{
                             "perl":[
-                                "v5.10.0", "v5.10.1"
+                                "v5.10.0"
                             ],
                             "python":[
-                                "v2.6.0", "v2.6.9"
+                                "v2.6.0"
                             ]
                         }
                     }
@@ -1234,7 +1238,7 @@
             ]
         },
         "environment-autovars":[
-            "PATH", "PYTHONPATH", "PERL5LIB"
+            "PATH", "PERL5LIB"
         ],
         "environment-variables":[
             {
@@ -1257,6 +1261,10 @@
                             "cctools-6.2.5-source.tar.gz"
                         ],
                         "options":"--without-system-umbrella --without-system-prune --without-system-doc --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
+                        "epilogue":[
+                            "mkdir -p $(python -m site --user-site)",
+                            "cp -r ${VC3_PREFIX}/lib/python${VC3_VERSION_PYTHON}/site-packages $(python -m site --user-site)"
+                        ],
                         "dependencies":{
                             "swig":[
                                 "v3.0"
@@ -1290,7 +1298,7 @@
             ]
         },
         "environment-autovars":[
-            "PATH", "PYTHONPATH", "PERL5LIB"
+            "PATH", "PERL5LIB"
         ],
         "environment-variables":[
             {
@@ -1349,14 +1357,16 @@
                         "recipe":[
                             "wget http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat7.tar.gz",
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-*-redhat7.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-*-redhat7.tar.gz",
+                            "mkdir -p $(python -m site --user-site)",
+                            "cp -r ${VC3_PREFIX}/lib/python2.7/site-packages $(python -m site --user-site)"
                         ],
                         "dependencies":{
                             "perl":[
-                                "v5.16", "v5.16.3"
+                                "v5.16"
                             ],
                             "python":[
-                                "v2.7.0", "v2.7.12"
+                                "v2.7.0"
                             ],
                             "wget":[
                                 "v1.0"
@@ -1371,14 +1381,16 @@
                         "recipe":[
                             "wget http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat6.tar.gz",
                             "mkdir -p ${VC3_PREFIX}",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-*-redhat6.tar.gz"
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-*-redhat6.tar.gz",
+                            "mkdir -p $(python -m site --user-site)",
+                            "cp -r ${VC3_PREFIX}/lib/python2.6/site-packages $(python -m site --user-site)"
                         ],
                         "dependencies":{
                             "perl":[
-                                "v5.10.0", "v5.10.1"
+                                "v5.10.0"
                             ],
                             "python":[
-                                "v2.6.0", "v2.6.9"
+                                "v2.6.0"
                             ]
                         }
                     }
@@ -1394,7 +1406,7 @@
             ]
         },
         "environment-autovars":[
-            "PATH", "PYTHONPATH", "PERL5LIB"
+            "PATH", "PERL5LIB"
         ],
         "environment-variables":[
             {
@@ -1994,9 +2006,11 @@
                         ],
                         "recipe":[
                             "mkdir -p ${VC3_PREFIX}",
-                            "mkdir -p ${HOME}/var/condor/log",
-                            "mkdir -p ${HOME}/var/condor/spool",
-                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.9-x86_64_RedHat7-stripped.tar.gz"
+                            "mkdir -p ${VC3_INSTALL_USER_HOME}/var/condor/log",
+                            "mkdir -p ${VC3_INSTALL_USER_HOME}/var/condor/spool",
+                            "tar -C ${VC3_PREFIX} --strip-components=1 -xpf condor-8.6.9-x86_64_RedHat7-stripped.tar.gz",
+                            "mkdir -p $(python -m site --user-site)",
+                            "cp -r ${VC3_PREFIX}/lib/python $(python -m site --user-site)"
                         ]
                     }
                 ]
@@ -2009,10 +2023,6 @@
             {
                 "name":"PATH",
                 "value":"sbin"
-            },
-            {
-                "name":"PYTHONPATH",
-                "value":"lib/python"
             }
         ]
     },
@@ -2387,35 +2397,6 @@
         ]
     },
 
-    "python-setuptools":{
-        "tags":["python packages"],
-        "show-in-list":1,
-        "versions":[
-            {
-                "version":"v24.0.2",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "setuptools-24.0.2.tar.gz"
-                        ],
-                        "recipe":[
-                            "dir=${VC3_MODULES_PYTHON}",
-                            "mkdir -p ${dir}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                            "mkdir -p ${dir}/lib64/python${VC3_VERSION_PYTHON}/site-packages",
-                            "python setup.py install --prefix=${dir}"
-                        ]
-                    }
-                ]
-            }
-        ],
-        "dependencies":{
-            "python":[
-                "v2.6"
-            ]
-        }
-    },
-
     "python-pip":{
         "tags":["python packages"],
         "show-in-list":1,
@@ -2429,488 +2410,19 @@
                             "pip-9.0.1.distribution"
                         ],
                         "recipe":[
-                            "python pip-9.0.1.distribution --prefix=${VC3_MODULES_PYTHON} --ignore-installed"
+                            "python pip-9.0.1.distribution --user --ignore-installed",
+                            "python -m pip install --user --upgrade pip setuptools wheel"
                         ]
                     }
                 ],
                 "dependencies":{
                     "python":[
                         "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0"
-                    ]
-                }
-            }
-        ],
-        "environment-variables":
-        [
-            {
-                "name":"PYTHONPATH",
-                "value":"${HOME}/.local/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                "absolute":1
-            }
-        ]
-    },
-
-    "python-virtualenv":{
-        "tags":["python packages"],
-        "show-in-list":1,
-        "versions":[
-            {
-                "version":"v1.0.0",
-                "sources":[
-                    {
-                        "type":"generic",
-                        "recipe":[
-                            "pip install --user virtualenv"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python-pip":[
-                        "v1.8"
                     ]
                 }
             }
         ]
     },
-
-    "python-yaml":{
-        "tags":["python packages"],
-        "show-in-list":1,
-        "versions":[
-            {
-                "version":"v1.0.0",
-                "sources":[
-                    {
-                        "type":"generic",
-                        "recipe":[
-                            "pip install --user pyYAML"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python-pip":[
-                        "v1.8"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-pycparser":{
-        "versions":[
-            {
-                "version":"v2.18.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "pycparser-2.18.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-cffi":{
-        "versions":[
-            {
-                "version":"v1.10.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "cffi-1.10.0.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "libffi":[
-                        "v3.2.1"
-                    ],
-                    "python-pycparser":[
-                        "v2.18.0"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-ipaddress":{
-        "versions":[
-            {
-                "version":"v1.0.18",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "ipaddress-1.0.18.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-enum34":{
-        "versions":[
-            {
-                "version":"v1.1.6",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "enum34-1.1.6.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-six":{
-        "versions":[
-            {
-                "version":"v1.10.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "six-1.10.0.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-pyparsing":{
-        "versions":[
-            {
-                "version":"v2.2.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "pyparsing-2.2.0.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-packaging":{
-        "versions":[
-            {
-                "version":"v16.8.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "packaging-16.8.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-pyparsing":[
-                        "v2.2.0"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-asn1crypto":{
-        "versions":[
-            {
-                "version":"v0.22.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "asn1crypto-0.22.0.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-idna":{
-        "versions":[
-            {
-                "version":"v2.5",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "idna-2.5.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-
-    "python-cryptography":{
-        "versions":[
-            {
-                "version":"v1.8.1",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "cryptography-1.8.1.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python":[
-                        "v2.6"
-                    ],
-                    "libffi":[
-                        "v3.2.1"
-                    ],
-                    "python-cffi":[
-                        "v1.10.0"
-                    ],
-                    "python-ipaddress":[
-                        "v1.0.18"
-                    ],
-                    "python-enum34":[
-                        "v1.1.6"
-                    ],
-                    "python-six":[
-                        "v1.10.0"
-                    ],
-                    "python-packaging":[
-                        "v16.8.0"
-                    ],
-                    "python-asn1crypto":[
-                        "v0.22.0"
-                    ],
-                    "python-idna":[
-                        "v2.5.0"
-                    ],
-                    "openssl":[
-                        "v1.0.0"
-                    ],
-                    "python-setuptools":[
-                        "v24.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-cherrypy":{
-        "versions":[
-            {
-                "version":"v3.2.2",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "cherrypy-cherrypy-3.2.2.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python-pyOpenSSL":[
-                        "v17.0.0"
-                    ],
-                    "python-setuptools":[
-                        "v24.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-pyOpenSSL":{
-        "versions":[
-            {
-                "version":"v17.0.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "pyOpenSSL-17.0.0.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python-cryptography":[
-                        "v1.8.0"
-                    ],
-                    "python-setuptools":[
-                        "v24.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-requests":{
-        "versions":[
-            {
-                "version":"v2.7.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "requests-2.7.0.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python-setuptools":[
-                        "v24.0"
-                    ],
-                    "python-urllib3":[
-                        "v1.22"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "python-urllib3":{
-        "versions":[
-            {
-                "version":"v1.22.0",
-                "sources":[
-                    {
-                        "type":"tarball",
-                        "files":[
-                            "urllib3-1.22.tar.gz"
-                        ],
-                        "recipe":[
-                            "python setup.py install --prefix=${VC3_MODULES_PYTHON}"
-                        ]
-                    }
-                ],
-                "dependencies":{
-                    "python-setuptools":[
-                        "v24.0"
-                    ]
-                }
-            }
-        ]
-    },
-
 
     "python":{
         "tags":["scripting languages", "programming languages"],
@@ -2968,30 +2480,9 @@
             "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
         ],
         "environment-autovars":[
-            "PATH", "PYTHONPATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"
+            "PATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"
         ],
         "environment-variables":[
-            {
-                "name":"VC3_MODULES_PYTHON",
-                "value":"${VC3_ROOT}/${VC3_MACHINE_TARGET}/python/local-modules",
-                "clobber":1,
-                "absolute":1
-            },
-            {
-                "name":"PATH",
-                "value":"${VC3_MODULES_PYTHON}/bin",
-                "absolute":1
-            },
-            {
-                "name":"PYTHONPATH",
-                "value":"${VC3_MODULES_PYTHON}/lib64/python${VC3_VERSION_PYTHON}/site-packages",
-                "absolute":1
-            },
-            {
-                "name":"PYTHONPATH",
-                "value":"${VC3_MODULES_PYTHON}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-                "absolute":1
-            },
             {
                 "name":"C_INCLUDE_PATH",
                 "value":"${VC3_ROOT_PYTHON}/include/python${VC3_VERSION_PYTHON}",
@@ -4083,8 +3574,8 @@
                             "maker-example-ecoli-01.tar.gz"
                         ],
                         "recipe":[
-                            "mkdir -p ${HOME}/maker-example-ecoli-01",
-                            "tar -C ${HOME}/maker-example-ecoli-01 --strip-components=1 -xpf maker-example-ecoli-01.tar.gz"
+                            "mkdir -p ${VC3_INSTALL_USER_HOME}/maker-example-ecoli-01",
+                            "tar -C ${VC3_INSTALL_USER_HOME}/maker-example-ecoli-01 --strip-components=1 -xpf maker-example-ecoli-01.tar.gz"
                         ]
                     }
                 ],

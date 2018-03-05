@@ -12,6 +12,8 @@ use List::Util qw/max/;
 use POSIX ();
 use version ();
 
+use VC3::Plan;
+
 sub new {
     my ($class, %args) = @_;
     

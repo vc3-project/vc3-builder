@@ -1,9 +1,3 @@
-#! /usr/bin/env perl
-#
-use v5.09;
-use strict;
-use warnings;
-
 package VC3::Bag; 
 
 use Carp qw/carp croak/;
@@ -179,6 +173,8 @@ sub set_builder_variables {
     $self->files_dir($distfiles);
     $self->tmp_dir($self->with_root('tmp'));
 
+    $self->repository($repository);
+
     $self->shell_executable($shell);
 
     $self->user_name(getlogin() || $ENV{'USER'} || 'vc3-user');
@@ -241,6 +237,16 @@ sub root_dir {
     }
 
     return $self->{root_dir};
+}
+
+sub repository {
+    my ($self, $shell) = @_;
+
+    if($shell) {
+        $self->{repository} = $shell;
+    }
+
+    return $self->{repository};
 }
 
 sub shell_executable {

@@ -9416,6 +9416,2640 @@ $fatpacked{"LockFile/Simple.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<
   
 LOCKFILE_SIMPLE
 
+$fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG';
+  package VC3::Bag; 
+  
+  use Carp qw/carp croak/;
+  #use English qw/-mo_match_vars/;
+  use File::Basename;
+  use File::Copy;
+  use File::Spec::Functions qw/catfile rel2abs file_name_is_absolute/;
+  use File::Temp qw/tempfile/;
+  use FindBin  qw/$RealBin $RealScript/;
+  use JSON::Tiny;
+  use List::Util qw/max/;
+  use POSIX ();
+  use version ();
+  
+  use VC3::Plan;
+  
+  sub new {
+      my ($class, %args) = @_;
+      
+      #args:
+      #    root       
+      #    home       
+      #    distfiles  
+      #    repository 
+      #    shell      
+      #    dry_run    
+      #    on_terminal
+      #    silent     
+      #    databases  
+      #    sys_manual 
+      #    no_sys     
+      #    env_vars   
+  
+      my $self = bless {}, $class;
+  
+      $self->{dry_run}     = $args{dry_run};
+      $self->{on_terminal} = $args{on_terminal};
+      $self->{silent_run}  = $args{silent};
+  
+      # clean generated shell profile by default
+      $self->preserve_profile(0);
+  
+      $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
+  
+      $self->{packages} = $self->decode_bags($args{databases});
+  
+  
+      $self->{no_system} = { map { ( $_ => 1 ), } @{$args{no_sys}} };
+      $self->{system}    = {};
+  
+      $self->{indent_level} = 0;
+  
+      $self->add_manual_variables($args{env_vars});
+      $self->add_manual_packages($args{sys_manual});
+  
+  
+      return $self;
+  }
+  
+  sub list_packages() {
+      my ($self, $option) = @_;
+  
+      my @ps = values %{$self->{packages}};
+  
+      if($option ne 'all') {
+          @ps = grep { $_->show_in_list } @ps;
+      }
+  
+      my $by_tags = ($option eq 'section');
+  
+      my %tags;
+      for my $p (@ps) {
+          my @ts = ($by_tags && $p->tags) ? @{$p->tags} : ('other');
+  
+          for my $t (@ts) {
+              $tags{$t} ||= [];
+              push @{$tags{$t}}, $p;
+          }
+      }
+  
+      my @tagnames = sort { $a cmp $b } keys %tags;
+  
+      @tagnames = grep { ! m/other/ } @tagnames;
+      push @tagnames, 'other';
+  
+      for my $t (@tagnames) {
+          if(defined $tags{$t}) {
+  
+              my @ps = sort { $a->name cmp $b->name } @{$tags{$t}};
+  
+              if($by_tags) {
+                  print "\n--- $t\n";
+              }
+  
+              for my $p (@ps) {
+                  my $printed = {};
+                  my $ws = $p->widgets;
+  
+                  for my $w (@{$ws}) {
+                      my $version = $w->from_system ? 'auto' : $w->version;
+  
+                      my $str = $p->name . ':' . $version;
+  
+                      unless(defined $printed->{$str}) {
+                          $printed->{$str} = 1;
+                          print "$str\n";
+                      }
+                  }
+              }
+          }
+      }
+  }
+  
+  sub check_manual_requirements() {
+      my ($self) = @_;
+  
+      my @restricted_unmet;
+      for my $w (@{$self->plan->order}) {
+          my $msg = $w->msgs_manual_requirements();
+          if($msg) {
+              $self->activate_widget($w);
+              push @restricted_unmet, $w->msgs_manual_requirements();
+          }
+      }
+  
+      if(@restricted_unmet > 0) {
+          my ($pid, $build_in) = $self->shell();
+  
+          print { $build_in } "cat <<EOF\n";
+  
+          for my $msg (@restricted_unmet) {
+              for my $line (@{$msg}) {
+                  print { $build_in } "$line\n";
+              }
+              print { $build_in } "\n";
+          }
+  
+          print { $build_in } "EOF\n";
+          print { $build_in } "exit 0\n";
+  
+          die;
+      }
+  
+      return 1;
+  }
+  
+  
+  sub active_widgets {
+      my ($self) = @_;
+  
+      unless($self->{active_widgets}) {
+          my %new;
+          tie %new, 'Tie::RefHash';
+  
+          $self->{active_widgets} = \%new;
+      }
+  
+      return $self->{active_widgets};
+  }
+  
+  sub activate_widget {
+      my ($self, $widget) = @_;
+      $self->active_widgets->{$widget} = 1;
+  }
+  
+  sub set_builder_variables {
+      my ($self, $root, $home, $shell, $distfiles, $repository) = @_;
+  
+      $self->{environment_variables} = [];
+  
+      $self->set_machine_vars();
+  
+      $self->root_dir($root);
+      $self->home_dir($home);
+      $self->files_dir($distfiles);
+      $self->tmp_dir($self->with_root('tmp'));
+  
+      $self->repository($repository);
+  
+      $self->shell_executable($shell);
+  
+      $self->user_name(getlogin() || $ENV{'USER'} || 'vc3-user');
+  
+      my $executable = $RealScript;
+      if($executable eq '-e') {
+          # this will break! BUG. How to know the name of static executable?
+          $executable = 'vc3-builder-static';
+      }
+  
+      $self->builder_path(catfile($RealBin, $executable));
+  
+      eval {
+          File::Path::make_path($self->root_dir);
+          File::Path::make_path($self->files_dir);
+          File::Path::make_path(catfile($self->files_dir, 'manual-distribution'));
+          File::Path::make_path($self->home_dir);
+          File::Path::make_path($self->tmp_dir);
+      };
+  
+      if($@) {
+          my $error = $@;
+          $error =~ s/ at .*$//;
+          warn("Could not create some directory: $error");
+          warn("giving up...\n");
+          exit 1;
+      }
+  
+      my ($profile_f, $profile_name) = tempfile(catfile($self->home_dir, '.vc3_sh-XXXXXX'));
+      close $profile_f;
+      $self->sh_profile($profile_name);
+  
+      $self->add_builder_variable('VC3_ROOT',         $self->root_dir);
+      $self->add_builder_variable('VC3_DISTFILES',    $self->files_dir);
+      $self->add_builder_variable('VC3_BUILDER_PATH', $self->builder_path);
+      $self->add_builder_variable('VC3_INSTALL_USER_HOME', $self->home_dir);
+      $self->add_builder_variable('TMP',              $self->tmp_dir);
+      $self->add_builder_variable('TERM',             $ENV{'TERM'} || 'xterm');
+      $self->add_builder_variable('CC',               $ENV{'CC'}   || 'gcc');
+      $self->add_builder_variable('CXX',              $ENV{'CXX'}  || 'g++');
+      $self->add_builder_variable('SHELL',            $self->shell_executable);
+  
+      # we don't want to overwrite these variables in the general profile:
+      # $self->add_builder_variable('USER',
+      # $self->add_builder_variable('HOME',             $self->home_dir);
+  }
+  
+  sub DESTROY {
+      my ($self) = @_;
+      $self->cleanup();
+  }
+  
+  sub root_dir {
+      my ($self, $root) = @_;
+  
+      if($root) {
+          $root = glob $root; # expand ~
+          $root = rel2abs($root);
+          $self->{root_dir} = $root;
+      }
+  
+      return $self->{root_dir};
+  }
+  
+  sub repository {
+      my ($self, $shell) = @_;
+  
+      if($shell) {
+          $self->{repository} = $shell;
+      }
+  
+      return $self->{repository};
+  }
+  
+  sub shell_executable {
+      my ($self, $shell) = @_;
+  
+      if($shell) {
+          $self->{shell_executable} = $shell;
+      }
+  
+      return $self->{shell_executable};
+  }
+  
+  sub home_dir {
+      my ($self, $home) = @_;
+  
+      if($home) {
+          $home = glob $home; # expand ~
+  
+          unless(file_name_is_absolute($home)) {
+              $home = $self->with_root($home);
+          }
+  
+          $home = rel2abs($home);
+          $self->{home_dir} = $home;
+      }
+  
+      return $self->{home_dir};
+  }
+  
+  sub files_dir {
+      my ($self, $files) = @_;
+  
+      if($files) {
+          $files = glob $files; # expand ~
+          $files = rel2abs($files);
+          $self->{files_dir} = $files;
+      }
+  
+      return $self->{files_dir};
+  }
+  
+  sub tmp_dir {
+      my ($self, $tmp) = @_;
+  
+      if($tmp) {
+          $tmp = glob $tmp; # expand ~
+          $tmp = rel2abs($tmp);
+          $self->{tmp_dir} = $tmp;
+      }
+  
+      return $self->{tmp_dir};
+  }
+  
+  sub with_root {
+      my ($self, $dir) = @_;
+  
+      return catfile($self->root_dir, $dir);
+  }
+  
+  sub user_name {
+      my ($self, $name) = @_;
+  
+      $self->{user_name} = $name if($name);
+  
+      return $self->{user_name};
+  }
+  
+  
+  sub plan {
+      my ($self, $new) = @_;
+  
+      $self->{plan} = $new if($new);
+  
+      return $self->{plan};
+  }
+  
+  sub builder_path {
+      my ($self, $new) = @_;
+  
+      $self->{builder} = $new if($new);
+  
+      return $self->{builder};
+  }
+  
+  
+  sub sh_profile {
+      my ($self, $init) = @_;
+  
+      $self->{sh_profile} = $init if($init);
+  
+      return $self->{sh_profile};
+  }
+  
+  sub dry_run {
+      my ($self) = @_;
+      return $self->{dry_run};
+  }
+  
+  sub preserve_profile {
+      my ($self, $val) = @_;
+  
+      if(defined $val) {
+          $self->{preserve_profile} = $val;
+      }
+  
+      unless(defined $self->{preserve_profile}) {
+          # do not preserve profile by default.
+          $self->{preserve_profile} = 0;
+      }
+  
+      return $self->{preserve_profile};
+  }
+  
+  
+  sub environment_variables {
+      my ($self, $new_vars) = @_;
+  
+      $self->{environment_variables} = $new_vars if($new_vars);
+  
+      return $self->{environment_variables};
+  }
+  
+  sub add_builder_variable {
+      my ($self, $name, $value) = @_;
+  
+      my $var = {
+          name     => $name,
+          value    => $value,
+          clobber  => 1,
+          absolute => 1
+      };
+  
+      my $vars = $self->environment_variables;
+      push @{$vars}, $var;
+  
+      return $var;
+  }
+  
+  sub add_manual_variables {
+      my ($self, $extra_vars) = @_;
+  
+      for my $var (@{$extra_vars}) {
+          $var =~ m/
+          ^
+          (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
+          =
+          (?<value>.*)
+          $
+          /x or die "Malformed variable specification: '$var'";
+  
+          $self->add_builder_variable($+{name}, $+{value});
+      }
+  }
+  
+  
+  sub add_manual_packages {
+      my ($self, $specs) = @_;
+  
+      for my $spec (@{$specs}) {
+          my ($name, $version, $dir);
+  
+          if(
+              $spec =~ m/
+              ^
+              (?<name>[A-Za-z_][A-Z-a-z_0-9]*)
+              :
+              (?<version>(([0-9]+(\.?[0-9]){0,3})|auto))
+              (=(?<dir>.*))?
+              $
+              /x
+          ) {
+              ($name, $version, $dir) = @+{qw(name version dir)};
+              $dir ||= '/usr';
+          } else {
+              die "Malformed manual specification: '$spec'\n";
+          }
+  
+          my $pkg = $self->{packages}{$name};
+          unless($pkg) {
+              die "Could not find specification to overwrite for '$name'\n";
+          }
+  
+          if($version eq 'auto') {
+              $version = $pkg->compute_auto_version($dir);
+          }
+  
+          my $s = {};
+          $s->{version} = $version;
+          $s->{sources} = [
+              {
+                  type   => 'system',
+                  recipe => [
+                      "echo VC3_ROOT_SYSTEM: $dir"
+                  ]
+              }
+          ];
+  
+          $self->{system}{$name} = 1;
+  
+          my $widgets = $pkg->widgets;
+          unshift @{$widgets}, VC3::Widget->new($pkg, $s);
+      }
+  }
+  
+  sub del_builder_variable {
+      my ($self, $name) = @_;
+  
+      my @vars = @{$self->environment_variables};
+      @vars = grep { $name ne $_->{name} } @vars;
+  
+      $self->environment_variables(\@vars);
+  }
+  
+  sub set_plan_for {
+      my ($self, @requires) = @_;
+  
+      $self->{indent_level} = 0;
+  
+      my $plan = VC3::Plan->new($self);
+      $self->plan($plan);
+  
+      if(!$plan->add_main_targets(@requires)) {
+          die("Could not find an installation plan.\n");
+      }
+  
+      $plan->order(1);
+  
+  }
+  
+  sub execute_plan {
+      my ($self, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
+  
+      for my $w (@{$self->plan->order}) {
+          $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
+          $self->activate_widget($w);
+      }
+  }
+  
+  sub cleanup {
+      my ($self) = @_;
+  
+      if($self->{child_pid}) {
+          $self->say('Cleaning payload with pid: ' . $self->{child_pid});
+          kill 'HUP', -($self->{child_pid});
+      }
+  
+      unless($self->preserve_profile) {
+  
+          if(defined $self->sh_profile) {
+              if(-f $self->sh_profile) {
+                  unlink $self->sh_profile;
+              }
+  
+              if(-f $self->sh_profile . '.env') {
+                  unlink $self->sh_profile . '.env';
+              }
+  
+              if(-f $self->sh_profile . '.prologue') {
+                  unlink $self->sh_profile . '.prologue';
+              }
+  
+              if(-f $self->sh_profile . '.wrapper') {
+                  unlink $self->sh_profile . '.wrapper';
+              }
+  
+              if(-f $self->sh_profile . '.payload') {
+                  unlink $self->sh_profile . '.payload';
+              }
+          }
+  
+          $self->del_builder_variable('VC3_SH_PROFILE_ENV');
+          $self->del_builder_variable('VC3_SH_PROFILE_WRAPPER');
+      }
+  
+      if($self->{child_pid}) {
+          # give 10 seconds for child to cleanup HUP, then REDRUM
+          for my $i (1..10) {
+              my $n = waitpid(-1, POSIX::WNOHANG);
+              if($n < 0) {
+                  $self->{child_pid} = undef;
+                  return;
+              } else {
+                  $self->say('Waiting for payload with pid: ' . $self->{child_pid} . "  $n");
+                  VC3::Builder::select_sleep(1);
+              }
+          }
+          $self->say('Hard terminating for payload with pid: ' . $self->{child_pid});
+          kill 'KILL', -$self->{child_pid};
+          $self->{child_pid} = undef;
+      }
+  }
+  
+  sub set_machine_vars {
+      my ($self) = @_;
+  
+      ($self->{osname}, undef, undef, undef, $self->{architecture}) = POSIX::uname();
+  
+      $self->{target} = catfile($self->architecture, $self->distribution);
+  
+      my $ldd_version_raw = qx(ldd --version);
+      $ldd_version_raw =~ /
+      # we are looking for a line starting with 'ldd'
+      ^ldd
+      # followed by anything
+      .*
+      # followed by at least one space
+      \s+
+      # followed by the version number (that we capture)
+      ([0-9.]+)
+      # followed by any number of spaces at the end of the line
+      \s*$
+      # options: x allows regexp comments. m treats each line indepedently
+      /xm ;
+  
+      $self->{glibc_version} = $1
+      || 'unknown';
+  
+      $self->add_builder_variable('VC3_MACHINE_OS',            $self->osname);
+      $self->add_builder_variable('VC3_MACHINE_ARCH',          $self->architecture);
+      $self->add_builder_variable('VC3_MACHINE_GLIBC_VERSION', $self->glibc_version);
+      $self->add_builder_variable('VC3_MACHINE_TARGET',        $self->{target});
+  }
+  
+  sub target {
+      my ($self) = @_;
+      return $self->{target};
+  }
+  
+  sub osname {
+      my ($self) = @_;
+      return $self->{osname};
+  }
+  
+  sub architecture {
+      my ($self) = @_;
+      return $self->{architecture};
+  }
+  
+  sub glibc_version {
+      my ($self) = @_;
+      return $self->{glibc_version};
+  }
+  
+  # reads /etc/readhat-release and transforms something like:
+  # 'Red Hat Enterprise Linux Server release 6.5 (Santiago)'
+  # into 'redhat6'.
+  sub distribution {
+      my ($self) = @_;
+  
+      my $distribution='generic';
+      
+      if (-f '/etc/redhat-release') {
+          open (my $file_fh, '<', '/etc/redhat-release');
+          my $redhat_version_line = <$file_fh>;
+  
+          $redhat_version_line =~ /\brelease\b\s+([0-9]+)\b/;
+          my $redhat_version = $1;
+  
+          die 'Could not find redhat version!' unless $redhat_version;
+  
+          $distribution="redhat${redhat_version}"
+      }
+      
+      return $distribution;
+  }
+  
+  sub widgets_of {
+      my ($self, $name) = @_;
+  
+      my $pkg = $self->{packages}{$name}
+      || die "I do not know anything about '$name' . \n";
+  
+      return $pkg->widgets;
+  }
+  
+  sub decode_bags {
+      my ($self, $databases) = @_;
+  
+      my $packages = {};
+  
+      for my $filename (@{$databases}) {
+          $self->decode_bag($packages, $filename);
+      }
+  
+      return $packages;
+  }
+  
+  sub decode_bag {
+      my ($self, $packages, $filename) = @_;
+  
+      {
+          no warnings;
+          if($filename eq '<internal>' && tell(VC3::Builder::DATA) == -1) {
+              $filename = './vc3-catalog.json';
+              return $packages unless -f $filename; 
+          }
+      }
+  
+      my $catbag_f;
+      if($filename eq '<internal>') {
+          $catbag_f = *VC3::Builder::DATA;
+      } else {
+          open($catbag_f, '<:encoding(UTF-8)', $filename) ||
+          die "Could not open '$filename': $!";
+      }
+  
+      my $contents = do { local($/); <$catbag_f> };
+      close($catbag_f);
+  
+      my $bag_raw = JSON::Tiny::decode_json($contents);
+  
+      for my $package_name (keys %{$bag_raw}) {
+          my $pkg = VC3::Package->new($self, $package_name, $bag_raw->{$package_name});
+  
+          $packages->{$package_name} = $pkg;
+      }
+  
+      return $packages;
+  } 
+  
+  sub build_widget {
+      my ($self, $widget, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
+  
+      $self->say("processing for @{[$widget->name]}-" . $widget->version->normal);
+  
+      my $s = $widget->active_source;
+  
+      my $exit_status = 0;
+      if($s) {
+          eval { $exit_status = -1; $exit_status = $s->execute_recipe($force_rebuild, $ignore_locks) };
+  
+          if($exit_status) {
+              $widget->process_error($sh_on_error, $English::EVAL_ERROR, $exit_status);
+              exit 1;
+          }
+      }
+  
+      return $exit_status;
+  }
+  
+  sub dot_graph {
+      my ($self, $dotname) = @_;
+      return $self->plan->dot_graph($dotname);
+  }
+  
+  sub to_parallel {
+      my ($self, $dir, $make_jobs) = @_;
+  
+      my $abs_dir;
+      if(file_name_is_absolute($dir)) {
+          $abs_dir = $dir;
+      } else {
+          $abs_dir = catfile($self->home_dir, $dir);
+      }
+  
+      my $dag_name       = 'dag';
+      my $builder_name   = 'builder';
+      my $local_database = 'recipes';
+  
+      File::Path::make_path($abs_dir);
+  
+      my $build_dir = catfile($abs_dir, 'build');
+      open my $script_f, '>', "$build_dir" || die "Could not open '$build_dir' for writing: $!";
+      print { $script_f } <<EOFF;
+  #! @{[$self->shell_executable]}
+  set -e
+  
+  makeflow --shared-fs @{[$self->root_dir]} -r 5 $dag_name "\$@"
+  
+  cat <<EOF
+  To run, from the current directory type:
+  
+  ./$builder_name --database $local_database --install @{[$self->root_dir]} @{[map { "--require $_" } @{$self->plan->requirements}]}
+  
+  EOF
+  EOFF
+  
+      close $script_f;
+      chmod 0755, $build_dir;
+  
+      my $builder_path = catfile($abs_dir, $builder_name);
+      copy($self->builder_path, $builder_path);
+      chmod 0755, $builder_path;
+  
+      $self->plan->to_makeflow($abs_dir, $dag_name, $builder_name, $local_database, $make_jobs);
+  
+      $self->check_manual_requirements();
+      $self->plan->prestage();
+  }
+  
+  sub set_environment_variables {
+      my ($self, $sh_f) = @_;
+  
+      my $env = $self->active_widgets();
+  
+      my $expansion = {};
+  
+      for my $var (@{$self->environment_variables}) {
+          $expansion->{$var->{name}} = [$var->{value}];
+      }
+  
+      if($self->plan and $self->plan->order) {
+          for my $wid (@{$self->plan->order}) {
+              next unless $env->{$wid};
+              $wid->consolidate_environment_variables($expansion);
+          }
+      }
+  
+      $expansion->{'PATH'} ||= [];
+      $expansion->{'LD_LIBRARY_PATH'} ||= [];
+  
+      # use default PATH:
+      push @{$expansion->{'PATH'}}, split(/:/, $ENV{'PATH'} || '/bin:/usr/bin:/usr/local/bin');
+      push @{$expansion->{'LD_LIBRARY_PATH'}}, split(/:/, $ENV{'LD_LIBRARY_PATH'} || '/lib:/usr/lib:/usr/local/lib');
+  
+      for my $var_name (keys %{$expansion}) {
+          my @values = $self->clean_varialble_repetitions($expansion->{$var_name});
+  
+          eval { $expansion->{$var_name} = join(':', @values) };
+          if($@) {
+              warn("Environment variable '$var_name' was not explicitely set.\n");
+          }
+      }
+  
+      my @ordered = $self->order_variables($expansion);
+  
+      for my $var_name (@ordered) {
+          my $value = $expansion->{$var_name};
+          print { $sh_f } "export $var_name=\"$value\"\n";
+      }
+  
+      print { $sh_f } "\n";
+  }
+  
+  sub clean_varialble_repetitions {
+      my ($self, $ref) = @_;
+  
+      my @values = @$ref;
+  
+      my %metric;
+      my $count = 1;
+      my $root = $self->root_dir;
+  
+      for my $v (@values) {
+          if($v !~ m%^/(usr/(local/)?)?(bin|lib)$%) {
+              $metric{$v} = $count;
+          } elsif ($v =~ m%^$root%) {
+              $metric{$v} = $count;
+          } else {
+              $metric{$v} = $count + @values;
+          }
+          $count++;
+      }
+  
+      return sort { $metric{$a} <=> $metric{$b} } keys %metric;
+  }
+  
+  sub order_variables {
+      my ($self, $expansion) = @_;
+  
+      my @alpha = sort { $a cmp $b } keys %{$expansion};
+  
+      my $order = {};
+  
+      my $index = 1;
+      for my $var (@alpha) {
+          $order->{$var} = $index;
+          $index++;
+      }
+  
+      my $total_passes = 0;
+      my $swap       = 1;
+  
+      while($swap) {
+          $swap = 0;
+  
+          my @ordered = sort { ($order->{$a} <=> $order->{$b}) || ($a cmp $b) } keys %{$expansion};
+  
+          for my $var (@ordered) {
+              my $value = $expansion->{$var};
+              my @deps  = ($value =~ m/\$\{(\w+)\}/g);
+  
+              next unless @deps;
+  
+              my $org   = $order->{$var};
+              my $nxt   = 1 + max(map { $order->{$_} || warn "Variable '$_' is not explicitely set.\n" } @deps);
+  
+              if($nxt > $org) {
+                  $swap++;
+                  $order->{$var} = $nxt;
+              }
+          }
+  
+          $total_passes++;
+          carp "Cyclic dependency in environment variables." if $total_passes > @alpha;
+      }
+  
+      my @ordered = sort { ($order->{$a} <=> $order->{$b}) || ($a cmp $b) } keys %{$expansion};
+      return @ordered;
+  }
+  
+  
+  sub set_profile {
+      my ($self, $profile_file, @command_and_args) = @_;
+  
+      my ($env_file, $prog_file, $wrap_file, $pay_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload');
+  
+      # write to env file
+      open(my $sh_f_env, '>', $env_file)
+      || die "Could not open file $env_file $!";
+      print { $sh_f_env } <<EOFP;
+  #! @{[$self->shell_executable]}
+  
+  # don't load environment variables repeatedly (e.g., to not grow PATH at every shell)
+  if [ ! "\${VC3_ENV_TAG_GLOBAL}" = $$ ]
+  then
+  
+  EOFP
+      $self->set_environment_variables($sh_f_env);
+  
+      print { $sh_f_env } <<EOFP;
+  export VC3_ENV_TAG_GLOBAL=$$
+  fi
+  
+  EOFP
+  
+      close($sh_f_env);
+  
+      # write to prologue file
+      open(my $sh_f_prog, '>', $prog_file)
+      || die "Could not open file $prog_file $!";
+      print { $sh_f_prog } <<EOFP;
+  #! @{[$self->shell_executable]}
+  
+  # don't source prologues at a shell that already sourced them.
+  if [ ! "\${VC3_ENV_TAG_LOCAL}" = $$ ]
+  then
+  
+  EOFP
+  
+      for my $prog_line (@{$self->consolidate_prologue}) {
+          print { $sh_f_prog } "$prog_line 2> /dev/null";
+          print { $sh_f_prog } "\n";
+      }
+  
+      print { $sh_f_prog } <<EOFP;
+  
+      VC3_ENV_TAG_LOCAL=$$
+  fi
+  
+  EOFP
+  
+      # write to general profile
+      open(my $sh_f, '>', "$profile_file")
+      || die "Could not open file $profile_file $!";
+  
+      print { $sh_f } <<EOFP;
+  #! @{[$self->shell_executable]}
+  
+  . $env_file
+  . $prog_file
+  
+  EOFP
+      close($sh_f);
+  
+      # write to payload file
+      open(my $sh_f_pay, '>', $pay_file)
+      || die "Could not open file $pay_file $!";
+  
+      print { $sh_f_pay } <<EOFP;
+  #! @{[$self->shell_executable]}
+  
+  if [ "\${VC3_INSIDE_WRAPPER_SCRIPT}" != yes ]
+  then
+  
+      echo This script cannot be executed by itself.
+      echo Run instead: ${wrap_file}
+      exit 1
+  fi
+  
+  export ENV=$profile_file
+  
+  EOFP
+  
+      print { $sh_f_pay } join(' ', 'exec', @command_and_args);
+      print { $sh_f_pay } "\n";
+  
+      close($sh_f_pay);
+      chmod 0755, $pay_file;
+  
+      # write to wrapper file
+      open(my $sh_f_wrap, '>', "$wrap_file")
+      || die "Could not open file $wrap_file $!";
+  
+      print { $sh_f_wrap } <<EOFP;
+  #! @{[$self->shell_executable]}
+  
+  . $env_file
+  
+  export VC3_INSIDE_WRAPPER_SCRIPT=yes
+  cd  "\${HOME}"
+  
+  EOFP
+  
+      my $payload = $pay_file;
+  
+      my $env = $self->active_widgets();
+      if($self->plan and $self->plan->order) {
+          for my $w (@{$self->plan->order}) {
+              next unless $env->{$w};
+  
+              my $wrap = $w->wrapper;
+  
+              next unless $wrap;
+  
+              if( $wrap =~ /\{\}/ ) {
+                  $wrap =~ s/\{\}/$payload/;
+                  $payload = $wrap;
+              } else {
+                  $payload = $wrap . ' ' . $payload;
+              }
+          }
+      }
+  
+      print { $sh_f_wrap } "exec $payload\n\n";
+  
+      close($sh_f_wrap);
+      chmod 0755, $wrap_file;
+  
+      $self->add_builder_variable('VC3_SH_PROFILE_ENV',     $profile_file);
+      $self->add_builder_variable('VC3_SH_PROFILE_WRAPPER', $wrap_file);
+  }
+  
+  sub consolidate_prologue {
+      my ($self) = @_;
+  
+      my $env = $self->active_widgets();
+  
+      my @progs = ();
+  
+      if($self->plan and $self->plan->order) {
+          for my $w (@{$self->plan->order}) {
+              next unless $env->{$w};
+  
+              if($w->prologue) {
+                  push @progs, @{$w->prologue};
+              }
+          }
+      }
+  
+      return \@progs;
+  }
+  
+  sub preserved_vars {
+      my ($self) = @_;
+  
+      my %to_preserve;
+  
+      $to_preserve{HOME} = $self->home_dir;
+      $to_preserve{USER} = $self->user_name;
+  
+      my @output;
+  
+      for my $var (keys %to_preserve) {
+          push @output, "$var=$to_preserve{$var}";
+      }
+  
+      return @output;
+  }
+  
+  
+  sub execute {
+      my ($self, @command_and_args) = @_;
+  
+      $self->set_profile($self->sh_profile, @command_and_args);
+  
+      my $pid = fork();
+  
+      if($pid == 0) {
+          my @args = (
+              '/usr/bin/env',
+              '-i',
+              $self->preserved_vars(),
+              $self->sh_profile . '.wrapper');
+  
+          POSIX::setpgid(0, 0);
+  
+          exec { $args[0] } @args;
+          die 'Could not exec payload';
+      } elsif($pid > 0) {
+  
+          close(STDIN);
+          POSIX::setpgid($pid, $pid);
+  
+          if($self->{on_terminal}) {
+              $self->bring_to_foreground($pid);
+          }
+  
+          $self->{child_pid} = $pid;
+          waitpid $pid, 0;
+          my $status = $?;
+          $self->{child_pid} = undef;
+  
+          return POSIX::WEXITSTATUS($status);
+      } else {
+          die 'Could not fork to exec payload: ' . $!;
+      }
+  }
+  
+  sub bring_to_foreground {
+      my ($self, $groupid) = @_;
+  
+      $SIG{TTOU} = 'IGNORE';
+  
+      open my $term, '+<', '/dev/tty';
+      return unless $term;
+  
+      POSIX::tcsetpgrp(fileno($term), $groupid) or die "Could not bring child to foreground: $!";
+  
+      close $term;
+  }
+  
+  sub shell {
+      my ($self, $payload) = @_;
+  
+      $payload |= $self->shell_executable;
+      $self->set_profile($self->sh_profile, $payload);
+  
+      my $pid = open(my $input, '|-');
+      if($pid == 0) {
+          my @args = (
+              '/usr/bin/env',
+              '-i',
+              $self->preserved_vars(),
+              $self->sh_profile . '.wrapper');
+          exec { $args[0] } @args;
+          die 'Could not exec shell';
+      } elsif($pid > 0) {
+          $self->{child_pid} = $pid;
+          # wait for this shell later.
+      } else {
+          die 'Could not fork to exec payload: ' . $!;
+      }
+  
+      return ($pid, $input);
+  }
+  
+  sub shell_user {
+      my ($self) = @_;
+      return $self->execute($self->shell_executable);
+  }
+  
+  sub say {
+      my ($self, @rest) = @_;
+  
+      return if($self->{silent_run});
+  
+      print( ('.' x (2*$self->{indent_level})), join(' ', @rest), "\n");
+  }
+  
+  1;
+  
+VC3_BAG
+
+$fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PLAN';
+  package VC3::Plan;
+  use JSON::Tiny;
+  
+  use VC3::Plan::Element;
+  
+  sub new {
+      my ($class, $bag, $parent) = @_;
+  
+      my $self = bless {}, $class;
+  
+      $self->bag($bag);
+  
+      $self->elements($parent && $parent->elements || {});
+  
+      return $self;
+  }
+  
+  sub bag {
+      my ($self, $new) = @_;
+  
+      if($new) {
+          $self->{bag} = $new;
+      }
+  
+      return $self->{bag};
+  }
+  
+  sub say {
+      my ($self, @rest) = @_;
+  
+      return $self->bag->say(@rest);
+  }
+  
+  sub elements {
+      my ($self, $new) = @_;
+  
+      if($new) {
+          $self->{elements} = \%{ $new };
+      }
+  
+      return $self->{elements};
+  }
+  
+  sub element_of {
+      my ($self, $name) = @_;
+  
+      return $self->elements->{$name};
+  }
+  
+  sub requirements {
+      my ($self) = @_;
+  
+      unless($self->{requirements}) {
+          $self->{requirements} = [];
+      }
+  
+      return $self->{requirements};
+  }
+  
+  sub add_target {
+      my ($self, $name, $min, $max) = @_;
+  
+      $self->bag->{indent_level}++;
+  
+      $self->say("Plan:    $name => [@{[$min || '']}, @{[$max || '']}]");
+  
+      my $available = $self->bag->widgets_of($name);
+      for my $widget (@{$available}) {
+  
+          unless($widget->available) {
+              next;
+          }
+  
+          if($self->add_widget($widget, $min, $max)) {
+              $self->bag->{indent_level}--;
+              return 1;
+          }
+      }
+  
+      $self->say("Failure: $name => [@{[$min || '']}, @{[$max || '']}]");
+      $self->bag->{indent_level}--;
+  
+      return 0;
+  }
+  
+  sub add_main_targets {
+      my ($self, @requires) = @_;
+  
+      my $root_entry = { version => version->declare('v0.0.1'), phony => 1, dependencies => {} };
+  
+      for my $req (@requires) {
+          my ($name, $min, $max) = $self->parse_requirement($req);
+  
+          my $versions = [];
+          push @{$versions}, $min if($min);
+          push @{$versions}, $max if($max);
+  
+          $root_entry->{dependencies}{$name} = $versions;
+          
+          unless($self->add_target($name, $min, $max)) {
+              die "Could not find plan for $req.\n";
+          }
+  
+          push @{$self->requirements}, $name;
+      }
+  
+      return 1;
+  }
+  
+  sub parse_requirement {
+      my ($self, $req) = @_;
+  
+      $req =~ m/
+      ^
+      (?<name> [A-z0-9_-]+)
+      (:                      # start of min version
+      (?<min> [^:]*)
+      (:                      # start of max version
+      (?<max> [^:]*)
+      )?)?
+      $
+      /x;
+  
+      my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
+  
+      if(!$min && $max) {
+          $min = 'v0.0.0';
+      }
+  
+      # turn into version strings
+      $min = version->declare($min) if($min);
+      $max = version->declare($max) if($max);
+  
+      return ($name, $min, $max);
+  }
+  
+  sub version_str {
+      my ($self, $v) = @_;
+  
+      return ''         unless $v;
+      return $v->normal if $v->isa('version');
+      return version->parse($v)->normal;
+  }
+  
+  sub add_widget {
+      my ($self, $widget, $min, $max) = @_;
+  
+      my $version = $widget->version;
+  
+      $self->say("Try:     " . $widget->name . " => @{[$version->normal]}");
+  
+      if($min && $min gt $version || $max && $max lt $version) {
+          $self->say("Incorrect version: @{[$version->normal]} => [@{[$self->version_str($min)]},@{[$self->version_str($max)]}]");
+          return 0;
+      }
+  
+      my $saved_state = $self->elements();
+  
+      my $p = $self->elements->{$widget->name};
+      my $e = $self->refine($widget, $p, $min, $max);
+  
+      my $success;
+      if($p && !$e) {
+          $self->say("conflicting versions: @{[$widget->name]} [@{[ $self->version_str($p->{min}) ]}, @{[ $self->version_str($p->{max})]} <=> [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+          $success = 0;
+      } elsif($p && $e) {
+          # already in plan, simple refinenment of versions
+          $success = 1;
+      } elsif(!$e) {
+          $success = 0;
+          die('bug, this should not happen.');
+      } else {
+  
+          if($self->add_dependencies($widget->dependencies)) {
+              if($widget->sources) {
+                  my $s = $self->add_sources($widget->sources);
+                  if($s) {
+                      $widget->active_source($s);
+                      $success = 1;
+                  } else {
+                      $self->say("could not add any source for: @{[$widget->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+                      $success = 0;
+                  }
+              } else {
+                  $success = 1;
+              }
+          } else {
+              $self->say("could not set dependencies for: @{[$widget->name]} @{[$version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+              $success = 0;
+          }
+      }
+  
+      if($success) {
+          # add new step to plan
+          $self->elements->{$widget->name} = $e;
+          $self->say("Success: @{[$widget->name]} @{[$e->widget->version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+      } else {
+          # restore old plan on error
+          $self->elements($saved_state);
+      }
+  
+      return $success;
+  }
+  
+  sub add_dependencies {
+      my ($self, $dependencies) = @_;
+  
+      my $saved_state = $self->elements();
+  
+      my $success = 1;
+      for my $name (keys %{$dependencies}) {
+  
+          my ($min, $max) = @{$dependencies->{$name}};
+          unless($self->add_target($name, $min, $max)) {
+              $success = 0;
+              last;
+          }
+      }
+  
+      unless($success) {
+          $self->elements($saved_state);
+      }
+  
+      return $success;
+  }
+  
+  sub add_sources {
+      my ($self, $sources) = @_;
+  
+      my $saved_state = $self->elements();
+      for my $s (@{$sources}) {
+  
+          if($s->isa('VC3::Source::System')) {
+              unless($self->bag->{system}{$s->widget->name}) {
+                      next if $self->bag->{no_system}{ALL};
+                      next if $self->bag->{no_system}{$s->widget->name};
+                  }
+              }
+  
+          if($self->add_source($s)) {
+              return $s;
+          }
+          $self->elements($saved_state);
+      }
+  
+      return undef;
+  }
+  
+  
+  sub add_source {
+      my ($self, $source) = @_;
+  
+      my $exit_status = -1;
+      eval { $exit_status = $source->check_prerequisites() };
+  
+      if($exit_status) {
+          $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version->normal);
+          return 0;
+      }
+  
+      return $self->add_dependencies($source->dependencies);
+  }
+  
+  sub refine {
+      my ($self, $widget, $p, $min, $max) = @_;
+  
+      if($p) {
+          return $p->refine($min, $max);
+      } else {
+          VC3::Plan::Element->new($widget, $min, $max, undef);
+      }
+  }
+  
+  sub order {
+      my ($self, $set) = @_;
+  
+      if($set) {
+          my $ordinals = $self->order_aux();
+          my @ordered = sort { ($ordinals->{$a} <=> $ordinals->{$b}) || ($a cmp $b) } keys %{$ordinals};
+          $self->{order} = [ map { $self->elements->{$_}{widget} } @ordered ];
+      }
+  
+      return $self->{order};
+  }
+  
+  sub order_aux {
+      my ($self) = @_;
+  
+      my $ordinal_of = {};
+  
+      my @names = keys %{$self->elements};
+  
+      for my $name (@names) {
+          $ordinal_of->{$name} = 1;
+      }
+  
+      my $to_go = @names;
+  
+      while($to_go >= 0) {
+          my $change = 0;
+  
+          $to_go--;
+  
+          for my $name (@names) {
+              my $e = $self->elements->{$name};
+              my $o = $ordinal_of->{$name};
+  
+              my @deps;
+  
+              my $w = $e->{widget};
+  
+              if($w->dependencies) {
+                  push @deps, keys %{$w->dependencies};
+              }
+  
+              if($w->active_source && $w->active_source->dependencies) {
+                  push @deps, keys %{$w->active_source->dependencies};
+              }
+  
+              my $max = $o;
+              if(@deps) {
+                  $max = 1 + List::Util::max( @{$ordinal_of}{@deps} );
+              }
+  
+              if($max != $o) {
+                  $change = 1;
+                  $ordinal_of->{$w->name} = $max;
+              }
+          }
+  
+          if(!$change) {
+              return $ordinal_of;
+          }
+      }
+  
+      die 'Circular dependency found';
+  }
+  
+  sub dot_graph {
+      my ($self, $dotname) = @_;
+      my @names = keys %{$self->elements};
+  
+      open(my $dot_f, '>', $dotname) 
+      || die "Could not open '$dotname': $!";
+  
+      print { $dot_f } "digraph {\n";
+  
+      print { $dot_f } "node [shape=record];\n";
+  
+      for my $name (@names) {
+          my $e = $self->elements->{$name};
+          my $w = $e->{widget};
+          my $v = $w->version->normal;
+  
+          my $n = $name;
+          $n =~ s/[^A-z0-9]//g;
+  
+          print { $dot_f } qq($n [label="$name&#92;n$v"];\n);
+      }
+  
+      for my $name (@names) {
+          my @deps;
+  
+          my $e = $self->elements->{$name};
+          my $w = $e->{widget};
+  
+          if($w->dependencies) {
+              push @deps, keys %{$w->dependencies};
+          }
+  
+          if($w->active_source && $w->active_source->dependencies) {
+              push @deps, keys %{$w->active_source->dependencies};
+          }
+  
+          my $n = $name;
+          $n =~ s/[^A-z0-9]//g;
+  
+          if(@deps) {
+              for my $dep (@deps) {
+                  my $d = $dep;
+                  $d =~ s/[^A-z0-9]//g;
+  
+                  print { $dot_f } qq(\t"$d"->"$n";\n);
+              }
+          }
+      }
+  
+      print { $dot_f } "}\n";
+      close $dot_f;
+  }
+  
+  sub to_makeflow {
+      my ($self, $dir, $dag_name, $builder_exec, $local_database, $cores) = @_;
+  
+      $self->trimmed_database(catfile($dir,$local_database));
+  
+      my $makeflow_name = 'dag';
+  
+      open(my $mflow_f, '>', catfile($dir,$makeflow_name)) 
+      || die "Could not open '$dir/$makeflow_name': $!";
+  
+      print { $mflow_f } ".MAKEFLOW CATEGORY builds\n";
+      print { $mflow_f } ".MAKEFLOW CORES    $cores\n";
+      print { $mflow_f } ".MAKEFLOW MEMORY   @{[$cores * 512]}\n";
+      print { $mflow_f } ".MAKEFLOW DISK     20000\n";    # 20 GB of disk
+      print { $mflow_f } "\n\n";
+  
+      my $bag    = $self->bag;
+      my $root   = $bag->root_dir;
+      my $target = catfile($bag->root_dir, $bag->target);
+  
+      my $home   = $bag->home_dir;
+      $home      =~ s/^\Q$root/\$(ROOT_DIR)/;
+  
+      print { $mflow_f } "RECIPES  = $local_database\n";
+      print { $mflow_f } "ROOT_DIR = $root\n";
+      print { $mflow_f } "TRGT_DIR = \$(ROOT_DIR)/@{[$bag->target]}\n";
+      print { $mflow_f } "HOME_DIR = $home\n";
+      print { $mflow_f } "DIST_DIR = " . $bag->files_dir  . "\n";
+      print { $mflow_f } "REPO     = " . $bat->repository . "\n";
+      print { $mflow_f } "OPTIONS  = --make-jobs \$(CORES) --no-run\n\n";
+  
+      print { $mflow_f } "RIBBON   = .VC3_DEPENDENCY_BUILD\n\n";
+  
+      print { $mflow_f } "\n";
+      print { $mflow_f } "BUILD_COMMAND  = ./$builder_exec --database \$(RECIPES) --install \$(ROOT_DIR) --home \$(HOME_DIR) --distfiles \$(DIST_DIR) --repository \$(REPO) \$(OPTIONS) --ignore-locks\n";
+  
+      print { $mflow_f } "\n\n";
+      
+      my @names = keys %{$self->elements};
+      for my $name (@names) {
+          my @deps;
+  
+          my $e = $self->elements->{$name};
+          my $w = $e->{widget};
+  
+          if($w->dependencies) {
+              push @deps, keys %{$w->dependencies};
+          }
+  
+          if($w->active_source && $w->active_source->dependencies) {
+              push @deps, keys %{$w->active_source->dependencies};
+          }
+  
+          my @inputs;
+          for my $d (@deps) {
+              my $rname = $self->elements->{$d}->{widget}->ribbon->{filename};
+  
+              $rname =~ s/.VC3_DEPENDENCY_BUILD$/\$(RIBBON)/;
+              $rname =~ s/^\Q$target/\$(TRGT_DIR)/;
+  
+              push @inputs, $rname;
+          }
+  
+          my $output = $w->ribbon->{filename};
+          $output =~ s/.VC3_DEPENDENCY_BUILD$/\$(RIBBON)/;
+          $output =~ s/^\Q$target/\$(TRGT_DIR)/;
+  
+          print { $mflow_f } "$output: $builder_exec $local_database @inputs\n";
+  
+          print { $mflow_f } "\t";
+  
+          if(!$w->active_source || $w->active_source->local) {
+              print { $mflow_f } "LOCAL "
+          }
+  
+          print { $mflow_f } "\t\$(BUILD_COMMAND) --require $name\n\n";
+      }
+  
+      close $mflow_f;
+  }
+  
+  sub prestage {
+      my ($self) = @_;
+  
+      for my $e (values %{$self->elements}) {
+          my $s = $e->widget->active_source;
+          next unless $s;
+  
+          $s->get_files();
+      }
+  }
+  
+  sub trimmed_database {
+      my ($self, $filename) = @_;
+  
+      my $output = {};
+  
+      for my $e (values %{$self->elements}) {
+          my $n = {};
+          my $w = $e->widget;
+          $n->{version} = $w->version->normal;
+  
+          if($w->dependencies) {
+              $n->{dependencies} = $w->dependencies;
+          }
+  
+          if($w->wrapper) {
+              $n->{wrapper} = $w->wrapper;
+          }
+  
+          if($w->prologue) {
+              $n->{prologue} = $w->prologue;
+          }
+  
+          if($w->environment_variables) {
+              $n->{'environment-variables'} = $w->environment_variables;
+          }
+  
+          if($w->phony) {
+              $n->{phony} = $w->phony;
+          }
+  
+          if($w->active_source) {
+              my $s = $w->active_source;
+              my $m = {};
+  
+              $m->{type} = $s->{type};
+  
+              if($s->isa('VC3::Source::AutoRecipe')) {
+                  if($s->preface) {
+                      $m->{preface} = $s->preface;
+                  }
+  
+                  if($s->epilogue) {
+                      $m->{epilogue} = $s->epilogue;
+                  }
+  
+                  if($s->options) {
+                      $m->{options} = $s->options;
+                  }
+              } elsif($s->recipe) {
+                  $m->{recipe} = $s->recipe;
+              }
+  
+              if($s->files) {
+                  $m->{files} = $s->files;
+              }
+  
+              if($s->msg_manual_requirement) {
+                  $m->{msg_manual_requirement} = $s->msg_manual_requirement;
+              }
+  
+              if($s->dependencies) {
+                  $m->{dependencies} = $s->dependencies;
+              }
+  
+              if($s->prerequisites) {
+                  $m->{prerequisites} = $s->prerequisites;
+              }
+  
+              if($s->local) {
+                  $m->{local} = $s->local;
+              }
+  
+  
+              $n->{sources} = [ $m ];
+          }
+  
+          $output->{$w->name} = [ $n ];
+      }
+  
+      open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
+  
+      my $json = JSON::Tiny::encode_json($output);
+  
+      print { $f_h } $json, "\n";
+  
+      close $f_h;
+  }
+  
+  sub to_script {
+      my ($self, $filename) = @_;
+  
+      open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
+  
+      for my $w (@{$self->order}) {
+          $self->bag->activate_widget($w);
+          $self->bag->set_environment_variables($f_h);
+      }
+  
+      close $f_h;
+  }
+  
+  
+  package version;
+  sub TO_JSON {
+      my ($self) = @_;
+      return $self->normal;
+  }
+  
+  1;
+  
+VC3_PLAN
+
+$fatpacked{"VC3/Plan/Element.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PLAN_ELEMENT';
+  package VC3::Plan::Element;
+  
+  sub new {
+      my ($class, $widget, $min, $max, $source) = @_;
+  
+      my $self = bless {}, $class;
+  
+      if($min && $max && $min gt $max) {
+          die 'Incompatible versions';
+      }
+  
+      $self->{widget} = $widget;
+      $self->{min}    = $min;
+      $self->{max}    = $max;
+  
+      return $self;
+  }
+  
+  sub widget {
+      my ($self, $new) = @_;
+  
+      if($new) {
+          $self->{widget} = $new;;
+      }
+  
+      return $self->{widget};
+  }
+  
+  sub min {
+      my ($self, $new) = @_;
+  
+      if($new) {
+          $self->{min} = $new;
+      }
+  
+      return $self->{min};
+  }
+  
+  sub max {
+      my ($self, $new) = @_;
+  
+      if($new) {
+          $self->{max} = $new;
+      }
+  
+      return $self->{max};
+  }
+  
+  sub refine {
+      my ($self, $new_min, $new_max) = @_;
+  
+      if($new_min && $self->{max} && $new_min gt $self->{max}) {
+          return undef;
+      }
+  
+      if($new_max && $self->{min} && $new_max lt $self->{min}) {
+          return undef;
+      }
+  
+      my $min = $new_min || $self->{min};
+      if($new_min && $self->{min}) {
+          $min = $new_min lt $self->{min} ? $new_min : $self->{min};
+      }
+  
+      my $max = $new_max || $self->{max};
+      if($new_max && $self->{max}) {
+          $max = $new_max lt $self->{max} ? $new_max : $self->{max};
+      }
+  
+      if($min && $min gt $self->{widget}->version) { 
+          return undef;
+      }
+  
+  
+      if($max && $max lt $self->{widget}->version) {
+          return undef;
+      }
+          
+      return VC3::Plan::Element->new($self->{widget}, $min, $max);
+  }
+  
+  1;
+  
+VC3_PLAN_ELEMENT
+
+$fatpacked{"VC3/Ribbon.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_RIBBON';
+  package VC3::Ribbon;
+  
+  use File::Basename; 
+  use LockFile::Simple qw(lock unlock);
+  use File::Spec::Functions qw/catfile rel2abs/;
+  
+  sub new {
+      my ($class, $name, $install_dir, $tmpdir, $checksum) = @_;
+  
+      my $self = bless {}, $class;
+  
+      $self->{filename} = catfile($install_dir, '.VC3_DEPENDENCY_BUILD');
+      $self->{lockname} = catfile($tmpdir, $name . '.lock');
+      $self->{checksum} = $checksum;
+  
+      $self->{lockmgr} = LockFile::Simple->make(-hold => 3600, -autoclean => 1, -max => 99999, -delay => 5, -stale => 1, -wmin => 2,
+          -wfunc => sub { LockFile::Simple::core_warn("Waiting for a lock for '$name'. If you think this lock is stale, please remove the file:\n'" . $self->{lockname} . "'\n") }
+      );
+  
+      return $self;
+  }
+  
+  sub commit {
+      my ($self, $state) = @_;
+  
+      my $ribbon_fh = IO::Handle->new();
+      open ($ribbon_fh, '>', $self->{filename});
+  
+      my $report = {};
+      $report->{state}    = $state;
+      $report->{checksum} = $self->{checksum};
+      $report->{time}     = time();
+  
+      printf { $ribbon_fh } JSON::Tiny::encode_json($report);
+  
+      $ribbon_fh->flush();
+      $ribbon_fh->sync();
+  
+      $ribbon_fh->close();
+  }
+  
+  sub set_lock {
+      my ($self) = @_;
+  
+      # make sure parent directory exists
+      File::Path::make_path( dirname($self->{filename}) );
+  
+      $self->{lockobj} = $self->{lockmgr}->lock($self->{filename}, $self->{lockname});
+  }
+  
+  sub release_lock {
+      my ($self) = @_;
+      $self->{lockobj}->release();
+  }
+  
+  sub state {
+      my ($self) = @_;
+  
+      my $name = $self->{filename};
+      my $state = 'MISSING';
+  
+      if(-f $name) {
+          open my $ribbon_fh, '<', $name || warn $!;
+  
+          if($ribbon_fh) {
+              my $contents = do { local($/); <$ribbon_fh> };
+              close($ribbon_fh);
+  
+              my $report;
+              eval { $report = JSON::Tiny::decode_json($contents) };
+              if($@) {
+                  $state = 'MISSING';
+              }
+  
+              if(!$report->{state}) {
+                  $state = 'MISSING';
+              #} elsif(!$report->{checksum}) {
+              #     $state = 'MISSING';
+              # } elsif($report->{checksum} ne $self->{checksum}) {
+              # $state = 'OUT_OF_DATE';
+              } elsif($report->{state} eq 'PROCESSING') {
+                  $state = 'PROCESSING';
+              } else {
+                  $state = $report->{state};
+              }
+          }
+      }
+  
+      return $state;
+  }
+  
+  1;
+  
+VC3_RIBBON
+
+$fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE';
+  package VC3::Source;
+  use Carp;
+  
+  use VC3::Source::Generic;
+  use VC3::Source::Configure;
+  use VC3::Source::CMake;
+  use VC3::Source::Tarball;
+  use VC3::Source::ManualDist;
+  use VC3::Source::Binary;
+  use VC3::Source::System;
+  use VC3::Source::Perl;
+  
+  sub new {
+      my ($class, $widget, $source_raw) = @_;
+  
+      my $source;
+  
+      if($source_raw->{type} eq 'generic') {
+          $source = VC3::Source::Generic->new($widget, $source_raw);
+      }
+      elsif($source_raw->{type} eq 'configure') {
+          $source = VC3::Source::Configure->new($widget, $source_raw);
+      }
+      elsif($source_raw->{type} eq 'cmake') {
+          $source = VC3::Source::CMake->new($widget, $source_raw);
+      }
+      elsif($source_raw->{type} eq 'tarball') {
+          $source = VC3::Source::Tarball->new($widget, $source_raw);
+      }
+      elsif($source_raw->{type} eq 'manual-distribution') {
+          $source = VC3::Source::ManualDist->new($widget, $source_raw);
+      }
+      elsif($source_raw->{type} eq 'binary') {
+          $source = VC3::Source::Binary->new($widget, $source_raw);
+      }
+      elsif($source_raw->{type} eq 'system') {
+          $source = VC3::Source::System->new($widget, $source_raw);
+      }
+      elsif($source_raw->{type} eq 'cpan') {
+          $source = VC3::Source::Perl->new($widget, $source_raw);
+      }
+      else {
+          croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
+      }
+  
+      return $source;
+  }
+  
+  1;
+  
+VC3_SOURCE
+
+$fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_AUTORECIPE';
+  package VC3::Source::AutoRecipe;
+  use base 'VC3::Source::Tarball';
+  use Carp;
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      if($json_description->{recipe}) {
+          die 'Recipe specified when not needed.'
+      }
+  
+      # dummy recipe, so Tarball does not complain.
+      $json_description->{recipe} = ['dummy'];
+  
+      my $self = VC3::Source::Tarball->new($widget, $json_description);
+      $self = bless $self, $class;
+  
+      $self->preface($json_description->{preface});
+      $self->options($json_description->{options});
+      $self->epilogue($json_description->{epilogue});
+  
+      my @steps;
+      if($self->preface) {
+          push @steps, @{$self->preface};
+      }
+  
+      push @steps, @{$self->autorecipe};
+  
+      if($self->epilogue) {
+          push @steps, @{$self->epilogue};
+      }
+  
+      $self->recipe(\@steps);
+  
+      return $self;
+  }
+  
+  sub preface {
+      my ($self, $new_preface) = @_;
+  
+      $self->{preface} = $new_preface if($new_preface);
+  
+      return $self->{preface};
+  }
+  
+  sub epilogue {
+      my ($self, $new_epilogue) = @_;
+  
+      $self->{epilogue} = $new_epilogue if($new_epilogue);
+  
+      return $self->{epilogue};
+  }
+  
+  sub options {
+      my ($self, $new_options) = @_;
+  
+      $self->{options} = $new_options if($new_options);
+  
+      return $self->{options};
+  }
+  
+  1;
+  
+VC3_SOURCE_AUTORECIPE
+
+$fatpacked{"VC3/Source/Binary.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_BINARY';
+  package VC3::Source::Binary;
+  use base 'VC3::Source::Generic';
+  use Carp;
+  # Right now, do the same as generic.
+  
+  1;
+  
+VC3_SOURCE_BINARY
+
+$fatpacked{"VC3/Source/CMake.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CMAKE';
+  package VC3::Source::CMake;
+  use base 'VC3::Source::AutoRecipe';
+  use Carp;
+  
+  sub autorecipe {
+      my ($self) = @_;
+  
+      $self->{dependencies}{'cmake'} ||= ['v3.5.0'];
+  
+      my $conf = 'cmake -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX}';
+      if($self->options) {
+          $conf = join(' ', $conf, $self->options);
+      }
+  
+      $conf .= ' ..';
+  
+      return [ 'mkdir -p build', 'cd build', $conf, 'make', 'make install' ];
+  }
+  
+  1;
+  
+VC3_SOURCE_CMAKE
+
+$fatpacked{"VC3/Source/Configure.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONFIGURE';
+  package VC3::Source::Configure;
+  use base 'VC3::Source::AutoRecipe';
+  use Carp;
+  
+  sub autorecipe {
+      my ($self) = @_;
+  
+      my $conf = './configure --prefix ${VC3_PREFIX}';
+  
+      if($self->options) {
+          $conf = join(' ', $conf, $self->options);
+      }
+  
+      return [ $conf, 'make', 'make install' ];
+  }
+  
+  1;
+  
+VC3_SOURCE_CONFIGURE
+
+$fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_GENERIC';
+  package VC3::Source::Generic;
+  use Carp;
+  use File::Basename;
+  use File::Copy;
+  use File::Path;
+  use File::Spec::Functions qw/catfile rel2abs/;
+  use HTTP::Tiny;
+  use POSIX ":sys_wait_h";
+  use parent;
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      my $self = bless {}, $class;
+  
+      $self->widget($widget);
+      $self->recipe($json_description->{recipe});
+      $self->files($json_description->{files});
+      $self->msg_manual_requirement($json_description->{msg_manual_requirement});
+      $self->dependencies($json_description->{dependencies});
+      $self->prerequisites($json_description->{prerequisites});
+  
+      # should always be executed
+      $self->phony($json_description->{phony});
+  
+      # is an operating system requirement. Only one allowed per plan.
+      $self->operating_system($json_description->{operating_system});
+  
+      # should recipe be executed locally when using parallel builds?
+      $self->local($json_description->{local});
+  
+      $self->{type} = $json_description->{type};
+  
+      return $self;
+  }
+  
+  sub phony {
+      my ($self, $new_phony) = @_;
+  
+      $self->{phony} = $new_phony if(defined $new_phony);
+  
+      return $self->{phony};
+  }
+  
+  sub operating_system {
+      my ($self, $new_operating_system) = @_;
+  
+      $self->{operating_system} = $new_operating_system if(defined $new_operating_system);
+  
+      return $self->{operating_system};
+  }
+  
+  sub widget {
+      my ($self, $new_widget) = @_;
+  
+      $self->{widget} = $new_widget if($new_widget);
+  
+      croak 'No argument given'
+      unless($self->{widget}); 
+  
+      return $self->{widget};
+  }
+  
+  sub bag {
+      my ($self) = @_;
+  
+      return $self->widget->bag;
+  }
+  
+  sub recipe {
+      my ($self, $new_recipe) = @_;
+  
+      $self->{recipe} = $new_recipe if($new_recipe);
+  
+      croak 'No recipe given'
+      unless($self->{recipe}); 
+  
+      return $self->{recipe};
+  }
+  
+  sub files {
+      my ($self, $new_files) = @_;
+  
+      $self->{files} = $new_files if($new_files);
+  
+      if($self->{files}) {
+          return $self->{files};
+      } else {
+          return [];
+      }
+  }
+  
+  sub msg_manual_requirement {
+      my ($self, $new_message) = @_;
+  
+      if($new_message) {
+          $self->{msg_manual_requirement} = $new_message;
+      }
+  
+      return $self->{msg_manual_requirement};
+  }
+  
+  sub check_manual_requirements {
+      my ($self, $new_message) = @_;
+  
+      # by default return true. Usually packages do not have manual requirements.
+      return 1;
+  }
+  
+  sub file_absolute {
+      my ($self, $file) = @_;
+      return rel2abs(catfile($self->bag->files_dir, $file));
+  }
+  
+  sub dependencies {
+      my ($self, $new_dependencies) = @_;
+  
+      if($new_dependencies) {
+          $self->{dependencies} = {};
+  
+          for my $name (keys %{$new_dependencies}) {
+              my $versions = $new_dependencies->{$name};
+              my ($min_version, $max_version) = @{$versions};
+  
+              if($min_version) {
+                  $min_version = version->declare($min_version);
+              }
+  
+              if($max_version) {
+                  $max_version = version->declare($max_version);
+  
+                  my $num = $max_version->numify();
+                  my $fix = ($num * 1000000) % 1000;
+                  $num   += 0.000999 unless($fix);
+                  $max_version = version->declare($num);
+  
+                  unless($min_version) {
+                      $min_version = version->declare('v0.0.0');
+                  }
+              }
+  
+              $self->{dependencies}{$name} = [];
+  
+              if($min_version) {
+                  push @{$self->{dependencies}{$name}}, $min_version;
+              }
+  
+              if($max_version) {
+                  push @{$self->{dependencies}{$name}}, $max_version;
+              }
+          }
+      }
+  
+      return $self->{dependencies};
+  }
+  
+  sub local {
+      my ($self, $new_local) = @_;
+  
+      $self->{local} = $new_local if($new_local);
+  
+      return $self->{local};
+  }
+  
+  sub prerequisites {
+      my ($self, $new_prerequisites) = @_;
+  
+      $self->{prerequisites} = $new_prerequisites if($new_prerequisites);
+  
+      # by default return true. Usually packages do not have prerequisites.
+      return $self->{prerequisites};
+  }
+  
+  sub check_prerequisites {
+      my ($self) = @_;
+  
+      # by default return true. Usually packages do not have prerequisites.
+      unless($self->prerequisites()) {
+          return 0;
+      }
+  
+      my @steps = @{$self->prerequisites};
+  
+      my ($pid, $pre_in) = $self->widget->bag->shell();
+  
+      print { $pre_in } "exec 1>> /dev/null\n";
+      print { $pre_in } "exec 2>&1\n";
+      print { $pre_in } "set -ex\n";
+  
+  
+      # add shifting to tmp directory as the first step.
+      unshift @steps, 'cd ' . $self->bag->tmp_dir;
+  
+      # add exiting cleanly from shell as a last step.
+      push @steps, 'exit 0';
+  
+      for my $step (@steps) {
+          print { $pre_in } "$step\n";
+      }
+  
+      my $exit_status = -1;
+      eval { close $pre_in; $exit_status = $? };
+  
+      if(!$@ && WIFEXITED($exit_status) && (WEXITSTATUS($exit_status) == 0)) {
+          return 0;
+      } else {
+          return -1;
+      }
+  }
+  
+  sub say {
+      my $self = shift @_;
+  
+      return $self->widget->say(@_);
+  }
+  
+  sub get_file {
+      my ($self, $file) = @_;
+  
+      unless(-f $self->file_absolute($file)) {
+          $self->say("Downloading '" . $file . "' from " . $self->bag->repository);
+  
+          my $ff = HTTP::Tiny->new();
+  
+          my $url    = $self->bag->repository . '/' . $file;
+          my $output = catfile($self->bag->files_dir,  $file);
+  
+          my $retries = 5;
+          my $sleep_before_retry = 5; # seconds
+          my $response;
+  
+          for my $i (1..$retries) {
+              $response = $ff->mirror($url, $output);
+  
+              return if $response->{success};
+  
+              # 304 means file did not change from the last time we downloaded it
+              return if $response->{status} == 304;
+  
+              # retries:
+              # 408 is request timeout
+              # 503 is service unavailable
+              # 504 is a gatewat timeout
+              # 524 is a cloudflare timeout
+              # 599 is an internal exception of HTTP::Tiny, which may be a timeout too.
+  
+              if( grep { $response->{status} == $_ } (408,503,504,524,599) ) {
+                  print "Could not download '" . $file . "':\n" . "$response->{status}: $response->{reason}\n";
+                  print "$response->{content}\n" if $response->{content};
+                  print "Retrying @{[$retries - $i]} more time(s)\n"; 
+  
+                  VC3::Builder::select_sleep($sleep_before_retry);
+  
+                  next;
+              }
+  
+              die "Could not download '" . $file . "':\n" . "$response->{status} $response->{reason}";
+          }
+      }
+  }
+  
+  sub get_files {
+      my ($self) = @_;
+  
+      my $files = $self->files;
+  
+      for my $file (@{$files}) {
+          $self->get_file($file);
+      }
+  }
+  
+  sub prepare_files {
+      my ($self, $build_dir) = @_;
+  
+      for my $file (@{$self->files}) {
+          symlink($self->file_absolute($file), catfile($build_dir, basename($file)))
+          || die "Could not link '" . $file . "' to build directory.\n";
+      }
+  }
+  
+  
+  sub prepare_recipe_sandbox {
+      my ($self) = @_;
+  
+  
+      my $no_erase = $self->isa('VC3::Source::System');
+  
+      my $result = $self->widget->prepare_recipe_sandbox($no_erase);
+  
+      if($result == 0) {
+          return 0;
+      }
+  
+      # download to $vc3_distfiles the ingredient (i.e., input files) if missing.
+      $self->get_files();
+  
+      # if generic, copy all files to build directory.
+      # if tarball, expand first file to build directory, and copy the rest of
+      # the files to build directory.
+      $self->prepare_files($self->widget->build_dir);
+  
+      return 1;
+  }
+  
+  sub cleanup_recipe_sandbox {
+      my ($self, $result) = @_;
+      return $self->widget->cleanup_recipe_sandbox($result);
+  }
+  
+  
+  sub execute_recipe {
+      my ($self, $force_rebuild, $ignore_locks) = @_;
+  
+      my $result = 1;
+  
+      unless($ignore_locks) {
+          $self->widget->ribbon->set_lock();
+      }
+  
+      eval {
+          my $state = $self->widget->ribbon->state;
+          if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony && !$self->phony) {
+              $result = 0;
+          } else {
+              $self->say("preparing '" . $self->widget->name . "' for " . $self->widget->bag->target);
+              if($self->widget->bag->dry_run) {
+                  $result = 0;
+              } else {
+                  $self->prepare_recipe_sandbox();
+                  $result = $self->execute_recipe_unlocked();
+                  $self->cleanup_recipe_sandbox($result);
+              }
+          }
+      };
+  
+      my $error_msg = $@;
+  
+      unless($ignore_locks) {
+          $self->widget->ribbon->release_lock();
+      }
+  
+      if($error_msg) {
+          die $error_msg;
+      }
+  
+      return $result;
+  }
+  
+  sub execute_recipe_unlocked {
+      my ($self) = @_;
+  
+      unless($self->isa('VC3::Source::System')) {
+          $self->widget->ribbon->commit('PROCESSING');
+      }
+  
+      my $result = -1;
+      my ($pid, $build_in) = $self->setup_build_shell();
+  
+      my @steps = @{$self->recipe};
+  
+      # add shifting to build directory as the first step.
+      unshift @steps, 'cd ' . $self->widget->build_dir;
+  
+      # add exiting cleanly from shell as a last step.
+      push @steps, 'exit 0';
+  
+      $self->say("details: " .  $self->widget->build_log);
+  
+      for my $step (@steps) {
+          my $date = gmtime();
+          print { $build_in } ": $date\n";
+          print { $build_in } "$step\n";
+      }
+  
+      my $status = -1;
+      eval { close $build_in; $status = $? };
+      if($@) {
+          carp $@;
+      }
+  
+      $self->widget->{child_pid} = undef;
+  
+      if(!$@ && WIFEXITED($status) && (WEXITSTATUS($status) == 0)) {
+          $result = 0;
+      }
+  
+      return $result;
+  }
+  
+  sub setup_build_shell {
+      my ($self) = @_;
+      return $self->widget->setup_build_shell(@{$self->recipe});
+  }
+  
+  1;
+VC3_SOURCE_GENERIC
+
+$fatpacked{"VC3/Source/ManualDist.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_MANUALDIST';
+  package VC3::Source::ManualDist;
+  use base 'VC3::Source::Generic';
+  use Carp;
+  
+  sub get_file {
+      my ($self, $file) = @_;
+  
+      unless(-f $self->file_absolute($file)) {
+          die "Missing manual or restricted distribution file '$file'.\n";
+      }
+  }
+  
+  sub file_absolute {
+      my ($self, $file) = @_;
+      return rel2abs(catfile($self->bag->files, 'manual-distribution', $file));
+  }
+  
+  sub check_manual_requirements {
+      my ($self) = @_;
+  
+      for my $file (@{$self->files}) {
+          unless(-f $self->file_absolute($file)) {
+              # check failed, return false
+              return 0;
+          }
+      }
+  
+      return 1;
+  }
+  
+  1;
+  
+VC3_SOURCE_MANUALDIST
+
+$fatpacked{"VC3/Source/Perl.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_PERL';
+  package VC3::Source::Perl;
+  use base 'VC3::Source::Generic';
+  use Carp;
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      unless($json_description->{recipe}) {
+          my @steps;
+          push @steps, "cpanm --notest --mirror \${VC3_MODULES_PERL_LOCAL_CPAN}/perl --mirror-only " . $json_description->{files}->[0];
+          $json_description->{recipe} = \@steps;
+      }
+  
+      my $self = VC3::Source::Generic->new($widget, $json_description);
+  
+      unless($self->files) {
+          croak "For type 'perl', at least one file should be defined in the files list.";
+      }
+  
+      unless($self->dependencies) {
+          $self->dependencies({});
+      }
+  
+      $self->{dependencies}{'perl-cpanminus'} ||= [];
+  
+      $self = bless $self, $class;
+  
+      return $self;
+  }
+  
+  sub prepare_files  {
+      my ($self, $build_dir) = @_;
+  
+      # do nothing
+      return;
+  }
+  
+  sub get_file {
+      my ($self) = @_;
+  
+      # do nothing
+      return;
+  }
+  
+  1;
+  
+VC3_SOURCE_PERL
+
+$fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_SYSTEM';
+  package VC3::Source::System;
+  use base 'VC3::Source::Generic';
+  use Carp;
+  
+  sub phony {
+      my ($self) = @_;
+  
+      return 1;
+  }
+  
+  sub execute_recipe_unlocked {
+      my ($self) = @_;
+  
+      my $output_filename = $self->widget->build_log;
+  
+      my $result;
+      eval { $result = $self->SUPER::execute_recipe_unlocked(); };
+  
+      if($@) {
+          die $@;
+      } else {
+          open(my $f, '<', $output_filename) || die 'Did not produce root directory file';
+          my $root;
+          while( my $line = <$f>) {
+              if($line =~ m/^VC3_ROOT_SYSTEM:\s*(?<root>.*)$/) {
+                  $root = $+{root};
+                  chomp($root);
+                  # update root from widget with the new information:
+                  $self->widget->root_dir($root);
+                  last;
+              }
+          }
+          close $f;
+          if(!$root) {
+              die 'Did not produce root directory information.';
+          }
+          $root = '' if $root eq '/';
+      }
+  
+      return $result;
+  }
+  
+  1;
+  
+VC3_SOURCE_SYSTEM
+
+$fatpacked{"VC3/Source/Tarball.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_TARBALL';
+  package VC3::Source::Tarball;
+  use base 'VC3::Source::Generic';
+  use Carp;
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      my $self = VC3::Source::Generic->new($widget, $json_description);
+  
+      unless($self->files) {
+          croak "For type 'tarball', at least one file should be defined in the files list, and the first file in the list should be a tarball.";
+      }
+  
+      $self = bless $self, $class;
+  
+      return $self;
+  }
+  
+  sub prepare_files  {
+      my ($self, $build_dir) = @_;
+  
+      # first file in $self->files is the tarball, by convention.
+      my $tarball = @{$self->files}[0];
+      $tarball = $self->file_absolute($tarball);
+  
+      system(qq/tar -C ${build_dir} --strip-components=1 -xpf ${tarball}/);
+      die "Could not expand tarball $tarball.\n" if $?;
+  
+      # link in the rest of the input files.
+      $self->SUPER::prepare_files($build_dir);
+  }
+  
+  1;
+  
+VC3_SOURCE_TARBALL
+
 $fatpacked{"common/sense.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'COMMON_SENSE';
   package common::sense;
   

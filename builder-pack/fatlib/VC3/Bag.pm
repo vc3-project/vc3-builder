@@ -13,6 +13,7 @@ use POSIX ();
 use version ();
 
 use VC3::Plan;
+use VC3::Package;
 
 sub new {
     my ($class, %args) = @_;

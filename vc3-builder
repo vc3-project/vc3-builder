@@ -9432,6 +9432,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   use version ();
   
   use VC3::Plan;
+  use VC3::Package;
   
   sub new {
       my ($class, %args) = @_;
@@ -10531,6 +10532,253 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   1;
   
 VC3_BAG
+
+$fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PACKAGE';
+  package VC3::Package;
+  use Carp;
+  use File::Temp;
+  use File::Spec::Functions qw/catfile rel2abs/;
+  
+  use VC3::Widget;
+  
+  sub new {
+      my ($class, $bag, $name, $json_description) = @_;
+  
+      my $self = bless {}, $class;
+  
+      $self->bag($bag);
+      $self->name($name);
+      $self->dependencies($json_description->{dependencies});
+      $self->wrapper($json_description->{wrapper});
+      $self->prologue($json_description->{prologue});
+      $self->environment_variables($json_description->{'environment-variables'});
+      $self->environment_autovars($json_description->{'environment-autovars'});
+      $self->phony($json_description->{phony});
+      $self->operating_system($json_description->{operating_system});
+      $self->auto_version($json_description->{'auto-version'});
+  
+      $self->show_in_list($json_description->{'show-in-list'});
+      $self->tags($json_description->{'tags'});
+  
+      if($json_description->{versions}) {
+          $self->widgets($json_description->{versions});
+      } else {
+          $self->{widgets} = [];
+      }
+  
+      return $self;
+  }
+  
+  sub widgets {
+      my ($self, $new_widgets_spec) = @_;
+  
+      if($new_widgets_spec) {
+          my @widgets;
+          for my $s (@{$new_widgets_spec}) {
+              my $w = VC3::Widget->new($self, $s);
+              push @widgets, $w if $w;
+          }
+  
+          $self->{widgets} = \@widgets;
+      }
+  
+      return $self->{widgets};
+  }
+          
+  
+  sub bag {
+      my ($self, $new_bag) = @_;
+  
+      $self->{bag} = $new_bag if($new_bag);
+  
+      croak 'No bag given'
+      unless($self->{bag}); 
+  
+      return $self->{bag};
+  }
+  
+  sub name {
+      my ($self, $new_name) = @_;
+  
+      if($new_name) {
+          # names can only contain letters, numbers, - and _.
+          my @badchars = ($new_name =~ /([^A-Za-z0-9-_])/g);
+          if(@badchars) {
+              die "The name '$new_name' containes the following disallowed charactares: " 
+              . join ', ', map { "'$_'" } @badchars;
+          } else {
+              $self->{name} = $new_name if($new_name);
+          }
+      }
+  
+      die 'No name given'
+      unless($self->{name}); 
+  
+      return $self->{name};
+  }
+  
+  sub dependencies {
+      my ($self, $new_dependencies) = @_;
+  
+      $self->{dependencies} = $new_dependencies if($new_dependencies);
+  
+      return $self->{dependencies};
+  }
+  
+  sub active_source {
+      my ($self, $source) = @_;
+  
+      if($source) {
+          $self->{active_source} = $source;
+          $self->checksum($source);
+      }
+  
+      return $self->{active_source};
+  }
+  
+  sub prologue {
+      my ($self, $new_prologue) = @_;
+  
+      $self->{prologue} = $new_prologue if($new_prologue);
+  
+      return $self->{prologue};
+  }
+  
+  sub wrapper {
+      my ($self, $new_wrapper) = @_;
+  
+      $self->{wrapper} = $new_wrapper if($new_wrapper);
+  
+      return $self->{wrapper};
+  }
+  
+  sub environment_variables {
+      my ($self, $new_vars) = @_;
+  
+      $self->{environment_variables} = $new_vars if($new_vars);
+  
+      return $self->{environment_variables};
+  }
+  
+  sub environment_autovars {
+      my ($self, $new_autovars) = @_;
+  
+      $self->{environment_autovars} = $new_autovars if($new_autovars);
+  
+      return $self->{environment_autovars};
+  }
+  
+  sub auto_version {
+      my ($self, $new_auto_version) = @_;
+  
+      $self->{auto_version} = $new_auto_version if($new_auto_version);
+  
+      return $self->{auto_version};
+  }
+  
+  sub compute_auto_version {
+      my ($self, $root) = @_;
+  
+      unless($self->auto_version) {
+          die "I don't know how to compute the version of '" . $self->name . "'\n";
+      }
+  
+      if($root) {
+          $self->bag->add_builder_variable('VC3_PREFIX', $root);
+      }
+  
+      my ($pid, $auto_in) = $self->bag->shell();
+  
+      if($root) {
+          $self->bag->del_builder_variable('VC3_PREFIX');
+      }
+  
+      croak "Could not open $shell for auto-version."
+      unless $auto_in;
+  
+      my $template = catfile($self->bag->tmp_dir, $self->name . 'XXXXXX');
+      my $fh = File::Temp->new(template => $template, unlink => 1);
+      close($fh);
+      
+      my $fname = $fh->filename;
+  
+      # redirect all output to our log file.
+      print { $auto_in } 'exec 1> ' . $fname . "\n";
+      print { $auto_in } "exec 2>&1\n";
+      print { $auto_in } "set -ex\n";
+  
+      if($root) {
+          print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
+      }
+  
+      for my $step (@{$self->auto_version}) {
+          print { $auto_in } "$step\n";
+      }
+      print { $auto_in } "exit 0\n";
+  
+      my $status = -1;
+      eval { close $auto_in; $status = $? };
+  
+      if($@) {
+          carp $@;
+      }
+  
+      open(my $f, '<', $fname) || die 'Did not produce auto-version file';
+      my @lines;
+      my $version;
+      while( my $line = <$f>) {
+          push @lines, $line;
+          if($line =~ m/^VC3_VERSION_SYSTEM:\s*v?(?<version>([0-9]+(\.?[0-9]){0,3}))$/) {
+              $version = $+{version};
+              chomp($version);
+              last;
+          }
+      }
+      close $f;
+      if(!$version) {
+          die "Did not produce version information:\n" . join("\n", @lines);
+      }
+  
+      return $version;
+  }
+  
+  
+  
+  sub phony {
+      my ($self, $new_phony) = @_;
+  
+      $self->{phony} = $new_phony if(defined $new_phony);
+  
+      return $self->{phony};
+  }
+  
+  sub show_in_list {
+      my ($self, $new_show) = @_;
+  
+      $self->{show_in_list} = $new_show if(defined $new_show);
+  
+      return $self->{show_in_list};
+  }
+  
+  sub tags {
+      my ($self, $new_tags) = @_;
+  
+      $self->{tags} = $new_tags if($new_tags);
+  
+      return $self->{tags};
+  }
+  
+  sub operating_system {
+      my ($self, $new_os) = @_;
+  
+      $self->{operating_system} = $new_os if($new_os);
+  
+      return $self->{operating_system};
+  }
+  
+  1;
+  
+VC3_PACKAGE
 
 $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PLAN';
   package VC3::Plan;
@@ -12049,6 +12297,608 @@ $fatpacked{"VC3/Source/Tarball.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
   1;
   
 VC3_SOURCE_TARBALL
+
+$fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_WIDGET';
+  package VC3::Widget;
+  use Carp;
+  use POSIX ":sys_wait_h";
+  use IO::Handle;
+  use Digest::Perl::MD5 qw(md5_hex);
+  use Cwd;
+  use File::Temp qw/tempdir/;
+  use File::Spec::Functions qw/catfile rel2abs/;
+  use JSON::Tiny;
+  
+  use VC3::Ribbon;
+  
+  # Attributes:
+  # name, version, sources, dependencies, wrapper, prologue, environment_variables, environment_autovars, phony
+  sub new {
+      my ($class, $pkg, $json_description) = @_;
+  
+      my $self = bless {}, $class;
+  
+      $self->package($pkg);
+      $self->available(1);
+  
+      if($json_description->{version} eq 'auto') {
+          $self->from_system(1);
+          eval { $self->version($pkg->compute_auto_version()) };
+          if($@) {
+              $self->available(0);
+          }
+      } else {
+          $self->version($json_description->{version});
+          $self->from_system(0);
+      }
+  
+      $self->sources($json_description->{sources});
+      $self->dependencies($json_description->{dependencies});
+      $self->wrapper($json_description->{wrapper});
+      $self->prologue($json_description->{prologue});
+      $self->environment_variables($json_description->{'environment-variables'});
+      $self->environment_autovars($json_description->{'environment-autovars'});
+      $self->phony($json_description->{phony});
+      $self->operating_system($json_description->{operating_system});
+  
+      if($self->available) {
+          # set root dir
+          $self->root_dir();
+  
+          my $majminbug = $self->version->normal;
+          $majminbug =~ s/^v([0-9]+\.[0-9]+\.[0-9]+)/$1/;
+  
+          my $majmin = $self->version->normal;
+          $majmin    =~ s/^v([0-9]+\.[0-9]+)\..*/$1/;
+  
+          $self->add_widget_variable('VERSION', $majmin);
+          $self->add_widget_variable('VERSION_FULL', $majminbug);
+      }
+  
+      unless($self->sources) {
+          my $null_source = {};
+          $null_source->{type}   = 'generic';
+          $null_source->{phony}  = 1;
+          $null_source->{local}  = 1;
+          $null_source->{recipe} = ['echo "no explicit recipe given"'];
+  
+          $self->sources([$null_source]);
+      }
+  
+      return $self;
+  }
+  
+  sub add_widget_variable {
+      my ($self, $varname, $value) = @_;
+  
+      my $vars    = $self->environment_variables || [];
+  
+      $varname = $self->widget_var($varname);
+  
+      my $var = {
+          name     => $varname,
+          value    => $value,
+          clobber  => 1,
+          absolute => 1
+      };
+      unshift @{$vars}, $var;
+  
+      $self->environment_variables($vars);
+  }
+  
+  sub widget_var {
+      my ($self, $varname) = @_;
+  
+      my $expanded = "VC3_${varname}_" . uc($self->name);
+  
+      # replace - with _, as env vars cannot have - in their names.
+      $expanded =~ s/-/_/g;
+  
+      return $expanded;
+  }
+  
+  sub package {
+      my ($self, $new_pkg) = @_;
+  
+      $self->{package} = $new_pkg if($new_pkg);
+  
+      croak 'No package given'
+      unless($self->{package}); 
+  
+      return $self->{package};
+  }
+  
+  sub bag {
+      my ($self) = @_;
+  
+      return $self->package->bag;
+  }
+  
+  sub name {
+      my ($self, $new_name) = @_;
+  
+      return $self->package->name;
+  }
+  
+  sub ribbon {
+      my ($self) = @_;
+  
+      unless($self->{ribbon}) {
+          $self->{ribbon} = VC3::Ribbon->new($self->name, $self->bookeeping_dir, $self->bag->tmp_dir, $self->checksum);
+      }
+  
+      return $self->{ribbon};
+  }
+  
+  sub version {
+      my ($self, $new_version) = @_;
+  
+      if($new_version) {
+          $self->{version} = version->declare($new_version);
+      }
+  
+      unless($self->{version}) {
+          croak 'No version given';
+      }
+  
+      return $self->{version};
+  }
+  
+  sub dependencies {
+      my ($self, $new_dependencies) = @_;
+  
+      if($new_dependencies) {
+          $self->{dependencies} = $new_dependencies;
+      }
+  
+      my %deps;
+      if($self->package->dependencies) {
+          %deps = %{$self->package->dependencies};
+      }
+  
+      for my $d (keys %{$self->{dependencies}}) {
+          $deps{$d} = $self->{dependencies}->{$d};
+      }
+  
+      return \%deps;
+  }
+  
+  sub sources {
+      my ($self, $new_sources) = @_;
+  
+      if($new_sources) {
+          my @sources = map { VC3::Source->new($self, $_) } @{$new_sources};
+          $self->{sources} = \@sources;
+      }
+  
+      return $self->{sources};
+  }
+  
+  sub active_source {
+      my ($self, $source) = @_;
+  
+      if($source) {
+          $self->{active_source} = $source;
+          $self->checksum($source);
+      }
+  
+      return $self->{active_source};
+  }
+  
+  sub prologue {
+      my ($self, $new_prologue) = @_;
+  
+      $self->{prologue} = $new_prologue if($new_prologue);
+  
+      my $prologue = $self->{prologue} || $self->package->prologue;
+  
+      return $prologue;
+  }
+  
+  sub wrapper {
+      my ($self, $new_wrapper) = @_;
+  
+      $self->{wrapper} = $new_wrapper if($new_wrapper);
+  
+      my $wrapper = $self->{wrapper} || $self->package->wrapper;
+  
+      return $wrapper;
+  }
+  
+  
+  sub environment_variables {
+      my ($self, $new_vars) = @_;
+  
+      if($new_vars) {
+          my @vars = ();
+  
+          if($self->package->environment_variables) {
+              push @vars, @{$self->package->environment_variables};
+          }
+  
+          push @vars, @{$new_vars};
+          $self->{environment_variables} = \@vars;
+      }
+  
+      return $self->{environment_variables};
+  }
+  
+  sub environment_autovars {
+      my ($self, $new_autovars) = @_;
+  
+      my %mappings;
+      $mappings{PATH}               = 'bin';
+      $mappings{LD_LIBRARY_PATH}    = 'lib';
+      $mappings{LIBRARY_PATH}       = 'lib';
+      $mappings{C_INCLUDE_PATH}     = 'include';
+      $mappings{CPLUS_INCLUDE_PATH} = 'include';
+      $mappings{PKG_CONFIG_PATH}    = 'lib/pkgconfig';
+      $mappings{PYTHONPATH}         = 'lib/python${VC3_VERSION_PYTHON}/site-packages';
+      $mappings{PERL5LIB}           = 'lib/perl5/site_perl';
+  
+      if($new_autovars) {
+          $self->{environment_autovars} = $new_autovars;
+      }
+  
+      my @autovars;
+      if($self->package->environment_autovars) {
+          push @autovars, @{$self->package->environment_autovars};
+      }
+  
+      if($self->{environment_autovars}) {
+          push @autovars, @{$self->{environment_autovars}};
+      }
+  
+      $self->{environment_variables} ||= [];
+      for my $var (@autovars) {
+          my $target = $mappings{$var};
+  
+          unless($target) {
+              die "Unrecognized auto-variable '$var'";
+          }
+  
+          push @{$self->{environment_variables}}, { 'name' => $var, 'value' => $target };
+      }
+  
+      return @autovars;
+  }
+  
+  sub phony {
+      my ($self, $new_phony) = @_;
+  
+      $self->{phony} = $new_phony if(defined $new_phony);
+  
+      my $phony = $self->{phony} || $self->package->phony;
+  
+      return $phony;
+  }
+  
+  sub from_system {
+      my ($self, $new_from_system) = @_;
+  
+      $self->{from_system} = $new_from_system if(defined $new_from_system);
+  
+      return $self->{from_system};
+  }
+  
+  sub available {
+      my ($self, $new_available) = @_;
+  
+      $self->{available} = $new_available if(defined $new_available);
+  
+      return $self->{available};
+  }
+  
+  sub operating_system {
+      my ($self, $new_operating_system) = @_;
+  
+      $self->{operating_system} = $new_operating_system if($new_operating_system);
+  
+      my $operating_system = $self->{operating_system} || $self->package->operating_system;
+  
+      return $operating_system;
+  }
+  
+  sub root_dir {
+      my ($self, $new) = @_;
+  
+      my $old = $self->{root_dir};
+  
+      my $var_value;
+  
+      if($new) {
+          $self->{root_dir} = $new;
+          $var_value = $new;
+      }
+  
+      unless($self->{root_dir}) {
+          my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
+          $self->{root_dir} = catfile(rel2abs($vc3_root), $rel);
+          $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
+      }
+  
+      if(!$old || $old ne $self->{root_dir}) {
+          $self->add_widget_variable('ROOT', $var_value);
+      }
+  
+      return $self->{root_dir};
+  }
+  
+  sub bookeeping_dir {
+      my ($self, $relative) = @_;
+  
+      my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
+  
+      if($relative) {
+          return $rel;
+      }
+  
+      return catfile(rel2abs($vc3_root), $rel);
+  }
+  
+  sub build_dir {
+      my ($self) = @_;
+  
+      unless($self->{build_dir}) {
+          my $root     = catfile(rel2abs($vc3_root), 'builds');
+  
+          unless(-d $root) {
+              File::Path::make_path($root);
+          }
+  
+          my $template = catfile($root, $self->name . '.XXXXXX');
+  
+          my $tmpdir   = File::Temp::tempdir($template, CLEANUP => 1);
+          $self->{build_dir} = $tmpdir;
+      }
+  
+      return $self->{build_dir};
+  }
+  
+  sub build_log {
+      my ($self) = @_;
+      my $log_name = catfile($self->bookeeping_dir, $self->name . '-build-log');
+  
+      return $log_name;
+  }
+  
+  sub say {
+      my $self = shift @_;
+  
+      return $self->bag->say(@_);
+  }
+  
+  sub consolidate_environment_variables {
+      my ($self, $expansion) = @_; 
+  
+      my $vars = $self->environment_variables
+      || return;
+  
+      for my $var (reverse @{$vars}) {
+  
+          my $name = $var->{name}
+          || carp "Environment variable does not have a name.";
+  
+          my $value = $var->{value}
+          || carp "Environment variable '$name' did not define a value.";
+  
+          my $clobber  = $var->{clobber};
+          my $absolute = $var->{absolute};
+  
+          if($expansion->{$name} && $clobber) {
+              my @old_value = @{$expansion->{$name}};
+              my $n = @old_value;
+              if($n > 1) {
+                  carp("Asked to clobber variable '$name', but it already had a value.\n"
+                      . "'$value' <> '" . join(',', @old_value) . "'\n");
+              }
+          }
+  
+          $expansion->{$name} ||= [];
+  
+          my @paths;
+          if($clobber) {
+              # when clobber, we use the value as is, and remove previous expansions.
+              @paths = ($value);
+              $expansion->{$name} = [];
+          } else {
+              # otherwise, split paths on :
+              @paths = split /:/, $value;
+          }
+  
+          my @current_expansions;
+          for my $path (@paths) {
+              if(!$absolute) {
+                  if($self->root_dir eq $self->bookeeping_dir) {
+                      $path = catfile('${' . $self->widget_var('ROOT') . '}', $path);
+                  } else {
+                      $path = catfile($self->root_dir, $path);
+                  }
+              }
+  
+              push @current_expansions, $path;
+          }
+  
+          unshift @{$expansion->{$name}}, @current_expansions;
+      }
+  }
+  
+  sub error_debug_info {
+      my ($self, $eval_error) = @_;
+  
+      print "'", $self->name, "' failed to build for ", $self->bag->target, "\n";
+  
+      if($eval_error) {
+          print $eval_error, "\n";
+      }
+  
+      if(-f $self->build_log) {
+          print "Last lines of log file:\n";
+          system('tail', $self->build_log);
+      }
+  }
+  
+  
+  sub process_error {
+      my ($self, $sh_on_error, $eval_error, $status) = @_;
+  
+      if($eval_error || $status) {
+          $self->error_debug_info($eval_error);
+  
+          if($sh_on_error) {
+              warn $@ if $@;
+  
+              my $cwd = getcwd();
+  
+              $self->bag->shell_user();
+  
+              chdir $cwd;
+          }
+      }
+  }
+  
+  sub checksum {
+      my ($self, $load) = @_;
+  
+      if(!$self->{checksum}) {
+          $load ||= 'no source';
+  
+          my $txt = $self->hash_to_canonical_str($load);
+          my $dgt = md5_hex($txt);
+  
+          $self->{checksum} = $dgt;
+      }
+  
+      return $self->{checksum};
+  }
+  
+  sub hash_to_canonical_str {
+      my ($self, $ref) = @_;
+  
+      my $str;
+  
+      if(ref($ref) eq 'HASH') {
+          my @ks = sort { $a cmp $b } keys %{$ref};
+  
+          $str 
+          = '{'
+          . join(',', map { $_ .  ':' . $self->hash_to_canonical_str($ref->{$_}) } @ks)
+          . '}';
+      } elsif(ref($ref) eq 'ARRAY') {
+          $str 
+          = '['
+          . join(',', map { $self->hash_to_canonical_str($_) } @{$ref})
+          . ']';
+      } else {
+          $str = $ref;
+      }
+  
+      return $str;
+  }
+  
+  
+  sub msgs_manual_requirements {
+      my ($self) = @_;
+  
+      my $sources = $self->sources;
+  
+      my @restricted_unmet;
+      for my $source (@{$sources}) {
+          unless($source->check_manual_requirements()) {
+              push @restricted_unmet, $source->msg_manual_requirement();
+          }
+      }
+  
+      return @restricted_unmet;
+  }
+  
+  
+  sub prepare_recipe_sandbox {
+      my ($self, $no_erase) = @_;
+  
+      # clear build directory, to avoid bugs from uncleaned sources.
+      my $build = $self->build_dir;
+      if( -d $build ) {
+          File::Path::rmtree($build);
+      }
+  
+      # clear destination directory, to make sure we are running what we believe
+      # we are running.
+      unless($no_erase) {
+          my $dir = $self->root_dir;
+          if( -d $dir ) {
+              File::Path::rmtree($dir);
+          }
+  
+          if($self->root_dir ne $self->bookeeping_dir) {
+              my $dir = $self->bookeeping_dir;
+              if( -d $dir ) {
+                  File::Path::rmtree($dir);
+              }
+          }
+      }
+  
+      # create the dirs we removed above.
+      File::Path::make_path($self->build_dir);
+      File::Path::make_path($self->root_dir);
+      File::Path::make_path($self->bookeeping_dir);
+  
+      # make sure tmp dir exists
+      File::Path::make_path($self->bag->tmp_dir);
+  
+      # set the destination directory as an environment variable before
+      # setting up the shell, so that the child created inherets it.
+      $self->bag->add_builder_variable('VC3_PREFIX', $self->root_dir);
+      $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
+  }
+  
+  sub cleanup_recipe_sandbox {
+      my ($self, $result) = @_;
+  
+      $self->bag->del_builder_variable('VC3_PREFIX');
+      $self->bag->del_builder_variable('VC3_BUILD');
+  
+      if($result eq '0') {
+          File::Path::rmtree($self->build_dir);
+          $self->ribbon->commit('DONE');
+      }
+  
+      # we do not delete the buildir in case of error, to ease debugging.
+  }
+  
+  sub setup_build_shell {
+      my ($self, @log_messages) = @_;
+  
+      # log the recipe used. Since we are opening sh with -e, the recipe executes
+      # as if all steps were &&-ed together.
+      open(my $build_log, '>', $self->build_log);
+      print { $build_log } join("\n && ", @log_messages . "\n");
+      close $build_log;
+  
+      # open sh with -e. This terminates the shell at the first step that returns
+      # a non-zero status.
+      my ($pid, $build_in) = $self->bag->shell();
+  
+      croak "Could not open $shell for building."
+      unless $build_in;
+  
+      # redirect all output to our log file.
+      print { $build_in } 'exec 1>> ' . $self->build_log . "\n";
+      print { $build_in } "exec 2>&1\n";
+      print { $build_in } "set -ex\n";
+  
+      # return the stdin of the shell, and the pid so we can wait for it.
+      return ($pid, $build_in);
+  }
+  
+  sub shell {
+      my ($self) = @_;
+      return $self->bag->shell();
+  }
+  
+  1;
+  
+VC3_WIDGET
 
 $fatpacked{"common/sense.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'COMMON_SENSE';
   package common::sense;
@@ -14117,843 +14967,6 @@ sub uniq_words {
     return keys %words;
 }
 
-package VC3::Package;
-use Carp;
-use File::Temp;
-use File::Spec::Functions qw/catfile rel2abs/;
-
-sub new {
-    my ($class, $bag, $name, $json_description) = @_;
-
-    my $self = bless {}, $class;
-
-    $self->bag($bag);
-    $self->name($name);
-    $self->dependencies($json_description->{dependencies});
-    $self->wrapper($json_description->{wrapper});
-    $self->prologue($json_description->{prologue});
-    $self->environment_variables($json_description->{'environment-variables'});
-    $self->environment_autovars($json_description->{'environment-autovars'});
-    $self->phony($json_description->{phony});
-    $self->operating_system($json_description->{operating_system});
-    $self->auto_version($json_description->{'auto-version'});
-
-    $self->show_in_list($json_description->{'show-in-list'});
-    $self->tags($json_description->{'tags'});
-
-    if($json_description->{versions}) {
-        $self->widgets($json_description->{versions});
-    } else {
-        $self->{widgets} = [];
-    }
-
-    return $self;
-}
-
-sub widgets {
-    my ($self, $new_widgets_spec) = @_;
-
-    if($new_widgets_spec) {
-        my @widgets;
-        for my $s (@{$new_widgets_spec}) {
-            my $w = VC3::Widget->new($self, $s);
-            push @widgets, $w if $w;
-        }
-
-        $self->{widgets} = \@widgets;
-    }
-
-    return $self->{widgets};
-}
-        
-
-sub bag {
-    my ($self, $new_bag) = @_;
-
-    $self->{bag} = $new_bag if($new_bag);
-
-    croak 'No bag given'
-    unless($self->{bag}); 
-
-    return $self->{bag};
-}
-
-sub name {
-    my ($self, $new_name) = @_;
-
-    if($new_name) {
-        # names can only contain letters, numbers, - and _.
-        my @badchars = ($new_name =~ /([^A-Za-z0-9-_])/g);
-        if(@badchars) {
-            die "The name '$new_name' containes the following disallowed charactares: " 
-            . join ', ', map { "'$_'" } @badchars;
-        } else {
-            $self->{name} = $new_name if($new_name);
-        }
-    }
-
-    die 'No name given'
-    unless($self->{name}); 
-
-    return $self->{name};
-}
-
-sub dependencies {
-    my ($self, $new_dependencies) = @_;
-
-    $self->{dependencies} = $new_dependencies if($new_dependencies);
-
-    return $self->{dependencies};
-}
-
-sub active_source {
-    my ($self, $source) = @_;
-
-    if($source) {
-        $self->{active_source} = $source;
-        $self->checksum($source);
-    }
-
-    return $self->{active_source};
-}
-
-sub prologue {
-    my ($self, $new_prologue) = @_;
-
-    $self->{prologue} = $new_prologue if($new_prologue);
-
-    return $self->{prologue};
-}
-
-sub wrapper {
-    my ($self, $new_wrapper) = @_;
-
-    $self->{wrapper} = $new_wrapper if($new_wrapper);
-
-    return $self->{wrapper};
-}
-
-sub environment_variables {
-    my ($self, $new_vars) = @_;
-
-    $self->{environment_variables} = $new_vars if($new_vars);
-
-    return $self->{environment_variables};
-}
-
-sub environment_autovars {
-    my ($self, $new_autovars) = @_;
-
-    $self->{environment_autovars} = $new_autovars if($new_autovars);
-
-    return $self->{environment_autovars};
-}
-
-sub auto_version {
-    my ($self, $new_auto_version) = @_;
-
-    $self->{auto_version} = $new_auto_version if($new_auto_version);
-
-    return $self->{auto_version};
-}
-
-sub compute_auto_version {
-    my ($self, $root) = @_;
-
-    unless($self->auto_version) {
-        die "I don't know how to compute the version of '" . $self->name . "'\n";
-    }
-
-    if($root) {
-        $self->bag->add_builder_variable('VC3_PREFIX', $root);
-    }
-
-    my ($pid, $auto_in) = $self->bag->shell();
-
-    if($root) {
-        $self->bag->del_builder_variable('VC3_PREFIX');
-    }
-
-    croak "Could not open $shell for auto-version."
-    unless $auto_in;
-
-    my $template = catfile($self->bag->tmp_dir, $self->name . 'XXXXXX');
-    my $fh = File::Temp->new(template => $template, unlink => 1);
-    close($fh);
-    
-    my $fname = $fh->filename;
-
-    # redirect all output to our log file.
-    print { $auto_in } 'exec 1> ' . $fname . "\n";
-    print { $auto_in } "exec 2>&1\n";
-    print { $auto_in } "set -ex\n";
-
-    if($root) {
-        print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
-    }
-
-    for my $step (@{$self->auto_version}) {
-        print { $auto_in } "$step\n";
-    }
-    print { $auto_in } "exit 0\n";
-
-    my $status = -1;
-    eval { close $auto_in; $status = $? };
-
-    if($@) {
-        carp $@;
-    }
-
-    open(my $f, '<', $fname) || die 'Did not produce auto-version file';
-    my @lines;
-    my $version;
-    while( my $line = <$f>) {
-        push @lines, $line;
-        if($line =~ m/^VC3_VERSION_SYSTEM:\s*v?(?<version>([0-9]+(\.?[0-9]){0,3}))$/) {
-            $version = $+{version};
-            chomp($version);
-            last;
-        }
-    }
-    close $f;
-    if(!$version) {
-        die "Did not produce version information:\n" . join("\n", @lines);
-    }
-
-    return $version;
-}
-
-
-
-sub phony {
-    my ($self, $new_phony) = @_;
-
-    $self->{phony} = $new_phony if(defined $new_phony);
-
-    return $self->{phony};
-}
-
-sub show_in_list {
-    my ($self, $new_show) = @_;
-
-    $self->{show_in_list} = $new_show if(defined $new_show);
-
-    return $self->{show_in_list};
-}
-
-sub tags {
-    my ($self, $new_tags) = @_;
-
-    $self->{tags} = $new_tags if($new_tags);
-
-    return $self->{tags};
-}
-
-sub operating_system {
-    my ($self, $new_os) = @_;
-
-    $self->{operating_system} = $new_os if($new_os);
-
-    return $self->{operating_system};
-}
-
-
-package VC3::Widget;
-use Carp;
-use POSIX ":sys_wait_h";
-use IO::Handle;
-use Digest::Perl::MD5 qw(md5_hex);
-use Cwd;
-use File::Temp qw/tempdir/;
-use File::Spec::Functions qw/catfile rel2abs/;
-use JSON::Tiny;
-
-use VC3::Ribbon;
-
-# Attributes:
-# name, version, sources, dependencies, wrapper, prologue, environment_variables, environment_autovars, phony
-sub new {
-    my ($class, $pkg, $json_description) = @_;
-
-    my $self = bless {}, $class;
-
-    $self->package($pkg);
-    $self->available(1);
-
-    if($json_description->{version} eq 'auto') {
-        $self->from_system(1);
-        eval { $self->version($pkg->compute_auto_version()) };
-        if($@) {
-            $self->available(0);
-        }
-    } else {
-        $self->version($json_description->{version});
-        $self->from_system(0);
-    }
-
-    $self->sources($json_description->{sources});
-    $self->dependencies($json_description->{dependencies});
-    $self->wrapper($json_description->{wrapper});
-    $self->prologue($json_description->{prologue});
-    $self->environment_variables($json_description->{'environment-variables'});
-    $self->environment_autovars($json_description->{'environment-autovars'});
-    $self->phony($json_description->{phony});
-    $self->operating_system($json_description->{operating_system});
-
-    if($self->available) {
-        # set root dir
-        $self->root_dir();
-
-        my $majminbug = $self->version->normal;
-        $majminbug =~ s/^v([0-9]+\.[0-9]+\.[0-9]+)/$1/;
-
-        my $majmin = $self->version->normal;
-        $majmin    =~ s/^v([0-9]+\.[0-9]+)\..*/$1/;
-
-        $self->add_widget_variable('VERSION', $majmin);
-        $self->add_widget_variable('VERSION_FULL', $majminbug);
-    }
-
-    unless($self->sources) {
-        my $null_source = {};
-        $null_source->{type}   = 'generic';
-        $null_source->{phony}  = 1;
-        $null_source->{local}  = 1;
-        $null_source->{recipe} = ['echo "no explicit recipe given"'];
-
-        $self->sources([$null_source]);
-    }
-
-    return $self;
-}
-
-sub add_widget_variable {
-    my ($self, $varname, $value) = @_;
-
-    my $vars    = $self->environment_variables || [];
-
-    $varname = $self->widget_var($varname);
-
-    my $var = {
-        name     => $varname,
-        value    => $value,
-        clobber  => 1,
-        absolute => 1
-    };
-    unshift @{$vars}, $var;
-
-    $self->environment_variables($vars);
-}
-
-sub widget_var {
-    my ($self, $varname) = @_;
-
-    my $expanded = "VC3_${varname}_" . uc($self->name);
-
-    # replace - with _, as env vars cannot have - in their names.
-    $expanded =~ s/-/_/g;
-
-    return $expanded;
-}
-
-sub package {
-    my ($self, $new_pkg) = @_;
-
-    $self->{package} = $new_pkg if($new_pkg);
-
-    croak 'No package given'
-    unless($self->{package}); 
-
-    return $self->{package};
-}
-
-sub bag {
-    my ($self) = @_;
-
-    return $self->package->bag;
-}
-
-sub name {
-    my ($self, $new_name) = @_;
-
-    return $self->package->name;
-}
-
-sub ribbon {
-    my ($self) = @_;
-
-    unless($self->{ribbon}) {
-        $self->{ribbon} = VC3::Ribbon->new($self->name, $self->bookeeping_dir, $self->bag->tmp_dir, $self->checksum);
-    }
-
-    return $self->{ribbon};
-}
-
-sub version {
-    my ($self, $new_version) = @_;
-
-    if($new_version) {
-        $self->{version} = version->declare($new_version);
-    }
-
-    unless($self->{version}) {
-        croak 'No version given';
-    }
-
-    return $self->{version};
-}
-
-sub dependencies {
-    my ($self, $new_dependencies) = @_;
-
-    if($new_dependencies) {
-        $self->{dependencies} = $new_dependencies;
-    }
-
-    my %deps;
-    if($self->package->dependencies) {
-        %deps = %{$self->package->dependencies};
-    }
-
-    for my $d (keys %{$self->{dependencies}}) {
-        $deps{$d} = $self->{dependencies}->{$d};
-    }
-
-    return \%deps;
-}
-
-sub sources {
-    my ($self, $new_sources) = @_;
-
-    if($new_sources) {
-        my @sources = map { VC3::Source->new($self, $_) } @{$new_sources};
-        $self->{sources} = \@sources;
-    }
-
-    return $self->{sources};
-}
-
-sub active_source {
-    my ($self, $source) = @_;
-
-    if($source) {
-        $self->{active_source} = $source;
-        $self->checksum($source);
-    }
-
-    return $self->{active_source};
-}
-
-sub prologue {
-    my ($self, $new_prologue) = @_;
-
-    $self->{prologue} = $new_prologue if($new_prologue);
-
-    my $prologue = $self->{prologue} || $self->package->prologue;
-
-    return $prologue;
-}
-
-sub wrapper {
-    my ($self, $new_wrapper) = @_;
-
-    $self->{wrapper} = $new_wrapper if($new_wrapper);
-
-    my $wrapper = $self->{wrapper} || $self->package->wrapper;
-
-    return $wrapper;
-}
-
-
-sub environment_variables {
-    my ($self, $new_vars) = @_;
-
-    if($new_vars) {
-        my @vars = ();
-
-        if($self->package->environment_variables) {
-            push @vars, @{$self->package->environment_variables};
-        }
-
-        push @vars, @{$new_vars};
-        $self->{environment_variables} = \@vars;
-    }
-
-    return $self->{environment_variables};
-}
-
-sub environment_autovars {
-    my ($self, $new_autovars) = @_;
-
-    my %mappings;
-    $mappings{PATH}               = 'bin';
-    $mappings{LD_LIBRARY_PATH}    = 'lib';
-    $mappings{LIBRARY_PATH}       = 'lib';
-    $mappings{C_INCLUDE_PATH}     = 'include';
-    $mappings{CPLUS_INCLUDE_PATH} = 'include';
-    $mappings{PKG_CONFIG_PATH}    = 'lib/pkgconfig';
-    $mappings{PYTHONPATH}         = 'lib/python${VC3_VERSION_PYTHON}/site-packages';
-    $mappings{PERL5LIB}           = 'lib/perl5/site_perl';
-
-    if($new_autovars) {
-        $self->{environment_autovars} = $new_autovars;
-    }
-
-    my @autovars;
-    if($self->package->environment_autovars) {
-        push @autovars, @{$self->package->environment_autovars};
-    }
-
-    if($self->{environment_autovars}) {
-        push @autovars, @{$self->{environment_autovars}};
-    }
-
-    $self->{environment_variables} ||= [];
-    for my $var (@autovars) {
-        my $target = $mappings{$var};
-
-        unless($target) {
-            die "Unrecognized auto-variable '$var'";
-        }
-
-        push @{$self->{environment_variables}}, { 'name' => $var, 'value' => $target };
-    }
-
-    return @autovars;
-}
-
-sub phony {
-    my ($self, $new_phony) = @_;
-
-    $self->{phony} = $new_phony if(defined $new_phony);
-
-    my $phony = $self->{phony} || $self->package->phony;
-
-    return $phony;
-}
-
-sub from_system {
-    my ($self, $new_from_system) = @_;
-
-    $self->{from_system} = $new_from_system if(defined $new_from_system);
-
-    return $self->{from_system};
-}
-
-sub available {
-    my ($self, $new_available) = @_;
-
-    $self->{available} = $new_available if(defined $new_available);
-
-    return $self->{available};
-}
-
-sub operating_system {
-    my ($self, $new_operating_system) = @_;
-
-    $self->{operating_system} = $new_operating_system if($new_operating_system);
-
-    my $operating_system = $self->{operating_system} || $self->package->operating_system;
-
-    return $operating_system;
-}
-
-sub root_dir {
-    my ($self, $new) = @_;
-
-    my $old = $self->{root_dir};
-
-    my $var_value;
-
-    if($new) {
-        $self->{root_dir} = $new;
-        $var_value = $new;
-    }
-
-    unless($self->{root_dir}) {
-        my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
-        $self->{root_dir} = catfile(rel2abs($vc3_root), $rel);
-        $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
-    }
-
-    if(!$old || $old ne $self->{root_dir}) {
-        $self->add_widget_variable('ROOT', $var_value);
-    }
-
-    return $self->{root_dir};
-}
-
-sub bookeeping_dir {
-    my ($self, $relative) = @_;
-
-    my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
-
-    if($relative) {
-        return $rel;
-    }
-
-    return catfile(rel2abs($vc3_root), $rel);
-}
-
-sub build_dir {
-    my ($self) = @_;
-
-    unless($self->{build_dir}) {
-        my $root     = catfile(rel2abs($vc3_root), 'builds');
-
-        unless(-d $root) {
-            File::Path::make_path($root);
-        }
-
-        my $template = catfile($root, $self->name . '.XXXXXX');
-
-        my $tmpdir   = File::Temp::tempdir($template, CLEANUP => 1);
-        $self->{build_dir} = $tmpdir;
-    }
-
-    return $self->{build_dir};
-}
-
-sub build_log {
-    my ($self) = @_;
-    my $log_name = catfile($self->bookeeping_dir, $self->name . '-build-log');
-
-    return $log_name;
-}
-
-sub say {
-    my $self = shift @_;
-
-    return $self->bag->say(@_);
-}
-
-sub consolidate_environment_variables {
-    my ($self, $expansion) = @_; 
-
-    my $vars = $self->environment_variables
-    || return;
-
-    for my $var (reverse @{$vars}) {
-
-        my $name = $var->{name}
-        || carp "Environment variable does not have a name.";
-
-        my $value = $var->{value}
-        || carp "Environment variable '$name' did not define a value.";
-
-        my $clobber  = $var->{clobber};
-        my $absolute = $var->{absolute};
-
-        if($expansion->{$name} && $clobber) {
-            my @old_value = @{$expansion->{$name}};
-            my $n = @old_value;
-            if($n > 1) {
-                carp("Asked to clobber variable '$name', but it already had a value.\n"
-                    . "'$value' <> '" . join(',', @old_value) . "'\n");
-            }
-        }
-
-        $expansion->{$name} ||= [];
-
-        my @paths;
-        if($clobber) {
-            # when clobber, we use the value as is, and remove previous expansions.
-            @paths = ($value);
-            $expansion->{$name} = [];
-        } else {
-            # otherwise, split paths on :
-            @paths = split /:/, $value;
-        }
-
-        my @current_expansions;
-        for my $path (@paths) {
-            if(!$absolute) {
-                if($self->root_dir eq $self->bookeeping_dir) {
-                    $path = catfile('${' . $self->widget_var('ROOT') . '}', $path);
-                } else {
-                    $path = catfile($self->root_dir, $path);
-                }
-            }
-
-            push @current_expansions, $path;
-        }
-
-        unshift @{$expansion->{$name}}, @current_expansions;
-    }
-}
-
-sub error_debug_info {
-    my ($self, $eval_error) = @_;
-
-    print "'", $self->name, "' failed to build for ", $self->bag->target, "\n";
-
-    if($eval_error) {
-        print $eval_error, "\n";
-    }
-
-    if(-f $self->build_log) {
-        print "Last lines of log file:\n";
-        system('tail', $self->build_log);
-    }
-}
-
-
-sub process_error {
-    my ($self, $sh_on_error, $eval_error, $status) = @_;
-
-    if($eval_error || $status) {
-        $self->error_debug_info($eval_error);
-
-        if($sh_on_error) {
-            warn $@ if $@;
-
-            my $cwd = getcwd();
-
-            $self->bag->shell_user();
-
-            chdir $cwd;
-        }
-    }
-}
-
-sub checksum {
-    my ($self, $load) = @_;
-
-    if(!$self->{checksum}) {
-        $load ||= 'no source';
-
-        my $txt = $self->hash_to_canonical_str($load);
-        my $dgt = md5_hex($txt);
-
-        $self->{checksum} = $dgt;
-    }
-
-    return $self->{checksum};
-}
-
-sub hash_to_canonical_str {
-    my ($self, $ref) = @_;
-
-    my $str;
-
-    if(ref($ref) eq 'HASH') {
-        my @ks = sort { $a cmp $b } keys %{$ref};
-
-        $str 
-        = '{'
-        . join(',', map { $_ .  ':' . $self->hash_to_canonical_str($ref->{$_}) } @ks)
-        . '}';
-    } elsif(ref($ref) eq 'ARRAY') {
-        $str 
-        = '['
-        . join(',', map { $self->hash_to_canonical_str($_) } @{$ref})
-        . ']';
-    } else {
-        $str = $ref;
-    }
-
-    return $str;
-}
-
-
-sub msgs_manual_requirements {
-    my ($self) = @_;
-
-    my $sources = $self->sources;
-
-    my @restricted_unmet;
-    for my $source (@{$sources}) {
-        unless($source->check_manual_requirements()) {
-            push @restricted_unmet, $source->msg_manual_requirement();
-        }
-    }
-
-    return @restricted_unmet;
-}
-
-
-sub prepare_recipe_sandbox {
-    my ($self, $no_erase) = @_;
-
-    # clear build directory, to avoid bugs from uncleaned sources.
-    my $build = $self->build_dir;
-    if( -d $build ) {
-        File::Path::rmtree($build);
-    }
-
-    # clear destination directory, to make sure we are running what we believe
-    # we are running.
-    unless($no_erase) {
-        my $dir = $self->root_dir;
-        if( -d $dir ) {
-            File::Path::rmtree($dir);
-        }
-
-        if($self->root_dir ne $self->bookeeping_dir) {
-            my $dir = $self->bookeeping_dir;
-            if( -d $dir ) {
-                File::Path::rmtree($dir);
-            }
-        }
-    }
-
-    # create the dirs we removed above.
-    File::Path::make_path($self->build_dir);
-    File::Path::make_path($self->root_dir);
-    File::Path::make_path($self->bookeeping_dir);
-
-    # make sure tmp dir exists
-    File::Path::make_path($self->bag->tmp_dir);
-
-    # set the destination directory as an environment variable before
-    # setting up the shell, so that the child created inherets it.
-    $self->bag->add_builder_variable('VC3_PREFIX', $self->root_dir);
-    $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
-}
-
-sub cleanup_recipe_sandbox {
-    my ($self, $result) = @_;
-
-    $self->bag->del_builder_variable('VC3_PREFIX');
-    $self->bag->del_builder_variable('VC3_BUILD');
-
-    if($result eq '0') {
-        File::Path::rmtree($self->build_dir);
-        $self->ribbon->commit('DONE');
-    }
-
-    # we do not delete the buildir in case of error, to ease debugging.
-}
-
-sub setup_build_shell {
-    my ($self, @log_messages) = @_;
-
-    # log the recipe used. Since we are opening sh with -e, the recipe executes
-    # as if all steps were &&-ed together.
-    open(my $build_log, '>', $self->build_log);
-    print { $build_log } join("\n && ", @log_messages . "\n");
-    close $build_log;
-
-    # open sh with -e. This terminates the shell at the first step that returns
-    # a non-zero status.
-    my ($pid, $build_in) = $self->bag->shell();
-
-    croak "Could not open $shell for building."
-    unless $build_in;
-
-    # redirect all output to our log file.
-    print { $build_in } 'exec 1>> ' . $self->build_log . "\n";
-    print { $build_in } "exec 2>&1\n";
-    print { $build_in } "set -ex\n";
-
-    # return the stdin of the shell, and the pid so we can wait for it.
-    return ($pid, $build_in);
-}
-
-sub shell {
-    my ($self) = @_;
-    return $self->bag->shell();
-}
 
 
 package VC3::Builder;

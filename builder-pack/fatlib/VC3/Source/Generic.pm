@@ -20,34 +20,9 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->prerequisites($json_description->{prerequisites});
 
-    # should always be executed
-    $self->phony($json_description->{phony});
-
-    # is an operating system requirement. Only one allowed per plan.
-    $self->operating_system($json_description->{operating_system});
-
-    # should recipe be executed locally when using parallel builds?
-    $self->local($json_description->{local});
-
     $self->{type} = $json_description->{type};
 
     return $self;
-}
-
-sub phony {
-    my ($self, $new_phony) = @_;
-
-    $self->{phony} = $new_phony if(defined $new_phony);
-
-    return $self->{phony};
-}
-
-sub operating_system {
-    my ($self, $new_operating_system) = @_;
-
-    $self->{operating_system} = $new_operating_system if(defined $new_operating_system);
-
-    return $self->{operating_system};
 }
 
 sub widget {
@@ -152,14 +127,6 @@ sub dependencies {
     }
 
     return $self->{dependencies};
-}
-
-sub local {
-    my ($self, $new_local) = @_;
-
-    $self->{local} = $new_local if($new_local);
-
-    return $self->{local};
 }
 
 sub prerequisites {
@@ -319,7 +286,7 @@ sub execute_recipe {
 
     eval {
         my $state = $self->widget->ribbon->state;
-        if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony && !$self->phony) {
+        if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony) {
             $result = 0;
         } else {
             $self->say("preparing '" . $self->widget->name . "' for " . $self->widget->bag->target);

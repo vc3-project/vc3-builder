@@ -12,9 +12,9 @@
         "versions":[
             {
                 "version":"v1.0.0",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "echo 'hello builder'"
                     ],
@@ -46,9 +46,9 @@
         "versions":[
             {
                 "version":"v1.0.0",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "static-get"
                     ],
@@ -72,9 +72,9 @@
         "versions":[
             {
                 "version":"v1.23.0",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "tar-1.23"
                     ],
@@ -230,9 +230,9 @@
         "versions":[
             {
                 "version":"v4.6.1",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "gcc-4.6.1-2.tar.gz"
                     ],
@@ -260,9 +260,9 @@
         "versions":[
             {
                 "version":"v3.82",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "make-3.82.tar.gz"
                     ],
@@ -283,9 +283,9 @@
         "versions":[
             {
                 "version":"v4.2",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "sed-4.2.tar.gz"
                     ],
@@ -305,9 +305,9 @@
         "versions":[
             {
                 "version":"v4.1.1",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "gawk-4.1.1.tar.gz"
                     ],
@@ -327,9 +327,9 @@
         "versions":[
             {
                 "version":"v0.23",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "pkg-config-0.23-1.tar.gz"
                     ],
@@ -350,9 +350,9 @@
             {
                 "version":"v0.0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                         "[ -d autopyfactory ] || git clone https://github.com/PanDAWMS/autopyfactory.git",
@@ -393,9 +393,9 @@
             {
                 "version":"v0.0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                         "[ -d vc3-factory-plugins ] || git clone https://github.com/vc3-project/vc3-factory-plugins.git",
@@ -437,9 +437,9 @@
         "versions":[
             {
                 "version":"v0.0.1",
+                "phony":1,
                 "source":{
                     "type":"generic",
-                    "phony":1,
                     "recipe":[
                         "home=$(python -m site --user-base)",
                         "mkdir -p ${home}/lib/python",
@@ -482,9 +482,9 @@
             {
                 "version":"v0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd $VC3_INSTALL_USER_HOME/git",
                         "[ -d sdcc-pluginmanager ] || git clone https://github.com/bnl-sdcc/sdcc-pluginmanager.git",
@@ -507,9 +507,9 @@
             {
                 "version":"v0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                         "[ -d credible ] || git clone https://github.com/vc3-project/credible.git",
@@ -573,9 +573,9 @@
             {
                 "version":"v0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                         "for S in vc3-infoservice vc3-client vc3-master; do",
@@ -628,9 +628,9 @@
             {
                 "version":"v0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}/bin",
                         "cd ${VC3_PREFIX}/bin",
@@ -657,9 +657,9 @@
             {
                 "version":"v1.0",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "icecube-argonne-demo-01.tar.gz"
                     ],
@@ -770,10 +770,10 @@
         "versions":[
             {
                 "version":"v2.4.0",
+                "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
-                    "phony":1,
                     "recipe":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -794,9 +794,9 @@
             {
                 "version":"auto",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"system",
-                    "local":1,
                     "prerequisites":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -1508,7 +1508,7 @@
 
     "git":{
         "tags":["source version control", "compilation tools"],
-        "show-in-list":1,
+        "show-in-list":0,
         "versions":[
             {
                 "version":"auto",
@@ -1576,9 +1576,9 @@
         "versions":[
             {
                 "version":"v8.6.0",
+                "phony":1,
                 "source":{
                     "type":"generic",
-                    "phony":1,
                     "recipe":[
                         ": run as condor_master -f",
                         "cd ${VC3_ROOT_CONDOR}",
@@ -3665,7 +3665,6 @@
                 "version":"v6.0.16",
                 "source":{
                     "type":"binary",
-                    "local":1,
                     "files":[
                         "cctools-statics-6.0.16-x86_64.tar.gz"
                     ],

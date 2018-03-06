@@ -136,10 +136,6 @@ sub parse_requirement {
         $min = 'v0.0.1';
     }
 
-    warn "--> $name";
-    warn "---> $min";
-    warn "----> $max";
-
     # turn into version strings
     eval {
         $min = version->declare($min) if($min);
@@ -470,7 +466,7 @@ sub to_makeflow {
 
         print { $mflow_f } "\t";
 
-        if(!$w->source || $w->source->local) {
+        if(!$w->source || $w->local) {
             print { $mflow_f } "LOCAL "
         }
 
@@ -518,6 +514,15 @@ sub trimmed_database {
             $n->{phony} = $w->phony;
         }
 
+        if($w->local) {
+            $n->{local} = $w->local;
+        }
+
+        if($w->operating_system) {
+            $n->{operating_system} = $w->operating_system;
+        }
+
+
         my $s = $w->source;
         my $m = {};
 
@@ -538,7 +543,6 @@ sub trimmed_database {
         } elsif($s->recipe) {
             $m->{recipe} = $s->recipe;
         }
-
         if($s->files) {
             $m->{files} = $s->files;
         }
@@ -555,8 +559,8 @@ sub trimmed_database {
             $m->{prerequisites} = $s->prerequisites;
         }
 
-        if($s->local) {
-            $m->{local} = $s->local;
+        if($s->operating_system) {
+            $m->{operating_system} = $s->operating_system;
         }
 
         $n->{sources} = [ $m ];

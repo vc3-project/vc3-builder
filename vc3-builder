@@ -10903,10 +10903,6 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
           $min = 'v0.0.1';
       }
   
-      warn "--> $name";
-      warn "---> $min";
-      warn "----> $max";
-  
       # turn into version strings
       eval {
           $min = version->declare($min) if($min);
@@ -11237,7 +11233,7 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   
           print { $mflow_f } "\t";
   
-          if(!$w->source || $w->source->local) {
+          if(!$w->source || $w->local) {
               print { $mflow_f } "LOCAL "
           }
   
@@ -11285,6 +11281,15 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
               $n->{phony} = $w->phony;
           }
   
+          if($w->local) {
+              $n->{local} = $w->local;
+          }
+  
+          if($w->operating_system) {
+              $n->{operating_system} = $w->operating_system;
+          }
+  
+  
           my $s = $w->source;
           my $m = {};
   
@@ -11305,7 +11310,6 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
           } elsif($s->recipe) {
               $m->{recipe} = $s->recipe;
           }
-  
           if($s->files) {
               $m->{files} = $s->files;
           }
@@ -11322,8 +11326,8 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
               $m->{prerequisites} = $s->prerequisites;
           }
   
-          if($s->local) {
-              $m->{local} = $s->local;
+          if($s->operating_system) {
+              $m->{operating_system} = $s->operating_system;
           }
   
           $n->{sources} = [ $m ];
@@ -11669,7 +11673,14 @@ $fatpacked{"VC3/Source/Binary.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
   package VC3::Source::Binary;
   use base 'VC3::Source::Generic';
   use Carp;
-  # Right now, do the same as generic.
+  # Right now, do the same as generic, but ensure we do it locally in parallel builds.
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      $widget->local(1);
+      return $class->SUPER::new($widget, $json_description);
+  }
   
   1;
   
@@ -11743,34 +11754,9 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
       $self->dependencies($json_description->{dependencies});
       $self->prerequisites($json_description->{prerequisites});
   
-      # should always be executed
-      $self->phony($json_description->{phony});
-  
-      # is an operating system requirement. Only one allowed per plan.
-      $self->operating_system($json_description->{operating_system});
-  
-      # should recipe be executed locally when using parallel builds?
-      $self->local($json_description->{local});
-  
       $self->{type} = $json_description->{type};
   
       return $self;
-  }
-  
-  sub phony {
-      my ($self, $new_phony) = @_;
-  
-      $self->{phony} = $new_phony if(defined $new_phony);
-  
-      return $self->{phony};
-  }
-  
-  sub operating_system {
-      my ($self, $new_operating_system) = @_;
-  
-      $self->{operating_system} = $new_operating_system if(defined $new_operating_system);
-  
-      return $self->{operating_system};
   }
   
   sub widget {
@@ -11875,14 +11861,6 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
       }
   
       return $self->{dependencies};
-  }
-  
-  sub local {
-      my ($self, $new_local) = @_;
-  
-      $self->{local} = $new_local if($new_local);
-  
-      return $self->{local};
   }
   
   sub prerequisites {
@@ -12042,7 +12020,7 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
   
       eval {
           my $state = $self->widget->ribbon->state;
-          if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony && !$self->phony) {
+          if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony) {
               $result = 0;
           } else {
               $self->say("preparing '" . $self->widget->name . "' for " . $self->widget->bag->target);
@@ -12329,7 +12307,13 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       $self->environment_variables($json_description->{'environment-variables'});
       $self->environment_autovars($json_description->{'environment-autovars'});
       $self->operating_system($json_description->{operating_system});
+  
+      # should always be executed
       $self->phony($json_description->{phony});
+  
+      # should recipe be executed locally when using parallel builds?
+      $self->local($json_description->{local});
+  
   
       if($self->available) {
           # set root dir
@@ -12348,8 +12332,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       unless($self->source) {
           my $null_source = {};
           $null_source->{type}   = 'generic';
-          $null_source->{phony}  = 1;
-          $null_source->{local}  = 1;
           $null_source->{recipe} = ['echo "no explicit recipe given"'];
   
           $self->source($null_source);
@@ -12549,6 +12531,14 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       my $phony = $self->{phony} || $self->package->phony;
   
       return $phony;
+  }
+  
+  sub local {
+      my ($self, $new_local) = @_;
+  
+      $self->{local} = $new_local if($new_local);
+  
+      return $self->{local};
   }
   
   sub from_system {
@@ -14957,9 +14947,9 @@ __DATA__
         "versions":[
             {
                 "version":"v1.0.0",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "echo 'hello builder'"
                     ],
@@ -14991,9 +14981,9 @@ __DATA__
         "versions":[
             {
                 "version":"v1.0.0",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "static-get"
                     ],
@@ -15017,9 +15007,9 @@ __DATA__
         "versions":[
             {
                 "version":"v1.23.0",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "tar-1.23"
                     ],
@@ -15175,9 +15165,9 @@ __DATA__
         "versions":[
             {
                 "version":"v4.6.1",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "gcc-4.6.1-2.tar.gz"
                     ],
@@ -15205,9 +15195,9 @@ __DATA__
         "versions":[
             {
                 "version":"v3.82",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "make-3.82.tar.gz"
                     ],
@@ -15228,9 +15218,9 @@ __DATA__
         "versions":[
             {
                 "version":"v4.2",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "sed-4.2.tar.gz"
                     ],
@@ -15250,9 +15240,9 @@ __DATA__
         "versions":[
             {
                 "version":"v4.1.1",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "gawk-4.1.1.tar.gz"
                     ],
@@ -15272,9 +15262,9 @@ __DATA__
         "versions":[
             {
                 "version":"v0.23",
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "pkg-config-0.23-1.tar.gz"
                     ],
@@ -15295,9 +15285,9 @@ __DATA__
             {
                 "version":"v0.0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                         "[ -d autopyfactory ] || git clone https://github.com/PanDAWMS/autopyfactory.git",
@@ -15338,9 +15328,9 @@ __DATA__
             {
                 "version":"v0.0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                         "[ -d vc3-factory-plugins ] || git clone https://github.com/vc3-project/vc3-factory-plugins.git",
@@ -15382,9 +15372,9 @@ __DATA__
         "versions":[
             {
                 "version":"v0.0.1",
+                "phony":1,
                 "source":{
                     "type":"generic",
-                    "phony":1,
                     "recipe":[
                         "home=$(python -m site --user-base)",
                         "mkdir -p ${home}/lib/python",
@@ -15427,9 +15417,9 @@ __DATA__
             {
                 "version":"v0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd $VC3_INSTALL_USER_HOME/git",
                         "[ -d sdcc-pluginmanager ] || git clone https://github.com/bnl-sdcc/sdcc-pluginmanager.git",
@@ -15452,9 +15442,9 @@ __DATA__
             {
                 "version":"v0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                         "[ -d credible ] || git clone https://github.com/vc3-project/credible.git",
@@ -15518,9 +15508,9 @@ __DATA__
             {
                 "version":"v0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
                         "for S in vc3-infoservice vc3-client vc3-master; do",
@@ -15573,9 +15563,9 @@ __DATA__
             {
                 "version":"v0.1",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}/bin",
                         "cd ${VC3_PREFIX}/bin",
@@ -15602,9 +15592,9 @@ __DATA__
             {
                 "version":"v1.0",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
                     "files":[
                         "icecube-argonne-demo-01.tar.gz"
                     ],
@@ -15715,10 +15705,10 @@ __DATA__
         "versions":[
             {
                 "version":"v2.4.0",
+                "phony":1,
+                "local":1,
                 "source":{
                     "type":"generic",
-                    "local":1,
-                    "phony":1,
                     "recipe":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -15739,9 +15729,9 @@ __DATA__
             {
                 "version":"auto",
                 "phony":1,
+                "local":1,
                 "source":{
                     "type":"system",
-                    "local":1,
                     "prerequisites":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -16453,7 +16443,7 @@ __DATA__
 
     "git":{
         "tags":["source version control", "compilation tools"],
-        "show-in-list":1,
+        "show-in-list":0,
         "versions":[
             {
                 "version":"auto",
@@ -16521,9 +16511,9 @@ __DATA__
         "versions":[
             {
                 "version":"v8.6.0",
+                "phony":1,
                 "source":{
                     "type":"generic",
-                    "phony":1,
                     "recipe":[
                         ": run as condor_master -f",
                         "cd ${VC3_ROOT_CONDOR}",
@@ -18610,7 +18600,6 @@ __DATA__
                 "version":"v6.0.16",
                 "source":{
                     "type":"binary",
-                    "local":1,
                     "files":[
                         "cctools-statics-6.0.16-x86_64.tar.gz"
                     ],

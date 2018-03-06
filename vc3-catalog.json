@@ -1066,7 +1066,7 @@
 
     "cctools-unstable":{
         "tags":["workflow tools"],
-        "show-in-list":0,
+        "show-in-list":1,
         "phony":1,
         "versions":[
             {
@@ -1414,7 +1414,7 @@
 
     "curl":{
         "tags":["data transfer tools"],
-        "show-in-list":0,
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v7.53.1",
@@ -1508,7 +1508,7 @@
 
     "git":{
         "tags":["source version control", "compilation tools"],
-        "show-in-list":0,
+        "show-in-list":1,
         "versions":[
             {
                 "version":"auto",
@@ -1997,9 +1997,6 @@
                 "dependencies":{
                     "perl-local-lib":[
                         "v2.0"
-                    ],
-                    "perl-cpan":[
-                        "v2.0"
                     ]
                 }
             }
@@ -2397,28 +2394,6 @@
                     ],
                     "berkeley-db":[
                         "v6.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "perl-cpan":{
-        "versions":[
-            {
-                "version":"v2.16",
-                "source":{
-                    "type":"tarball",
-                    "files":["CPAN-2.16.tar.gz"],
-                    "recipe":[
-                        "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",
-                        "make",
-                        "make install"
-                    ]
-                },
-                "dependencies":{
-                    "perl":[
-                        "v5.10"
                     ]
                 }
             }
@@ -3245,7 +3220,7 @@
 
     "charm":{
         "tags":["compilation tools", "hpc"],
-        "show-in-list":0,
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v6.7.1",

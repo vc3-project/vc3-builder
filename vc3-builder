@@ -12581,7 +12581,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
       unless($self->{root_dir}) {
           my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
-          $self->{root_dir} = catfile(rel2abs($vc3_root), $rel);
+          $self->{root_dir} = catfile($self->bag->root_dir, $rel);
           $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
       }
   
@@ -12601,14 +12601,14 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
           return $rel;
       }
   
-      return catfile(rel2abs($vc3_root), $rel);
+      return catfile($self->bag->root_dir, $rel);
   }
   
   sub build_dir {
       my ($self) = @_;
   
       unless($self->{build_dir}) {
-          my $root     = catfile(rel2abs($vc3_root), 'builds');
+          my $root     = catfile($self->bag->root_dir, 'builds');
   
           unless(-d $root) {
               File::Path::make_path($root);
@@ -16001,7 +16001,7 @@ __DATA__
 
     "cctools-unstable":{
         "tags":["workflow tools"],
-        "show-in-list":0,
+        "show-in-list":1,
         "phony":1,
         "versions":[
             {
@@ -16349,7 +16349,7 @@ __DATA__
 
     "curl":{
         "tags":["data transfer tools"],
-        "show-in-list":0,
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v7.53.1",
@@ -16443,7 +16443,7 @@ __DATA__
 
     "git":{
         "tags":["source version control", "compilation tools"],
-        "show-in-list":0,
+        "show-in-list":1,
         "versions":[
             {
                 "version":"auto",
@@ -16932,9 +16932,6 @@ __DATA__
                 "dependencies":{
                     "perl-local-lib":[
                         "v2.0"
-                    ],
-                    "perl-cpan":[
-                        "v2.0"
                     ]
                 }
             }
@@ -17332,28 +17329,6 @@ __DATA__
                     ],
                     "berkeley-db":[
                         "v6.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "perl-cpan":{
-        "versions":[
-            {
-                "version":"v2.16",
-                "source":{
-                    "type":"tarball",
-                    "files":["CPAN-2.16.tar.gz"],
-                    "recipe":[
-                        "perl Makefile.PL --bootstrap=${VC3_MODULES_PERL}",
-                        "make",
-                        "make install"
-                    ]
-                },
-                "dependencies":{
-                    "perl":[
-                        "v5.10"
                     ]
                 }
             }
@@ -18180,7 +18155,7 @@ __DATA__
 
     "charm":{
         "tags":["compilation tools", "hpc"],
-        "show-in-list":0,
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v6.7.1",

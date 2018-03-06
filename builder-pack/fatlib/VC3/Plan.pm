@@ -1,4 +1,5 @@
 package VC3::Plan;
+use File::Spec::Functions qw/catfile rel2abs/;
 use JSON::Tiny;
 
 use VC3::Plan::Element;
@@ -113,9 +114,9 @@ sub parse_requirement {
     $req =~ m/
     ^
     (?<name> [A-z0-9_-]+)
-    (:                      # start of min version
+    (:v?                      # start of min version
     (?<min> [^:]*)
-    (:                      # start of max version
+    (:v?                    # start of max version
     (?<max> [^:]*)
     )?)?
     $
@@ -123,13 +124,31 @@ sub parse_requirement {
 
     my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
 
-    if(!$min && $max) {
-        $min = 'v0.0.0';
+    if($min eq 'auto') {
+        undef $min;
     }
 
+    if($max eq 'auto') {
+        undef $max;
+    }
+
+    if(!$min && $max) {
+        $min = 'v0.0.1';
+    }
+
+    warn "--> $name";
+    warn "---> $min";
+    warn "----> $max";
+
     # turn into version strings
-    $min = version->declare($min) if($min);
-    $max = version->declare($max) if($max);
+    eval {
+        $min = version->declare($min) if($min);
+        $max = version->declare($max) if($max);
+    };
+    if($@) {
+        die "Versions should be of the form: MAJOR.MINOR.REVISION\n";
+    }
+
 
     return ($name, $min, $max);
 }
@@ -172,10 +191,9 @@ sub add_widget {
     } else {
 
         if($self->add_dependencies($widget->dependencies)) {
-            if($widget->sources) {
-                my $s = $self->add_sources($widget->sources);
+            if($widget->source) {
+                my $s = $self->add_source($widget->source);
                 if($s) {
-                    $widget->active_source($s);
                     $success = 1;
                 } else {
                     $self->say("could not add any source for: @{[$widget->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
@@ -224,42 +242,34 @@ sub add_dependencies {
     return $success;
 }
 
-sub add_sources {
-    my ($self, $sources) = @_;
-
-    my $saved_state = $self->elements();
-    for my $s (@{$sources}) {
-
-        if($s->isa('VC3::Source::System')) {
-            unless($self->bag->{system}{$s->widget->name}) {
-                    next if $self->bag->{no_system}{ALL};
-                    next if $self->bag->{no_system}{$s->widget->name};
-                }
-            }
-
-        if($self->add_source($s)) {
-            return $s;
-        }
-        $self->elements($saved_state);
-    }
-
-    return undef;
-}
-
-
 sub add_source {
     my ($self, $source) = @_;
+
+    my $saved_state = $self->elements();
+
+    if($source->isa('VC3::Source::System')) {
+        unless($self->bag->{system}{$source->widget->name}) {
+            next if $self->bag->{no_system}{ALL};
+            next if $self->bag->{no_system}{$source->widget->name};
+        }
+    }
 
     my $exit_status = -1;
     eval { $exit_status = $source->check_prerequisites() };
 
     if($exit_status) {
         $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version->normal);
-        return 0;
+        return undef;
     }
 
-    return $self->add_dependencies($source->dependencies);
+    if($self->add_dependencies($source->dependencies)) {
+        return $source;
+    }
+
+    $self->elements($saved_state);
+    return undef;
 }
+
 
 sub refine {
     my ($self, $widget, $p, $min, $max) = @_;
@@ -313,8 +323,8 @@ sub order_aux {
                 push @deps, keys %{$w->dependencies};
             }
 
-            if($w->active_source && $w->active_source->dependencies) {
-                push @deps, keys %{$w->active_source->dependencies};
+            if($w->source->dependencies) {
+                push @deps, keys %{$w->source->dependencies};
             }
 
             my $max = $o;
@@ -368,8 +378,8 @@ sub dot_graph {
             push @deps, keys %{$w->dependencies};
         }
 
-        if($w->active_source && $w->active_source->dependencies) {
-            push @deps, keys %{$w->active_source->dependencies};
+        if($w->source->dependencies) {
+            push @deps, keys %{$w->source->dependencies};
         }
 
         my $n = $name;
@@ -417,7 +427,7 @@ sub to_makeflow {
     print { $mflow_f } "TRGT_DIR = \$(ROOT_DIR)/@{[$bag->target]}\n";
     print { $mflow_f } "HOME_DIR = $home\n";
     print { $mflow_f } "DIST_DIR = " . $bag->files_dir  . "\n";
-    print { $mflow_f } "REPO     = " . $bat->repository . "\n";
+    print { $mflow_f } "REPO     = " . $bag->repository . "\n";
     print { $mflow_f } "OPTIONS  = --make-jobs \$(CORES) --no-run\n\n";
 
     print { $mflow_f } "RIBBON   = .VC3_DEPENDENCY_BUILD\n\n";
@@ -438,8 +448,8 @@ sub to_makeflow {
             push @deps, keys %{$w->dependencies};
         }
 
-        if($w->active_source && $w->active_source->dependencies) {
-            push @deps, keys %{$w->active_source->dependencies};
+        if($w->source && $w->source->dependencies) {
+            push @deps, keys %{$w->source->dependencies};
         }
 
         my @inputs;
@@ -460,7 +470,7 @@ sub to_makeflow {
 
         print { $mflow_f } "\t";
 
-        if(!$w->active_source || $w->active_source->local) {
+        if(!$w->source || $w->source->local) {
             print { $mflow_f } "LOCAL "
         }
 
@@ -474,10 +484,7 @@ sub prestage {
     my ($self) = @_;
 
     for my $e (values %{$self->elements}) {
-        my $s = $e->widget->active_source;
-        next unless $s;
-
-        $s->get_files();
+        $e->widget->source->get_files();
     }
 }
 
@@ -511,51 +518,48 @@ sub trimmed_database {
             $n->{phony} = $w->phony;
         }
 
-        if($w->active_source) {
-            my $s = $w->active_source;
-            my $m = {};
+        my $s = $w->source;
+        my $m = {};
 
-            $m->{type} = $s->{type};
+        $m->{type} = $s->{type};
 
-            if($s->isa('VC3::Source::AutoRecipe')) {
-                if($s->preface) {
-                    $m->{preface} = $s->preface;
-                }
-
-                if($s->epilogue) {
-                    $m->{epilogue} = $s->epilogue;
-                }
-
-                if($s->options) {
-                    $m->{options} = $s->options;
-                }
-            } elsif($s->recipe) {
-                $m->{recipe} = $s->recipe;
+        if($s->isa('VC3::Source::AutoRecipe')) {
+            if($s->preface) {
+                $m->{preface} = $s->preface;
             }
 
-            if($s->files) {
-                $m->{files} = $s->files;
+            if($s->epilogue) {
+                $m->{epilogue} = $s->epilogue;
             }
 
-            if($s->msg_manual_requirement) {
-                $m->{msg_manual_requirement} = $s->msg_manual_requirement;
+            if($s->options) {
+                $m->{options} = $s->options;
             }
-
-            if($s->dependencies) {
-                $m->{dependencies} = $s->dependencies;
-            }
-
-            if($s->prerequisites) {
-                $m->{prerequisites} = $s->prerequisites;
-            }
-
-            if($s->local) {
-                $m->{local} = $s->local;
-            }
-
-
-            $n->{sources} = [ $m ];
+        } elsif($s->recipe) {
+            $m->{recipe} = $s->recipe;
         }
+
+        if($s->files) {
+            $m->{files} = $s->files;
+        }
+
+        if($s->msg_manual_requirement) {
+            $m->{msg_manual_requirement} = $s->msg_manual_requirement;
+        }
+
+        if($s->dependencies) {
+            $m->{dependencies} = $s->dependencies;
+        }
+
+        if($s->prerequisites) {
+            $m->{prerequisites} = $s->prerequisites;
+        }
+
+        if($s->local) {
+            $m->{local} = $s->local;
+        }
+
+        $n->{sources} = [ $m ];
 
         $output->{$w->name} = [ $n ];
     }

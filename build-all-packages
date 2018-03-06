@@ -5,6 +5,11 @@ set -e
 ./vc3-builder --list |
 while read p
 do
-	./vc3-builder "$@" --require ${p} --no-run
+	./vc3-builder --no-sys=ALL "$@" --require ${p} --no-run
 done
 
+./vc3-builder --list |
+while read p
+do
+	./vc3-builder "$@" --require ${p} --no-run
+done

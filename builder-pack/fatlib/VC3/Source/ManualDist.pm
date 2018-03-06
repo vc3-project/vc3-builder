@@ -2,6 +2,8 @@ package VC3::Source::ManualDist;
 use base 'VC3::Source::Generic';
 use Carp;
 
+use File::Spec::Functions qw/rel2abs catfile/;
+
 sub get_file {
     my ($self, $file) = @_;
 
@@ -12,7 +14,7 @@ sub get_file {
 
 sub file_absolute {
     my ($self, $file) = @_;
-    return rel2abs(catfile($self->bag->files, 'manual-distribution', $file));
+    return rel2abs(catfile($self->bag->files_dir, 'manual-distribution', $file));
 }
 
 sub check_manual_requirements {

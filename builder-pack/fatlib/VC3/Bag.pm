@@ -139,7 +139,7 @@ sub check_manual_requirements() {
         print { $build_in } "EOF\n";
         print { $build_in } "exit 0\n";
 
-        die;
+        die "\n";
     }
 
     return 1;
@@ -438,14 +438,12 @@ sub add_manual_packages {
 
         my $s = {};
         $s->{version} = $version;
-        $s->{sources} = [
-            {
-                type   => 'system',
-                recipe => [
-                    "echo VC3_ROOT_SYSTEM: $dir"
-                ]
-            }
-        ];
+        $s->{source} = {
+            type   => 'system',
+            recipe => [
+                "echo VC3_ROOT_SYSTEM: $dir"
+            ]
+        };
 
         $self->{system}{$name} = 1;
 
@@ -675,16 +673,13 @@ sub build_widget {
 
     $self->say("processing for @{[$widget->name]}-" . $widget->version->normal);
 
-    my $s = $widget->active_source;
 
     my $exit_status = 0;
-    if($s) {
-        eval { $exit_status = -1; $exit_status = $s->execute_recipe($force_rebuild, $ignore_locks) };
+    eval { $exit_status = -1; $exit_status = $widget->source->execute_recipe($force_rebuild, $ignore_locks) };
 
-        if($exit_status) {
-            $widget->process_error($sh_on_error, $English::EVAL_ERROR, $exit_status);
-            exit 1;
-        }
+    if($exit_status) {
+        $widget->process_error($sh_on_error, $English::EVAL_ERROR, $exit_status);
+        exit 1;
     }
 
     return $exit_status;

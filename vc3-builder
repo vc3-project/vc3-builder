@@ -9429,6 +9429,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   use JSON::Tiny;
   use List::Util qw/max/;
   use POSIX ();
+  use Tie::RefHash;
   use version ();
   
   use VC3::Plan;
@@ -14481,10 +14482,8 @@ use VC3::Source;
 package VC3::Builder;
 
 use English qw/-mo_match_vars/;
-use File::Path;
 use File::Spec::Functions qw/catfile rel2abs/;
 use Getopt::Long qw/GetOptions/;
-use Tie::RefHash;
 use Cwd;
 
 use Carp qw( confess );

@@ -10,6 +10,7 @@ use FindBin  qw/$RealBin $RealScript/;
 use JSON::Tiny;
 use List::Util qw/max/;
 use POSIX ();
+use Tie::RefHash;
 use version ();
 
 use VC3::Plan;

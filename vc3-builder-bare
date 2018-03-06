@@ -13,10 +13,8 @@ use VC3::Source;
 package VC3::Builder;
 
 use English qw/-mo_match_vars/;
-use File::Path;
 use File::Spec::Functions qw/catfile rel2abs/;
 use Getopt::Long qw/GetOptions/;
-use Tie::RefHash;
 use Cwd;
 
 use Carp qw( confess );

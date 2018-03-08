@@ -16984,16 +16984,17 @@ __DATA__
             {
                 "version":"v2.7.12",
                 "source":{
-                    "type":"configure",
+                    "type":"tarball",
                     "files":[
-                        "Python-2.7.12.tgz"
+                        "Python-2.7.14.tgz"
                     ],
-                    "preface":[
+                    "recipe":[
                         "sed -i Modules/Setup.dist -e \"217s:.*:_ssl _ssl.c -DUSE_SSL -I${VC3_ROOT_OPENSSL}/include -I${VC3_ROOT_OPENSSL}/include/openssl -L${VC3_ROOT_OPENSSL}/lib -Wl,-Bstatic -lssl -lcrypto -Wl,-Bdynamic:\"",
-                        "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -Wl,-Bstatic -lz -Wl,-Bdynamic:\""
-                    ],
-                    "options":"--libdir=${VC3_PREFIX}/lib",
-                    "epilogue":[
+                        "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -Wl,-Bstatic -lz -Wl,-Bdynamic:\"",
+                        ": using shared library, and instead of using LD_LIBRARY_PATH, we set it with rpath",
+                        "LDFLAGS='-Wl,-rpath=\\$$ORIGIN/../lib' ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-shared",
+                        "make",
+                        "make install",
                         "ln -s ${VC3_PREFIX}/bin/pydoc{,2}"
                     ],
                     "dependencies":{
@@ -17014,7 +17015,7 @@ __DATA__
             "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
         ],
         "environment-autovars":[
-            "PATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"
+            "PATH"
         ],
         "environment-variables":[
             {
@@ -17047,15 +17048,18 @@ __DATA__
             {
                 "version":"v3.6.4",
                 "source":{
-                    "type":"configure",
+                    "type":"tarball",
                     "files":[
                         "Python-3.6.4.tgz"
                     ],
-                    "preface":[
+                    "recipe":[
                         "sed -i Modules/Setup.dist -e \"217s:.*:_ssl _ssl.c -DUSE_SSL -I${VC3_ROOT_OPENSSL}/include -I${VC3_ROOT_OPENSSL}/include/openssl -L${VC3_ROOT_OPENSSL}/lib -Wl,-Bstatic -lssl -lcrypto -Wl,-Bdynamic:\"",
-                        "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -Wl,-Bstatic -lz -Wl,-Bdynamic:\""
+                        "sed -i Modules/Setup.dist -e \"468s:.*:zlib zlibmodule.c -I${VC3_ROOT_ZLIB}/include -L${VC3_ROOT_ZLIB}/lib -Wl,-Bstatic -lz -Wl,-Bdynamic:\"",
+                        ": using shared library, and instead of using LD_LIBRARY_PATH, we set it with rpath",
+                        "LDFLAGS='-Wl,-rpath=\\$$ORIGIN/../lib' ./configure --prefix=${VC3_PREFIX} --libdir=${VC3_PREFIX}/lib --enable-shared",
+                        "make",
+                        "make install"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib",
                     "dependencies":{
                         "zlib":[
                             "v1.2.8"
@@ -17074,7 +17078,7 @@ __DATA__
             "python3 -c 'import sys; print(\"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2]))'"
         ],
         "environment-autovars":[
-            "PATH", "LD_LIBRARY_PATH", "LIBRARY_PATH"
+            "PATH"
         ],
         "environment-variables":[
             {

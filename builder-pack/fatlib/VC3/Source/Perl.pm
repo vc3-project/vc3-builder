@@ -11,7 +11,7 @@ sub new {
         $json_description->{recipe} = \@steps;
     }
 
-    my $self = VC3::Source::Generic->new($widget, $json_description);
+    my $self = $class->SUPER::new($widget, $json_description);
 
     unless($self->files) {
         croak "For type 'perl', at least one file should be defined in the files list.";
@@ -22,8 +22,6 @@ sub new {
     }
 
     $self->{dependencies}{'perl-cpanminus'} ||= [];
-
-    $self = bless $self, $class;
 
     return $self;
 }

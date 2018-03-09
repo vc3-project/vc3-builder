@@ -74,8 +74,9 @@ sub recipe {
 
     $self->{recipe} = $new_recipe if($new_recipe);
 
-    croak 'No recipe given'
-    unless($self->{recipe}); 
+    unless($self->{recipe}) {
+        $self->{recipe} = ['echo "no explicit recipe given"'];
+    }
 
     return $self->{recipe};
 }

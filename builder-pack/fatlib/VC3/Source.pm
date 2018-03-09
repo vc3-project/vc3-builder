@@ -10,40 +10,28 @@ use VC3::Source::Binary;
 use VC3::Source::System;
 use VC3::Source::Perl;
 
+our $class_of = {};
+
+$class_of->{'generic'} = VC3::Source::Generic;
+$class_of->{'configure'} = VC3::Source::Configure;
+$class_of->{'cmake'} = VC3::Source::CMake;
+$class_of->{'tarball'} = VC3::Source::Tarball;
+$class_of->{'manual-distribution'} = VC3::Source::ManualDist;
+$class_of->{'binary'} = VC3::Source::Binary;
+$class_of->{'system'} = VC3::Source::System;
+$class_of->{'cpan'} = VC3::Source::Perl;
+
 sub new {
     my ($class, $widget, $source_raw) = @_;
 
-    my $source;
+    my $type  = $source_raw->{type} || 'generic';
+    my $class = $class_of->{$type};
 
-    if($source_raw->{type} eq 'generic' or (not $source_raw->{type})) {
-        $source = VC3::Source::Generic->new($widget, $source_raw);
-    }
-    elsif($source_raw->{type} eq 'configure') {
-        $source = VC3::Source::Configure->new($widget, $source_raw);
-    }
-    elsif($source_raw->{type} eq 'cmake') {
-        $source = VC3::Source::CMake->new($widget, $source_raw);
-    }
-    elsif($source_raw->{type} eq 'tarball') {
-        $source = VC3::Source::Tarball->new($widget, $source_raw);
-    }
-    elsif($source_raw->{type} eq 'manual-distribution') {
-        $source = VC3::Source::ManualDist->new($widget, $source_raw);
-    }
-    elsif($source_raw->{type} eq 'binary') {
-        $source = VC3::Source::Binary->new($widget, $source_raw);
-    }
-    elsif($source_raw->{type} eq 'system') {
-        $source = VC3::Source::System->new($widget, $source_raw);
-    }
-    elsif($source_raw->{type} eq 'cpan') {
-        $source = VC3::Source::Perl->new($widget, $source_raw);
-    }
-    else {
-        croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->package->name . "'";
+    unless($class) {
+        die "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->package->name . "'\n";
     }
 
-    return $source;
+    return $class->new($widget, $source_raw);
 }
 
 1;

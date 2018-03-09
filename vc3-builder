@@ -11258,77 +11258,7 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
       my $output = {};
   
       for my $e (values %{$self->elements}) {
-          my $n = {};
-          my $w = $e->widget;
-          $n->{version} = $w->version->normal;
-  
-          if($w->dependencies) {
-              $n->{dependencies} = $w->dependencies;
-          }
-  
-          if($w->wrapper) {
-              $n->{wrapper} = $w->wrapper;
-          }
-  
-          if($w->prologue) {
-              $n->{prologue} = $w->prologue;
-          }
-  
-          if($w->environment_variables) {
-              $n->{'environment-variables'} = $w->environment_variables;
-          }
-  
-          if($w->phony) {
-              $n->{phony} = $w->phony;
-          }
-  
-          if($w->local) {
-              $n->{local} = $w->local;
-          }
-  
-          my $s = $w->source;
-          my $m = {};
-  
-          $m->{type} = $s->{type};
-  
-          if($s->isa('VC3::Source::AutoRecipe')) {
-              if($s->preface) {
-                  $m->{preface} = $s->preface;
-              }
-  
-              if($s->postface) {
-                  $m->{postface} = $s->postface;
-              }
-  
-              if($s->options) {
-                  $m->{options} = $s->options;
-              }
-          } elsif($s->recipe) {
-              $m->{recipe} = $s->recipe;
-          }
-          if($s->files) {
-              $m->{files} = $s->files;
-          }
-  
-          if($s->msg_manual_requirement) {
-              $m->{msg_manual_requirement} = $s->msg_manual_requirement;
-          }
-  
-          if($s->dependencies) {
-              $m->{dependencies} = $s->dependencies;
-          }
-  
-          if($s->prerequisites) {
-              $m->{prerequisites} = $s->prerequisites;
-          }
-  
-          if($s->operating_system) {
-              $m->{operating_system} = $s->operating_system;
-          }
-  
-          $n->{sources} = [ $m ];
-  
-          $output->{$w->name} = [ $n ];
+          $output->{$e->widget->package->name} = $e->widget->to_hash;
       }
   
       open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
@@ -11636,6 +11566,23 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
       return $self;
   }
   
+  sub to_hash {
+      my ($self) = @_;
+  
+      my $sh = $self->SUPER::to_hash();
+      $sh->{preface}  = $self->preface;
+      $sh->{options}  = $self->options;
+      $sh->{postface} = $self->postface;
+  
+      for my $k (keys $sh) {
+          unless(defined $sh->{$k}) {
+              delete $sh->{$k};
+          }
+      }
+  
+      return $sh;
+  }
+  
   sub preface {
       my ($self, $new_preface) = @_;
   
@@ -11749,9 +11696,36 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
       $self->dependencies($json_description->{dependencies});
       $self->prerequisites($json_description->{prerequisites});
   
-      $self->{type} = $json_description->{type};
+      $self->type($json_description->{type} || 'generic');
   
       return $self;
+  }
+  
+  sub to_hash {
+      my ($self) = @_;
+  
+      $sh->{type}          = $self->type;
+      $sh->{recipe}        = $self->recipe;
+      $sh->{files}         = $self->files;
+      $sh->{dependencies}  = $self->dependencies;
+      $sh->{prerequisites} = $self->prerequisites;
+      $sh->{'msg-manual-requirement'} = $self->msg_manual_requirement;
+  
+      for my $k (keys $sh) {
+          unless(defined $sh->{$k}) {
+              delete $sh->{$k};
+          }
+      }
+  
+      return $sh;
+  }
+  
+  sub type {
+      my ($self, $new_type) = @_;
+  
+      $self->{type} = $new_type if($new_type);
+  
+      return $self->{type};
   }
   
   sub widget {
@@ -12332,6 +12306,30 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       }
   
       return $self;
+  }
+  
+  sub to_hash {
+      my ($self) = @_;
+  
+      my $wh = {};
+  
+      $wh->{version}       = $self->version;
+      $wh->{phony}         = $self->phony;
+      $wh->{local}         = $self->local;
+      $wh->{source}        = $self->source->to_hash;
+      $wh->{dependencies}  = $self->dependencies;
+      $wh->{wrapper}       = $self->wrapper;
+      $wh->{prologue}      = $self->prologue;
+      $wh->{'environment-variables'} = $self->environment_variables;
+      $wh->{'environment-autovars'}  = $self->environment_autovars;
+  
+      for my $k (keys $wh) {
+          unless(defined $wh->{$k}) {
+              delete $wh->{$k};
+          }
+      }
+  
+      return $wh;
   }
   
   sub add_widget_variable {
@@ -17836,7 +17834,7 @@ __DATA__
                 "version":"v4.0.6",
                 "source":{
                     "type":"manual-distribution",
-                    "msg_manual_requirement":[
+                    "msg-manual-requirement":[
                         "RepeatMasker library have a restrictive distribution license, and have to",
                         "be downloaded manually. Please follow these steps:",
                         "    1) On http://www.girinst.org, click on 'Downloads'.",
@@ -17972,7 +17970,7 @@ __DATA__
             {
                 "version":"v4.9",
                 "source":{
-                    "msg_manual_requirement":[
+                    "msg-manual-requirement":[
                         "Tandem Repeats Finder (trf) has a restrictive distribution license, and has to",
                         "be downloaded manually. Please follow these steps:",
                         "    1) On https://tandem.bu.edu/trf/trf.html, click on 'Download Your Own Copy of the Program'.",
@@ -18007,7 +18005,7 @@ __DATA__
                 "version":"v2.31",
                 "source":{
                     "type":"manual-distribution",
-                    "msg_manual_requirement":[
+                    "msg-manual-requirement":[
                         "maker has a restrictive distribution license, and has to",
                         "be downloaded manually. Please follow these steps:",
                         "    1) On http://www.yandell-lab.org/software/maker.html, click on 'Registration Page'.",
@@ -18164,7 +18162,7 @@ __DATA__
                 "version":"v2.12.0",
                 "source":{
                     "type":"manual-distribution",
-                    "msg_manual_requirement":[
+                    "msg-manual-requirement":[
                         "NAMD has a restrictive distribution license, and has to",
                         "be downloaded manually. Please follow these steps:",
                         "    1) On http://www.ks.uiuc.edu/Research, click on 'Sofware/NAMD/Download'.",

@@ -2921,7 +2921,7 @@
                 "version":"v4.0.6",
                 "source":{
                     "type":"manual-distribution",
-                    "msg_manual_requirement":[
+                    "msg-manual-requirement":[
                         "RepeatMasker library have a restrictive distribution license, and have to",
                         "be downloaded manually. Please follow these steps:",
                         "    1) On http://www.girinst.org, click on 'Downloads'.",
@@ -3057,7 +3057,7 @@
             {
                 "version":"v4.9",
                 "source":{
-                    "msg_manual_requirement":[
+                    "msg-manual-requirement":[
                         "Tandem Repeats Finder (trf) has a restrictive distribution license, and has to",
                         "be downloaded manually. Please follow these steps:",
                         "    1) On https://tandem.bu.edu/trf/trf.html, click on 'Download Your Own Copy of the Program'.",
@@ -3092,7 +3092,7 @@
                 "version":"v2.31",
                 "source":{
                     "type":"manual-distribution",
-                    "msg_manual_requirement":[
+                    "msg-manual-requirement":[
                         "maker has a restrictive distribution license, and has to",
                         "be downloaded manually. Please follow these steps:",
                         "    1) On http://www.yandell-lab.org/software/maker.html, click on 'Registration Page'.",
@@ -3249,7 +3249,7 @@
                 "version":"v2.12.0",
                 "source":{
                     "type":"manual-distribution",
-                    "msg_manual_requirement":[
+                    "msg-manual-requirement":[
                         "NAMD has a restrictive distribution license, and has to",
                         "be downloaded manually. Please follow these steps:",
                         "    1) On http://www.ks.uiuc.edu/Research, click on 'Sofware/NAMD/Download'.",

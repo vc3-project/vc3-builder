@@ -490,77 +490,7 @@ sub trimmed_database {
     my $output = {};
 
     for my $e (values %{$self->elements}) {
-        my $n = {};
-        my $w = $e->widget;
-        $n->{version} = $w->version->normal;
-
-        if($w->dependencies) {
-            $n->{dependencies} = $w->dependencies;
-        }
-
-        if($w->wrapper) {
-            $n->{wrapper} = $w->wrapper;
-        }
-
-        if($w->prologue) {
-            $n->{prologue} = $w->prologue;
-        }
-
-        if($w->environment_variables) {
-            $n->{'environment-variables'} = $w->environment_variables;
-        }
-
-        if($w->phony) {
-            $n->{phony} = $w->phony;
-        }
-
-        if($w->local) {
-            $n->{local} = $w->local;
-        }
-
-        my $s = $w->source;
-        my $m = {};
-
-        $m->{type} = $s->{type};
-
-        if($s->isa('VC3::Source::AutoRecipe')) {
-            if($s->preface) {
-                $m->{preface} = $s->preface;
-            }
-
-            if($s->postface) {
-                $m->{postface} = $s->postface;
-            }
-
-            if($s->options) {
-                $m->{options} = $s->options;
-            }
-        } elsif($s->recipe) {
-            $m->{recipe} = $s->recipe;
-        }
-        if($s->files) {
-            $m->{files} = $s->files;
-        }
-
-        if($s->msg_manual_requirement) {
-            $m->{msg_manual_requirement} = $s->msg_manual_requirement;
-        }
-
-        if($s->dependencies) {
-            $m->{dependencies} = $s->dependencies;
-        }
-
-        if($s->prerequisites) {
-            $m->{prerequisites} = $s->prerequisites;
-        }
-
-        if($s->operating_system) {
-            $m->{operating_system} = $s->operating_system;
-        }
-
-        $n->{sources} = [ $m ];
-
-        $output->{$w->name} = [ $n ];
+        $output->{$e->widget->package->name} = $e->widget->to_hash;
     }
 
     open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";

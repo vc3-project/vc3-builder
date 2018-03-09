@@ -20,9 +20,36 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->prerequisites($json_description->{prerequisites});
 
-    $self->{type} = $json_description->{type};
+    $self->type($json_description->{type} || 'generic');
 
     return $self;
+}
+
+sub to_hash {
+    my ($self) = @_;
+
+    $sh->{type}          = $self->type;
+    $sh->{recipe}        = $self->recipe;
+    $sh->{files}         = $self->files;
+    $sh->{dependencies}  = $self->dependencies;
+    $sh->{prerequisites} = $self->prerequisites;
+    $sh->{'msg-manual-requirement'} = $self->msg_manual_requirement;
+
+    for my $k (keys $sh) {
+        unless(defined $sh->{$k}) {
+            delete $sh->{$k};
+        }
+    }
+
+    return $sh;
+}
+
+sub type {
+    my ($self, $new_type) = @_;
+
+    $self->{type} = $new_type if($new_type);
+
+    return $self->{type};
 }
 
 sub widget {

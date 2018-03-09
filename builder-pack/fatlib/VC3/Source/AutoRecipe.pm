@@ -34,6 +34,23 @@ sub new {
     return $self;
 }
 
+sub to_hash {
+    my ($self) = @_;
+
+    my $sh = $self->SUPER::to_hash();
+    $sh->{preface}  = $self->preface;
+    $sh->{options}  = $self->options;
+    $sh->{postface} = $self->postface;
+
+    for my $k (keys $sh) {
+        unless(defined $sh->{$k}) {
+            delete $sh->{$k};
+        }
+    }
+
+    return $sh;
+}
+
 sub preface {
     my ($self, $new_preface) = @_;
 

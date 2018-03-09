@@ -11286,11 +11286,6 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
               $n->{local} = $w->local;
           }
   
-          if($w->operating_system) {
-              $n->{operating_system} = $w->operating_system;
-          }
-  
-  
           my $s = $w->source;
           my $m = {};
   
@@ -11301,8 +11296,8 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
                   $m->{preface} = $s->preface;
               }
   
-              if($s->epilogue) {
-                  $m->{epilogue} = $s->epilogue;
+              if($s->postface) {
+                  $m->{postface} = $s->postface;
               }
   
               if($s->options) {
@@ -11613,18 +11608,17 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
       my ($class, $widget, $json_description) = @_;
   
       if($json_description->{recipe}) {
-          die 'Recipe specified when not needed.'
+          die "Recipe specified when not needed for '" . $widget->name . "'\n";
       }
   
       # dummy recipe, so Tarball does not complain.
       $json_description->{recipe} = ['dummy'];
   
-      my $self = VC3::Source::Tarball->new($widget, $json_description);
-      $self = bless $self, $class;
+      my $self = $class->SUPER::new($widget, $json_description);
   
       $self->preface($json_description->{preface});
       $self->options($json_description->{options});
-      $self->epilogue($json_description->{epilogue});
+      $self->postface($json_description->{postface});
   
       my @steps;
       if($self->preface) {
@@ -11633,8 +11627,8 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
   
       push @steps, @{$self->autorecipe};
   
-      if($self->epilogue) {
-          push @steps, @{$self->epilogue};
+      if($self->postface) {
+          push @steps, @{$self->postface};
       }
   
       $self->recipe(\@steps);
@@ -11650,12 +11644,12 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
       return $self->{preface};
   }
   
-  sub epilogue {
-      my ($self, $new_epilogue) = @_;
+  sub postface {
+      my ($self, $new_postface) = @_;
   
-      $self->{epilogue} = $new_epilogue if($new_epilogue);
+      $self->{postface} = $new_postface if($new_postface);
   
-      return $self->{epilogue};
+      return $self->{postface};
   }
   
   sub options {
@@ -12307,7 +12301,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       $self->prologue($json_description->{prologue});
       $self->environment_variables($json_description->{'environment-variables'});
       $self->environment_autovars($json_description->{'environment-autovars'});
-      $self->operating_system($json_description->{operating_system});
   
       # should always be executed
       $self->phony($json_description->{phony});
@@ -15919,7 +15912,7 @@ __DATA__
                         "cctools-6.2.5-source.tar.gz"
                     ],
                     "options":"--without-system-umbrella --without-system-prune --without-system-doc --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
-                    "epilogue":[
+                    "postface":[
                         "mkdir -p $(python -m site --user-site)",
                         "cp -r ${VC3_PREFIX}/lib/python${VC3_VERSION_PYTHON}/site-packages $(python -m site --user-site)"
                     ],
@@ -16771,7 +16764,7 @@ __DATA__
                         "export CFLAGS=-fPIC"
                     ],
                     "options":"--enable-static --enable-shared",
-                    "epilogue":[
+                    "postface":[
                         "make install-dev install-lib",
                         "chmod -v 755 ${VC3_PREFIX}/lib/libattr.so"
                     ]
@@ -17267,7 +17260,7 @@ __DATA__
                         "xrootd-4.3.0.tar.gz"
                     ],
                     "options":"-DCMAKE_INSTALL_LIBDIR=lib",
-                    "epilogue":[
+                    "postface":[
                         "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
                     ]
                 },

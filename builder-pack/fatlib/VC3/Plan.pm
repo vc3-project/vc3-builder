@@ -518,11 +518,6 @@ sub trimmed_database {
             $n->{local} = $w->local;
         }
 
-        if($w->operating_system) {
-            $n->{operating_system} = $w->operating_system;
-        }
-
-
         my $s = $w->source;
         my $m = {};
 

@@ -887,7 +887,7 @@ then
 EOFP
 
     for my $prog_line (@{$self->consolidate_prologue}) {
-        print { $sh_f_prog } "$prog_line 2> /dev/null";
+        print { $sh_f_prog } "$prog_line";
         print { $sh_f_prog } "\n";
     }
 

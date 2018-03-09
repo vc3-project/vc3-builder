@@ -15,7 +15,7 @@ sub new {
 
     my $source;
 
-    if($source_raw->{type} eq 'generic') {
+    if($source_raw->{type} eq 'generic' or (not $source_raw->{type})) {
         $source = VC3::Source::Generic->new($widget, $source_raw);
     }
     elsif($source_raw->{type} eq 'configure') {

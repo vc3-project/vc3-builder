@@ -10306,7 +10306,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   EOFP
   
       for my $prog_line (@{$self->consolidate_prologue}) {
-          print { $sh_f_prog } "$prog_line 2> /dev/null";
+          print { $sh_f_prog } "$prog_line";
           print { $sh_f_prog } "\n";
       }
   
@@ -11569,7 +11569,7 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
       my $source;
   
-      if($source_raw->{type} eq 'generic') {
+      if($source_raw->{type} eq 'generic' or (not $source_raw->{type})) {
           $source = VC3::Source::Generic->new($widget, $source_raw);
       }
       elsif($source_raw->{type} eq 'configure') {

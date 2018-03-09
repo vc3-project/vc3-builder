@@ -6,18 +6,17 @@ sub new {
     my ($class, $widget, $json_description) = @_;
 
     if($json_description->{recipe}) {
-        die 'Recipe specified when not needed.'
+        die "Recipe specified when not needed for '" . $widget->name . "'\n";
     }
 
     # dummy recipe, so Tarball does not complain.
     $json_description->{recipe} = ['dummy'];
 
-    my $self = VC3::Source::Tarball->new($widget, $json_description);
-    $self = bless $self, $class;
+    my $self = $class->SUPER::new($widget, $json_description);
 
     $self->preface($json_description->{preface});
     $self->options($json_description->{options});
-    $self->epilogue($json_description->{epilogue});
+    $self->postface($json_description->{postface});
 
     my @steps;
     if($self->preface) {
@@ -26,8 +25,8 @@ sub new {
 
     push @steps, @{$self->autorecipe};
 
-    if($self->epilogue) {
-        push @steps, @{$self->epilogue};
+    if($self->postface) {
+        push @steps, @{$self->postface};
     }
 
     $self->recipe(\@steps);
@@ -43,12 +42,12 @@ sub preface {
     return $self->{preface};
 }
 
-sub epilogue {
-    my ($self, $new_epilogue) = @_;
+sub postface {
+    my ($self, $new_postface) = @_;
 
-    $self->{epilogue} = $new_epilogue if($new_epilogue);
+    $self->{postface} = $new_postface if($new_postface);
 
-    return $self->{epilogue};
+    return $self->{postface};
 }
 
 sub options {

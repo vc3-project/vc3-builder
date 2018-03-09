@@ -985,7 +985,7 @@
                         "cctools-6.2.5-source.tar.gz"
                     ],
                     "options":"--without-system-umbrella --without-system-prune --without-system-doc --with-swig-path ${VC3_ROOT_SWIG} --with-python-path ${VC3_ROOT_PYTHON} --with-perl-path ${VC3_ROOT_PERL} --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
-                    "epilogue":[
+                    "postface":[
                         "mkdir -p $(python -m site --user-site)",
                         "cp -r ${VC3_PREFIX}/lib/python${VC3_VERSION_PYTHON}/site-packages $(python -m site --user-site)"
                     ],
@@ -1837,7 +1837,7 @@
                         "export CFLAGS=-fPIC"
                     ],
                     "options":"--enable-static --enable-shared",
-                    "epilogue":[
+                    "postface":[
                         "make install-dev install-lib",
                         "chmod -v 755 ${VC3_PREFIX}/lib/libattr.so"
                     ]
@@ -2333,7 +2333,7 @@
                         "xrootd-4.3.0.tar.gz"
                     ],
                     "options":"-DCMAKE_INSTALL_LIBDIR=lib",
-                    "epilogue":[
+                    "postface":[
                         "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
                     ]
                 },

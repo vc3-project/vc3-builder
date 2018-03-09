@@ -533,8 +533,8 @@ sub trimmed_database {
                 $m->{preface} = $s->preface;
             }
 
-            if($s->epilogue) {
-                $m->{epilogue} = $s->epilogue;
+            if($s->postface) {
+                $m->{postface} = $s->postface;
             }
 
             if($s->options) {

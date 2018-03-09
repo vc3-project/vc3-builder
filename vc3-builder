@@ -11488,6 +11488,7 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   use VC3::Source::Binary;
   use VC3::Source::System;
   use VC3::Source::Perl;
+  use VC3::Source::Container::Singularity;
   
   our $class_of = {};
   
@@ -11499,6 +11500,7 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   $class_of->{'binary'} = VC3::Source::Binary;
   $class_of->{'system'} = VC3::Source::System;
   $class_of->{'cpan'} = VC3::Source::Perl;
+  $class_of->{'singularity'} = VC3::Source::Singularity;
   
   sub new {
       my ($class, $widget, $source_raw) = @_;
@@ -11660,6 +11662,84 @@ $fatpacked{"VC3/Source/Configure.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
   1;
   
 VC3_SOURCE_CONFIGURE
+
+$fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_SINGULARITY';
+  package VC3::Source::Singularity;
+  use base 'VC3::Source::Generic';
+  use Carp;
+  use File::Spec::Functions qw/catfile/;
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      if($widget->wrapper) {
+          die "Wrapper specified in conflict with '" . $widget->package->name . "'\n";
+      }
+  
+      my $self = $class->SUPER::new($widget, $json_description);
+  
+      $self->image($json_description->{image});
+      $self->setup_wrapper();
+  
+      unless($self->recipe) {
+      }
+  
+      unless($self->dependencies) {
+          $self->dependencies({});
+      }
+  
+      $self->{dependencies}{'singularity'} ||= [];
+      return $self;
+  }
+  
+  sub to_hash {
+      my ($self) = @_;
+  
+      my $sh = $self->SUPER::to_hash();
+      $sh->{image} = $self->image;
+  
+      return $sh;
+  }
+  
+  sub image {
+      my ($self, $new_image) = @_;
+  
+      $self->{image} = $new_image if($new_image);
+  
+      unless($self->{image}) {
+          die "Container recipe for '" . $self->widget->package->name . "' did not define an 'image' field.\n";
+      }
+      
+      return $self->{image};
+  }
+  
+  sub setup_wrapper {
+      my ($self) = @_;
+  
+      my $image = $self->image;
+      unless($image =~ m^://^) {
+          $image = catfile($self->widget->package->bag->files_dir, $image);
+      }
+  
+      my $wrapper = 'singularity';
+  
+      if($self->widget->package->bag->{on_terminal}) {
+          $wrapper .= ' shell'
+      } else {
+          $wrapper .= ' exec'
+      }
+  
+      $wrapper .= ' --home ${VC3_INSTALL_USER_HOME}';
+      $wrapper .= " $image";
+  
+      $self->widget->package->bag->say($wrapper);
+  
+      $self->widget->wrapper($wrapper);
+  }
+  
+  1;
+  
+VC3_SOURCE_CONTAINER_SINGULARITY
 
 $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_GENERIC';
   package VC3::Source::Generic;
@@ -18657,6 +18737,41 @@ __DATA__
         ],
         "environment-autovars":[
             "PATH"
+        ]
+    },
+
+    "singularity":{
+        "tags":["containers"],
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "prerequisites":[
+                        "which singularity"
+                    ],
+                    "recipe":[
+                        "bin=$(dirname $(which singularity))",
+                        "echo VC3_ROOT_SYSTEM: ${bin%%bin}"
+                    ]
+                }
+            }
+        ],
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/([0-9]+(\\.[0-9]+){2,3}).*/\\1/')"
+        ]
+    },
+
+    "centos6-os":{
+        "tags":["containers"],
+        "versions":[
+            {
+                "version":"6.4",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.cctools-reqs.x86_64-centos6.img"
+                }
+            }
         ]
     }
 }

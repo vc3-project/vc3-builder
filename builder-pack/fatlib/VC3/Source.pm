@@ -9,6 +9,7 @@ use VC3::Source::ManualDist;
 use VC3::Source::Binary;
 use VC3::Source::System;
 use VC3::Source::Perl;
+use VC3::Source::Container::Singularity;
 
 our $class_of = {};
 
@@ -20,6 +21,7 @@ $class_of->{'manual-distribution'} = VC3::Source::ManualDist;
 $class_of->{'binary'} = VC3::Source::Binary;
 $class_of->{'system'} = VC3::Source::System;
 $class_of->{'cpan'} = VC3::Source::Perl;
+$class_of->{'singularity'} = VC3::Source::Singularity;
 
 sub new {
     my ($class, $widget, $source_raw) = @_;

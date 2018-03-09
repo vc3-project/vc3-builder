@@ -40,7 +40,7 @@ sub new {
         $source = VC3::Source::Perl->new($widget, $source_raw);
     }
     else {
-        croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
+        croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->package->name . "'";
     }
 
     return $source;

@@ -10091,7 +10091,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub build_widget {
       my ($self, $widget, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
   
-      $self->say("processing for @{[$widget->name]}-" . $widget->version->normal);
+      $self->say("processing for @{[$widget->package->name]}-" . $widget->version->normal);
   
   
       my $exit_status = 0;
@@ -10582,17 +10582,6 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
   }
           
   
-  sub bag {
-      my ($self, $new_bag) = @_;
-  
-      $self->{bag} = $new_bag if($new_bag);
-  
-      croak 'No bag given'
-      unless($self->{bag}); 
-  
-      return $self->{bag};
-  }
-  
   sub name {
       my ($self, $new_name) = @_;
   
@@ -10659,6 +10648,17 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       $self->{auto_version} = $new_auto_version if($new_auto_version);
   
       return $self->{auto_version};
+  }
+  
+  sub bag {
+      my ($self, $new_bag) = @_;
+  
+      $self->{bag} = $new_bag if($new_bag);
+  
+      croak 'No bag given'
+      unless($self->{bag}); 
+  
+      return $self->{bag};
   }
   
   sub compute_auto_version {
@@ -10930,7 +10930,7 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   
       my $version = $widget->version;
   
-      $self->say("Try:     " . $widget->name . " => @{[$version->normal]}");
+      $self->say("Try:     " . $widget->package->name . " => @{[$version->normal]}");
   
       if($min && $min gt $version || $max && $max lt $version) {
           $self->say("Incorrect version: @{[$version->normal]} => [@{[$self->version_str($min)]},@{[$self->version_str($max)]}]");
@@ -10939,12 +10939,12 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   
       my $saved_state = $self->elements();
   
-      my $p = $self->elements->{$widget->name};
+      my $p = $self->elements->{$widget->package->name};
       my $e = $self->refine($widget, $p, $min, $max);
   
       my $success;
       if($p && !$e) {
-          $self->say("conflicting versions: @{[$widget->name]} [@{[ $self->version_str($p->{min}) ]}, @{[ $self->version_str($p->{max})]} <=> [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+          $self->say("conflicting versions: @{[$widget->package->name]} [@{[ $self->version_str($p->{min}) ]}, @{[ $self->version_str($p->{max})]} <=> [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
           $success = 0;
       } elsif($p && $e) {
           # already in plan, simple refinenment of versions
@@ -10960,22 +10960,22 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
                   if($s) {
                       $success = 1;
                   } else {
-                      $self->say("could not add any source for: @{[$widget->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+                      $self->say("could not add any source for: @{[$widget->package->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
                       $success = 0;
                   }
               } else {
                   $success = 1;
               }
           } else {
-              $self->say("could not set dependencies for: @{[$widget->name]} @{[$version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+              $self->say("could not set dependencies for: @{[$widget->package->name]} @{[$version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
               $success = 0;
           }
       }
   
       if($success) {
           # add new step to plan
-          $self->elements->{$widget->name} = $e;
-          $self->say("Success: @{[$widget->name]} @{[$e->widget->version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+          $self->elements->{$widget->package->name} = $e;
+          $self->say("Success: @{[$widget->package->name]} @{[$e->widget->version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
       } else {
           # restore old plan on error
           $self->elements($saved_state);
@@ -11012,9 +11012,9 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
       my $saved_state = $self->elements();
   
       if($source->isa('VC3::Source::System')) {
-          unless($self->bag->{system}{$source->widget->name}) {
+          unless($self->bag->{system}{$source->widget->package->name}) {
               next if $self->bag->{no_system}{ALL};
-              next if $self->bag->{no_system}{$source->widget->name};
+              next if $self->bag->{no_system}{$source->widget->package->name};
           }
       }
   
@@ -11022,7 +11022,7 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
       eval { $exit_status = $source->check_prerequisites() };
   
       if($exit_status) {
-          $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version->normal);
+          $self->say("Fail-prereq: " . $source->widget->package->name . '-' . $source->widget->version->normal);
           return undef;
       }
   
@@ -11098,7 +11098,7 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   
               if($max != $o) {
                   $change = 1;
-                  $ordinal_of->{$w->name} = $max;
+                  $ordinal_of->{$w->package->name} = $max;
               }
           }
   
@@ -11589,7 +11589,7 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
           $source = VC3::Source::Perl->new($widget, $source_raw);
       }
       else {
-          croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->name . "'";
+          croak "Do not know about source type '" . $source_raw->{type} . "' for '" . $widget->package->name . "'";
       }
   
       return $source;
@@ -11608,7 +11608,7 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
       my ($class, $widget, $json_description) = @_;
   
       if($json_description->{recipe}) {
-          die "Recipe specified when not needed for '" . $widget->name . "'\n";
+          die "Recipe specified when not needed for '" . $widget->package->name . "'\n";
       }
   
       # dummy recipe, so Tarball does not complain.
@@ -11768,7 +11768,7 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
   sub bag {
       my ($self) = @_;
   
-      return $self->widget->bag;
+      return $self->widget->package->bag;
   }
   
   sub recipe {
@@ -11877,7 +11877,7 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
   
       my @steps = @{$self->prerequisites};
   
-      my ($pid, $pre_in) = $self->widget->bag->shell();
+      my ($pid, $pre_in) = $self->widget->package->bag->shell();
   
       print { $pre_in } "exec 1>> /dev/null\n";
       print { $pre_in } "exec 2>&1\n";
@@ -12018,8 +12018,8 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
           if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony) {
               $result = 0;
           } else {
-              $self->say("preparing '" . $self->widget->name . "' for " . $self->widget->bag->target);
-              if($self->widget->bag->dry_run) {
+              $self->say("preparing '" . $self->widget->package->name . "' for " . $self->widget->package->bag->target);
+              if($self->widget->package->bag->dry_run) {
                   $result = 0;
               } else {
                   $self->prepare_recipe_sandbox();
@@ -12275,7 +12275,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   use VC3::Ribbon;
   
   # Attributes:
-  # name, version, source, dependencies, wrapper, prologue, environment_variables, environment_autovars, phony
+  # version, source, dependencies, wrapper, prologue, environment_variables, environment_autovars, phony
   sub new {
       my ($class, $pkg, $json_description) = @_;
   
@@ -12355,7 +12355,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   sub widget_var {
       my ($self, $varname) = @_;
   
-      my $expanded = "VC3_${varname}_" . uc($self->name);
+      my $expanded = "VC3_${varname}_" . uc($self->package->name);
   
       # replace - with _, as env vars cannot have - in their names.
       $expanded =~ s/-/_/g;
@@ -12374,23 +12374,11 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       return $self->{package};
   }
   
-  sub bag {
-      my ($self) = @_;
-  
-      return $self->package->bag;
-  }
-  
-  sub name {
-      my ($self, $new_name) = @_;
-  
-      return $self->package->name;
-  }
-  
   sub ribbon {
       my ($self) = @_;
   
       unless($self->{ribbon}) {
-          $self->{ribbon} = VC3::Ribbon->new($self->name, $self->bookeeping_dir, $self->bag->tmp_dir, $self->checksum);
+          $self->{ribbon} = VC3::Ribbon->new($self->package->name, $self->bookeeping_dir, $self->package->bag->tmp_dir, $self->checksum);
       }
   
       return $self->{ribbon};
@@ -12574,9 +12562,9 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       }
   
       unless($self->{root_dir}) {
-          my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
-          $self->{root_dir} = catfile($self->bag->root_dir, $rel);
-          $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
+          my $rel = catfile($self->package->bag->target, $self->package->name, $self->version->normal);
+          $self->{root_dir} = catfile($self->package->bag->root_dir, $rel);
+          $var_value = catfile('${VC3_ROOT}', '${VC3_MACHINE_TARGET}', $self->package->name, 'v${' . $self->widget_var('VERSION_FULL') . '}');
       }
   
       if(!$old || $old ne $self->{root_dir}) {
@@ -12589,26 +12577,26 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   sub bookeeping_dir {
       my ($self, $relative) = @_;
   
-      my $rel = catfile($self->bag->target, $self->name, $self->version->normal);
+      my $rel = catfile($self->package->bag->target, $self->package->name, $self->version->normal);
   
       if($relative) {
           return $rel;
       }
   
-      return catfile($self->bag->root_dir, $rel);
+      return catfile($self->package->bag->root_dir, $rel);
   }
   
   sub build_dir {
       my ($self) = @_;
   
       unless($self->{build_dir}) {
-          my $root     = catfile($self->bag->root_dir, 'builds');
+          my $root     = catfile($self->package->bag->root_dir, 'builds');
   
           unless(-d $root) {
               File::Path::make_path($root);
           }
   
-          my $template = catfile($root, $self->name . '.XXXXXX');
+          my $template = catfile($root, $self->package->name . '.XXXXXX');
   
           my $tmpdir   = File::Temp::tempdir($template, CLEANUP => 1);
           $self->{build_dir} = $tmpdir;
@@ -12619,7 +12607,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
   sub build_log {
       my ($self) = @_;
-      my $log_name = catfile($self->bookeeping_dir, $self->name . '-build-log');
+      my $log_name = catfile($self->bookeeping_dir, $self->package->name . '-build-log');
   
       return $log_name;
   }
@@ -12627,7 +12615,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   sub say {
       my $self = shift @_;
   
-      return $self->bag->say(@_);
+      return $self->package->bag->say(@_);
   }
   
   sub consolidate_environment_variables {
@@ -12688,7 +12676,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   sub error_debug_info {
       my ($self, $eval_error) = @_;
   
-      print "'", $self->name, "' failed to build for ", $self->bag->target, "\n";
+      print "'", $self->package->name, "' failed to build for ", $self->package->bag->target, "\n";
   
       if($eval_error) {
           print $eval_error, "\n";
@@ -12712,7 +12700,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
               my $cwd = getcwd();
   
-              $self->bag->shell_user();
+              $self->package->bag->shell_user();
   
               chdir $cwd;
           }
@@ -12800,19 +12788,19 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       File::Path::make_path($self->bookeeping_dir);
   
       # make sure tmp dir exists
-      File::Path::make_path($self->bag->tmp_dir);
+      File::Path::make_path($self->package->bag->tmp_dir);
   
       # set the destination directory as an environment variable before
       # setting up the shell, so that the child created inherets it.
-      $self->bag->add_builder_variable('VC3_PREFIX', $self->root_dir);
-      $self->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
+      $self->package->bag->add_builder_variable('VC3_PREFIX', $self->root_dir);
+      $self->package->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
   }
   
   sub cleanup_recipe_sandbox {
       my ($self, $result) = @_;
   
-      $self->bag->del_builder_variable('VC3_PREFIX');
-      $self->bag->del_builder_variable('VC3_BUILD');
+      $self->package->bag->del_builder_variable('VC3_PREFIX');
+      $self->package->bag->del_builder_variable('VC3_BUILD');
   
       if($result eq '0') {
           File::Path::rmtree($self->build_dir);
@@ -12833,7 +12821,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
       # open sh with -e. This terminates the shell at the first step that returns
       # a non-zero status.
-      my ($pid, $build_in) = $self->bag->shell();
+      my ($pid, $build_in) = $self->package->bag->shell();
   
       croak "Could not open $shell for building."
       unless $build_in;
@@ -12849,7 +12837,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
   sub shell {
       my ($self) = @_;
-      return $self->bag->shell();
+      return $self->package->bag->shell();
   }
   
   1;

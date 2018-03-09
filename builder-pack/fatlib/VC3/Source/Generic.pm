@@ -39,7 +39,7 @@ sub widget {
 sub bag {
     my ($self) = @_;
 
-    return $self->widget->bag;
+    return $self->widget->package->bag;
 }
 
 sub recipe {
@@ -148,7 +148,7 @@ sub check_prerequisites {
 
     my @steps = @{$self->prerequisites};
 
-    my ($pid, $pre_in) = $self->widget->bag->shell();
+    my ($pid, $pre_in) = $self->widget->package->bag->shell();
 
     print { $pre_in } "exec 1>> /dev/null\n";
     print { $pre_in } "exec 2>&1\n";
@@ -289,8 +289,8 @@ sub execute_recipe {
         if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony) {
             $result = 0;
         } else {
-            $self->say("preparing '" . $self->widget->name . "' for " . $self->widget->bag->target);
-            if($self->widget->bag->dry_run) {
+            $self->say("preparing '" . $self->widget->package->name . "' for " . $self->widget->package->bag->target);
+            if($self->widget->package->bag->dry_run) {
                 $result = 0;
             } else {
                 $self->prepare_recipe_sandbox();

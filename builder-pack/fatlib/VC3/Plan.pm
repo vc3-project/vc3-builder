@@ -162,7 +162,7 @@ sub add_widget {
 
     my $version = $widget->version;
 
-    $self->say("Try:     " . $widget->name . " => @{[$version->normal]}");
+    $self->say("Try:     " . $widget->package->name . " => @{[$version->normal]}");
 
     if($min && $min gt $version || $max && $max lt $version) {
         $self->say("Incorrect version: @{[$version->normal]} => [@{[$self->version_str($min)]},@{[$self->version_str($max)]}]");
@@ -171,12 +171,12 @@ sub add_widget {
 
     my $saved_state = $self->elements();
 
-    my $p = $self->elements->{$widget->name};
+    my $p = $self->elements->{$widget->package->name};
     my $e = $self->refine($widget, $p, $min, $max);
 
     my $success;
     if($p && !$e) {
-        $self->say("conflicting versions: @{[$widget->name]} [@{[ $self->version_str($p->{min}) ]}, @{[ $self->version_str($p->{max})]} <=> [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+        $self->say("conflicting versions: @{[$widget->package->name]} [@{[ $self->version_str($p->{min}) ]}, @{[ $self->version_str($p->{max})]} <=> [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
         $success = 0;
     } elsif($p && $e) {
         # already in plan, simple refinenment of versions
@@ -192,22 +192,22 @@ sub add_widget {
                 if($s) {
                     $success = 1;
                 } else {
-                    $self->say("could not add any source for: @{[$widget->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+                    $self->say("could not add any source for: @{[$widget->package->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
                     $success = 0;
                 }
             } else {
                 $success = 1;
             }
         } else {
-            $self->say("could not set dependencies for: @{[$widget->name]} @{[$version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+            $self->say("could not set dependencies for: @{[$widget->package->name]} @{[$version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
             $success = 0;
         }
     }
 
     if($success) {
         # add new step to plan
-        $self->elements->{$widget->name} = $e;
-        $self->say("Success: @{[$widget->name]} @{[$e->widget->version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+        $self->elements->{$widget->package->name} = $e;
+        $self->say("Success: @{[$widget->package->name]} @{[$e->widget->version->normal]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
     } else {
         # restore old plan on error
         $self->elements($saved_state);
@@ -244,9 +244,9 @@ sub add_source {
     my $saved_state = $self->elements();
 
     if($source->isa('VC3::Source::System')) {
-        unless($self->bag->{system}{$source->widget->name}) {
+        unless($self->bag->{system}{$source->widget->package->name}) {
             next if $self->bag->{no_system}{ALL};
-            next if $self->bag->{no_system}{$source->widget->name};
+            next if $self->bag->{no_system}{$source->widget->package->name};
         }
     }
 
@@ -254,7 +254,7 @@ sub add_source {
     eval { $exit_status = $source->check_prerequisites() };
 
     if($exit_status) {
-        $self->say("Fail-prereq: " . $source->widget->name . '-' . $source->widget->version->normal);
+        $self->say("Fail-prereq: " . $source->widget->package->name . '-' . $source->widget->version->normal);
         return undef;
     }
 
@@ -330,7 +330,7 @@ sub order_aux {
 
             if($max != $o) {
                 $change = 1;
-                $ordinal_of->{$w->name} = $max;
+                $ordinal_of->{$w->package->name} = $max;
             }
         }
 

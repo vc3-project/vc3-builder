@@ -672,7 +672,7 @@ sub decode_bag {
 sub build_widget {
     my ($self, $widget, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
 
-    $self->say("processing for @{[$widget->name]}-" . $widget->version->normal);
+    $self->say("processing for @{[$widget->package->name]}-" . $widget->version->normal);
 
 
     my $exit_status = 0;

@@ -11570,7 +11570,7 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
       $sh->{options}  = $self->options;
       $sh->{postface} = $self->postface;
   
-      for my $k (keys $sh) {
+      for my $k (keys %{$sh}) {
           unless(defined $sh->{$k}) {
               delete $sh->{$k};
           }
@@ -11783,7 +11783,7 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
       $sh->{prerequisites} = $self->prerequisites;
       $sh->{'msg-manual-requirement'} = $self->msg_manual_requirement;
   
-      for my $k (keys $sh) {
+      for my $k (keys %{$sh}) {
           unless(defined $sh->{$k}) {
               delete $sh->{$k};
           }
@@ -12394,7 +12394,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       $wh->{'environment-variables'} = $self->environment_variables;
       $wh->{'environment-autovars'}  = $self->environment_autovars;
   
-      for my $k (keys $wh) {
+      for my $k (keys %{$wh}) {
           unless(defined $wh->{$k}) {
               delete $wh->{$k};
           }

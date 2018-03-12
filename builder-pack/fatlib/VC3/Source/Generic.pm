@@ -35,7 +35,7 @@ sub to_hash {
     $sh->{prerequisites} = $self->prerequisites;
     $sh->{'msg-manual-requirement'} = $self->msg_manual_requirement;
 
-    for my $k (keys $sh) {
+    for my $k (keys %{$sh}) {
         unless(defined $sh->{$k}) {
             delete $sh->{$k};
         }

@@ -42,7 +42,7 @@ sub to_hash {
     $sh->{options}  = $self->options;
     $sh->{postface} = $self->postface;
 
-    for my $k (keys $sh) {
+    for my $k (keys %{$sh}) {
         unless(defined $sh->{$k}) {
             delete $sh->{$k};
         }

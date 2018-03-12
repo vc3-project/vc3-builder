@@ -3782,8 +3782,10 @@
         ]
     },
 
-    "centos6-os":{
-        "tags":["containers"],
+    "centos6":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
         "versions":[
             {
                 "version":"6.4",

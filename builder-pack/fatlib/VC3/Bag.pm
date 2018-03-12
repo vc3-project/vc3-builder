@@ -68,6 +68,12 @@ sub list_packages() {
         @ps = grep { $_->show_in_list } @ps;
     }
 
+    if($option eq 'os') {
+        @ps = grep { $_->operating_system } @ps;
+    } else {
+        @ps = grep { ! $_->operating_system } @ps;
+    }
+
     my $by_tags = ($option eq 'section');
 
     my %tags;
@@ -463,7 +469,7 @@ sub del_builder_variable {
 }
 
 sub set_plan_for {
-    my ($self, @requires) = @_;
+    my ($self, $os, @requires) = @_;
 
     $self->{indent_level} = 0;
 

@@ -54,7 +54,7 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   command-and-args      defaults to $shell
 
-  options are:
+  where options are:
 
   --database <catalog>  defaults to <internal> if available, otherwise 
                         to ./vc3_catalog.json. May be specified several times,
@@ -70,6 +70,11 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         Default is ${vc3_distfiles}
   --repository <url>    Site to fetch packages if needed.
                         Default is ${vc3_repository}
+
+  --require-os <name>   Ensure the operating system is <name>. May use a container to 
+                        fulfill the requirement. May be specified several times,
+                        but only the last occurance is honored.
+                        Use --list=os for a list of available operating systems. 
 
   --force               Reinstall the packages named with --require and the
                         packages they depend on.
@@ -178,6 +183,7 @@ sub remove_vc3_vars() {
 
 sub main {
     my @requires     = ();
+    my $require_os;
 
     my $print_help   = 0;
     my $make_jobs    = 4;
@@ -225,6 +231,8 @@ sub main {
 
         "database=s"  => \@databases,
         "require=s"   => \@requires, 
+
+        "require-os=s" => \$require_os, 
 
         "install=s" => \$vc3_root,
         "home=s"    => \$vc3_user_home,
@@ -353,7 +361,7 @@ sub main {
 
     push @cleanups, sub { $bag->cleanup() };
 
-    $bag->set_plan_for(@requires);
+    $bag->set_plan_for($require_os, @requires);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);

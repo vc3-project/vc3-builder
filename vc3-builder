@@ -9487,6 +9487,12 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           @ps = grep { $_->show_in_list } @ps;
       }
   
+      if($option eq 'os') {
+          @ps = grep { $_->operating_system } @ps;
+      } else {
+          @ps = grep { ! $_->operating_system } @ps;
+      }
+  
       my $by_tags = ($option eq 'section');
   
       my %tags;
@@ -9882,7 +9888,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   }
   
   sub set_plan_for {
-      my ($self, @requires) = @_;
+      my ($self, $os, @requires) = @_;
   
       $self->{indent_level} = 0;
   
@@ -10550,7 +10556,7 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       $self->environment_variables($json_description->{'environment-variables'});
       $self->environment_autovars($json_description->{'environment-autovars'});
       $self->phony($json_description->{phony});
-      $self->operating_system($json_description->{operating_system});
+      $self->operating_system($json_description->{'operating-system'});
       $self->auto_version($json_description->{'auto-version'});
   
       $self->show_in_list($json_description->{'show-in-list'});
@@ -11731,8 +11737,6 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   
       $wrapper .= ' --home ${VC3_INSTALL_USER_HOME}';
       $wrapper .= " $image";
-  
-      $self->widget->package->bag->say($wrapper);
   
       $self->widget->wrapper($wrapper);
   }
@@ -14569,7 +14573,7 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   command-and-args      defaults to $shell
 
-  options are:
+  where options are:
 
   --database <catalog>  defaults to <internal> if available, otherwise 
                         to ./vc3_catalog.json. May be specified several times,
@@ -14585,6 +14589,11 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         Default is ${vc3_distfiles}
   --repository <url>    Site to fetch packages if needed.
                         Default is ${vc3_repository}
+
+  --require-os <name>   Ensure the operating system is <name>. May use a container to 
+                        fulfill the requirement. May be specified several times,
+                        but only the last occurance is honored.
+                        Use --list=os for a list of available operating systems. 
 
   --force               Reinstall the packages named with --require and the
                         packages they depend on.
@@ -14693,6 +14702,7 @@ sub remove_vc3_vars() {
 
 sub main {
     my @requires     = ();
+    my $require_os;
 
     my $print_help   = 0;
     my $make_jobs    = 4;
@@ -14740,6 +14750,8 @@ sub main {
 
         "database=s"  => \@databases,
         "require=s"   => \@requires, 
+
+        "require-os=s" => \$require_os, 
 
         "install=s" => \$vc3_root,
         "home=s"    => \$vc3_user_home,
@@ -14868,7 +14880,7 @@ sub main {
 
     push @cleanups, sub { $bag->cleanup() };
 
-    $bag->set_plan_for(@requires);
+    $bag->set_plan_for($require_os, @requires);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -18762,8 +18774,10 @@ __DATA__
         ]
     },
 
-    "centos6-os":{
-        "tags":["containers"],
+    "centos6":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
         "versions":[
             {
                 "version":"6.4",

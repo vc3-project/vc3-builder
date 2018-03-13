@@ -28,6 +28,7 @@ perl
 python
 strace
 vim
+wget
 which
 };
 
@@ -80,6 +81,7 @@ perl                     => 'perl-devel',
 python                   => 'python-devel',
 strace                   => 'strace',
 vim                      => 'vim',
+wget                     => 'wget',
 which                    => 'which',
 };
 
@@ -103,6 +105,7 @@ perl                     => 'libperl-dev',
 python                   => 'python-dev',
 strace                   => 'strace',
 vim                      => 'vim',
+wget                     => 'wget',
 which                    => 'debianutils',
 };
 
@@ -138,6 +141,7 @@ perl                     => 'perl',
 python                   => 'python-devel',
 strace                   => 'strace',
 vim                      => 'vim',
+wget                     => 'wget',
 which                    => 'which',
 };
 

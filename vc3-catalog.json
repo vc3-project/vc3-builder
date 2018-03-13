@@ -3799,7 +3799,99 @@
                 "version":"6.9",
                 "source":{
                     "type":"singularity",
-                    "image":"Singularity.cctools-reqs.x86_64-centos6.img"
+                    "image":"Singularity.vc3.x86_64-centos6.img"
+                }
+            }
+        ]
+    },
+
+    "redhat7":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"7",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-centos7.img"
+                }
+            }
+        ]
+    },
+
+    "ubuntu16":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"16",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"16",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-ubuntu16.04.img"
+                }
+            }
+        ]
+    },
+
+    "debian9":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"16",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"9.2",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-debian9.2.img"
+                }
+            }
+        ]
+    },
+
+    "opensuse42":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"42",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"42.3",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-opensuse42.3.img"
                 }
             }
         ]

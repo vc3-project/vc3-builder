@@ -86,11 +86,11 @@ sub files {
 
     $self->{files} = $new_files if($new_files);
 
-    if($self->{files}) {
-        return $self->{files};
-    } else {
-        return [];
+    unless($self->{files}) {
+        $self->{files} = [];
     }
+
+    return $self->{files};
 }
 
 sub msg_manual_requirement {

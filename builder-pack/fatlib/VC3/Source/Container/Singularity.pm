@@ -15,9 +15,6 @@ sub new {
     $self->{prerequisites} ||= [];
     unshift @{$self->{prerequisites}}, 'which singularity';
 
-    unless($self->recipe) {
-    }
-
     unless($self->dependencies) {
         $self->dependencies({});
     }
@@ -83,8 +80,6 @@ sub setup_wrapper {
     $wrapper .= ' -B ' . $bag->files_dir . ':/opt/vc3-distfiles';
     $wrapper .= ' -B ' . $bag->tmp_dir   . ':/opt/vc3-tmp';
     $wrapper .= ' '    . $self->image;
-
-    print "$wrapper \n";
 
     $self->widget->wrapper($wrapper);
 }

@@ -98,12 +98,13 @@ sub switch_os {
             return
         }
 
+        # if generic, nothing to do, as it is not a container
         if($w->source->type eq 'generic') {
             return;
         }
 
         eval {
-            $w->source->execute_recipe();
+            $w->source->get_files();
             $self->execute($w->wrapper . ' ' . join(' ', @args));
         };
 

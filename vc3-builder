@@ -9517,12 +9517,13 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
               return
           }
   
+          # if generic, nothing to do, as it is not a container
           if($w->source->type eq 'generic') {
               return;
           }
   
           eval {
-              $w->source->execute_recipe();
+              $w->source->get_files();
               $self->execute($w->wrapper . ' ' . join(' ', @args));
           };
   
@@ -11762,9 +11763,6 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       $self->{prerequisites} ||= [];
       unshift @{$self->{prerequisites}}, 'which singularity';
   
-      unless($self->recipe) {
-      }
-  
       unless($self->dependencies) {
           $self->dependencies({});
       }
@@ -11830,8 +11828,6 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       $wrapper .= ' -B ' . $bag->files_dir . ':/opt/vc3-distfiles';
       $wrapper .= ' -B ' . $bag->tmp_dir   . ':/opt/vc3-tmp';
       $wrapper .= ' '    . $self->image;
-  
-      print "$wrapper \n";
   
       $self->widget->wrapper($wrapper);
   }
@@ -11929,11 +11925,11 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
   
       $self->{files} = $new_files if($new_files);
   
-      if($self->{files}) {
-          return $self->{files};
-      } else {
-          return [];
+      unless($self->{files}) {
+          $self->{files} = [];
       }
+  
+      return $self->{files};
   }
   
   sub msg_manual_requirement {
@@ -14937,13 +14933,6 @@ sub main {
         push @no_sys, 'ALL';
     }
 
-    unless(@requires) {
-        push @requires, 'noop';
-    }
-
-    # add common builder environment
-    unshift @requires, 'vc3-builder-hands';
-
     # set defaults
     my @command_and_args = @ARGV;
     if(!@command_and_args) {
@@ -15009,7 +14998,7 @@ sub main {
         $bag->to_parallel($parallel_dir, $make_jobs);
         $bag->check_manual_requirements();
  
-        $bag->set_plan_for('vc3-builder-hands', 'cctools-statics');
+        $bag->set_plan_for('cctools-statics');
         $ignore_locks = 1;
         $prestage     = 1;
     }
@@ -18897,7 +18886,99 @@ __DATA__
                 "version":"6.9",
                 "source":{
                     "type":"singularity",
-                    "image":"Singularity.cctools-reqs.x86_64-centos6.img"
+                    "image":"Singularity.vc3.x86_64-centos6.img"
+                }
+            }
+        ]
+    },
+
+    "redhat7":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"7",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-centos7.img"
+                }
+            }
+        ]
+    },
+
+    "ubuntu16":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"16",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"16",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-ubuntu16.04.img"
+                }
+            }
+        ]
+    },
+
+    "debian9":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"16",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"9.2",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-debian9.2.img"
+                }
+            }
+        ]
+    },
+
+    "opensuse42":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"42",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"42.3",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-opensuse42.3.img"
                 }
             }
         ]

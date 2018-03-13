@@ -1,7 +1,7 @@
 package VC3::Source::Singularity;
 use base 'VC3::Source::Generic';
 use Carp;
-use File::Spec::Functions qw/catfile/;
+use File::Spec::Functions qw/catfile file_name_is_absolute/;
 
 sub new {
     my ($class, $widget, $json_description) = @_;
@@ -12,8 +12,8 @@ sub new {
 
     my $self = $class->SUPER::new($widget, $json_description);
 
-    $self->image($json_description->{image});
-    $self->setup_wrapper();
+    $self->{prerequisites} ||= [];
+    unshift @{$self->{prerequisites}}, 'which singularity';
 
     unless($self->recipe) {
     }
@@ -23,6 +23,22 @@ sub new {
     }
 
     $self->{dependencies}{'singularity'} ||= [];
+
+    my $image = $json_description->{image};
+    unless($image) {
+        die "No image specified for '" . $widget->package->name . "'\n";
+    }
+
+    if($image =~ m^://^ or file_name_is_absolute($image)) {
+        $self->image($image);
+    } else {
+        $image = catfile('images', 'singularity', $image);
+        $self->image(catfile($self->widget->package->bag->files_dir, $image));
+        push @{$self->files}, $image;
+    }
+
+    $self->setup_wrapper();
+
     return $self;
 }
 
@@ -50,11 +66,6 @@ sub image {
 sub setup_wrapper {
     my ($self) = @_;
 
-    my $image = $self->image;
-    unless($image =~ m^://^) {
-        $image = catfile($self->widget->package->bag->files_dir, $image);
-    }
-
     my $wrapper = 'singularity';
 
     if($self->widget->package->bag->{on_terminal}) {
@@ -63,8 +74,17 @@ sub setup_wrapper {
         $wrapper .= ' exec'
     }
 
-    $wrapper .= ' --home ${VC3_INSTALL_USER_HOME}';
-    $wrapper .= " $image";
+    my $bag = $self->widget->package->bag;
+    my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
+
+    # this will fail if names above point to the same dir!
+    $wrapper .= ' -B ' . $bag->root_dir  . ':/opt/vc3-root';
+    $wrapper .= ' -B ' . $bag->home_dir  . ':/opt/vc3-home';
+    $wrapper .= ' -B ' . $bag->files_dir . ':/opt/vc3-distfiles';
+    $wrapper .= ' -B ' . $bag->tmp_dir   . ':/opt/vc3-tmp';
+    $wrapper .= ' '    . $self->image;
+
+    print "$wrapper \n";
 
     $self->widget->wrapper($wrapper);
 }

@@ -84,6 +84,14 @@ sub add_target {
     return 0;
 }
 
+sub operating_system {
+    my ($self, $new_os) = @_;
+
+    $self->{operating_system} = $new_os if($new_os);
+
+    return $self->{operating_system};
+}
+
 sub add_main_targets {
     my ($self, @requires) = @_;
 
@@ -185,14 +193,13 @@ sub add_widget {
         $success = 0;
         die('bug, this should not happen.');
     } else {
-
         if($self->add_dependencies($widget->dependencies)) {
             if($widget->source) {
                 my $s = $self->add_source($widget->source);
                 if($s) {
                     $success = 1;
                 } else {
-                    $self->say("could not add any source for: @{[$widget->package->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+                    $self->say("could not add source for: @{[$widget->package->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
                     $success = 0;
                 }
             } else {

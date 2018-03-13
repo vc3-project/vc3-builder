@@ -44,20 +44,83 @@ sub new {
 
     $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
 
-    $self->{packages} = $self->decode_bags($args{databases});
-
+    # read the catalog of available packages
+    ($self->{'packages'}, $self->{'op_sys'}) = $self->decode_bags($args{databases});
 
     $self->{no_system} = { map { ( $_ => 1 ), } @{$args{no_sys}} };
     $self->{system}    = {};
+
+    # always use singularity from the system (we can't compile it as a user.)
+    $self->{system}{singularity} = 1;
 
     $self->{indent_level} = 0;
 
     $self->add_manual_variables($args{env_vars});
     $self->add_manual_packages($args{sys_manual});
 
-
     return $self;
 }
+
+sub switch_os {
+    my ($self, $os, $exe, @args) = @_;
+
+    unless($os) {
+        # No os requirement, so we simply return.
+        return;
+    }
+
+    my $pkg = $self->{op_sys}{$os};
+
+    unless($pkg) {
+        die "I don't know anything about operating system '$os'.\n";
+    }
+
+    # avoid infinite loop by setting os to no requirement.
+    my $builder_path = catfile($self->tmp_dir, 'vc3-builder');
+    copy($0, $builder_path);
+    chmod 0755, $builder_path;
+    unshift @args, ('/opt/vc3-tmp/vc3-builder --no-os-switch');
+
+    my $op_source;
+    for my $w (@{$pkg->widgets}) {
+        my $exit_status = -1;
+        eval { $exit_status = $w->source->check_prerequisites() };
+
+        if($exit_status) {
+            $self->say('OS fail-prereq ' . $os . ' ' . $w->source->type);
+            next;
+        }
+
+        $self->say('OS trying ' . $os . ' ' . $w->source->type);
+
+        # if no wrapper, nothing to do, continue as usual.
+        unless($w->wrapper) {
+            return
+        }
+
+        if($w->source->type eq 'generic') {
+            return;
+        }
+
+        eval {
+            $w->source->execute_recipe();
+            $self->execute($w->wrapper . ' ' . join(' ', @args));
+        };
+
+        if($@) {
+            $self->say('OS failed ' . $os . ' ' . $w->source->type . ": $@");
+            next;
+        } else {
+            # payload executed, so we end this builder.
+            exit(0);
+        }
+    }
+
+    unless($op_source) {
+        die "Could not satisfy operating system requirement '$os'.\n";
+    }
+}
+
 
 sub list_packages() {
     my ($self, $option) = @_;
@@ -201,6 +264,7 @@ sub set_builder_variables {
         File::Path::make_path($self->root_dir);
         File::Path::make_path($self->files_dir);
         File::Path::make_path(catfile($self->files_dir, 'manual-distribution'));
+        File::Path::make_path(catfile($self->files_dir, 'images', 'singularity'));
         File::Path::make_path($self->home_dir);
         File::Path::make_path($self->tmp_dir);
     };
@@ -469,7 +533,7 @@ sub del_builder_variable {
 }
 
 sub set_plan_for {
-    my ($self, $os, @requires) = @_;
+    my ($self, @requires) = @_;
 
     $self->{indent_level} = 0;
 
@@ -481,7 +545,6 @@ sub set_plan_for {
     }
 
     $plan->order(1);
-
 }
 
 sub execute_plan {
@@ -634,16 +697,17 @@ sub decode_bags {
     my ($self, $databases) = @_;
 
     my $packages = {};
+    my $op_sys   = {};
 
     for my $filename (@{$databases}) {
-        $self->decode_bag($packages, $filename);
+        $self->decode_bag($filename, $packages, $op_sys);
     }
 
-    return $packages;
+    return ($packages, $op_sys);
 }
 
 sub decode_bag {
-    my ($self, $packages, $filename) = @_;
+    my ($self, $filename, $packages, $op_sys) = @_;
 
     {
         no warnings;
@@ -669,10 +733,14 @@ sub decode_bag {
     for my $package_name (keys %{$bag_raw}) {
         my $pkg = VC3::Package->new($self, $package_name, $bag_raw->{$package_name});
 
-        $packages->{$package_name} = $pkg;
+        if($pkg->operating_system) {
+            $op_sys->{$package_name}   = $pkg;
+        } else {
+            $packages->{$package_name} = $pkg;
+        }
     }
 
-    return $packages;
+    return ($packages, $op_sys);
 } 
 
 sub build_widget {

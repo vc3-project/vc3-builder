@@ -9463,20 +9463,83 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
   
-      $self->{packages} = $self->decode_bags($args{databases});
-  
+      # read the catalog of available packages
+      ($self->{'packages'}, $self->{'op_sys'}) = $self->decode_bags($args{databases});
   
       $self->{no_system} = { map { ( $_ => 1 ), } @{$args{no_sys}} };
       $self->{system}    = {};
+  
+      # always use singularity from the system (we can't compile it as a user.)
+      $self->{system}{singularity} = 1;
   
       $self->{indent_level} = 0;
   
       $self->add_manual_variables($args{env_vars});
       $self->add_manual_packages($args{sys_manual});
   
-  
       return $self;
   }
+  
+  sub switch_os {
+      my ($self, $os, $exe, @args) = @_;
+  
+      unless($os) {
+          # No os requirement, so we simply return.
+          return;
+      }
+  
+      my $pkg = $self->{op_sys}{$os};
+  
+      unless($pkg) {
+          die "I don't know anything about operating system '$os'.\n";
+      }
+  
+      # avoid infinite loop by setting os to no requirement.
+      my $builder_path = catfile($self->tmp_dir, 'vc3-builder');
+      copy($0, $builder_path);
+      chmod 0755, $builder_path;
+      unshift @args, ('/opt/vc3-tmp/vc3-builder --no-os-switch');
+  
+      my $op_source;
+      for my $w (@{$pkg->widgets}) {
+          my $exit_status = -1;
+          eval { $exit_status = $w->source->check_prerequisites() };
+  
+          if($exit_status) {
+              $self->say('OS fail-prereq ' . $os . ' ' . $w->source->type);
+              next;
+          }
+  
+          $self->say('OS trying ' . $os . ' ' . $w->source->type);
+  
+          # if no wrapper, nothing to do, continue as usual.
+          unless($w->wrapper) {
+              return
+          }
+  
+          if($w->source->type eq 'generic') {
+              return;
+          }
+  
+          eval {
+              $w->source->execute_recipe();
+              $self->execute($w->wrapper . ' ' . join(' ', @args));
+          };
+  
+          if($@) {
+              $self->say('OS failed ' . $os . ' ' . $w->source->type . ": $@");
+              next;
+          } else {
+              # payload executed, so we end this builder.
+              exit(0);
+          }
+      }
+  
+      unless($op_source) {
+          die "Could not satisfy operating system requirement '$os'.\n";
+      }
+  }
+  
   
   sub list_packages() {
       my ($self, $option) = @_;
@@ -9620,6 +9683,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           File::Path::make_path($self->root_dir);
           File::Path::make_path($self->files_dir);
           File::Path::make_path(catfile($self->files_dir, 'manual-distribution'));
+          File::Path::make_path(catfile($self->files_dir, 'images', 'singularity'));
           File::Path::make_path($self->home_dir);
           File::Path::make_path($self->tmp_dir);
       };
@@ -9888,7 +9952,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   }
   
   sub set_plan_for {
-      my ($self, $os, @requires) = @_;
+      my ($self, @requires) = @_;
   
       $self->{indent_level} = 0;
   
@@ -9900,7 +9964,6 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       }
   
       $plan->order(1);
-  
   }
   
   sub execute_plan {
@@ -10053,16 +10116,17 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       my ($self, $databases) = @_;
   
       my $packages = {};
+      my $op_sys   = {};
   
       for my $filename (@{$databases}) {
-          $self->decode_bag($packages, $filename);
+          $self->decode_bag($filename, $packages, $op_sys);
       }
   
-      return $packages;
+      return ($packages, $op_sys);
   }
   
   sub decode_bag {
-      my ($self, $packages, $filename) = @_;
+      my ($self, $filename, $packages, $op_sys) = @_;
   
       {
           no warnings;
@@ -10088,10 +10152,14 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       for my $package_name (keys %{$bag_raw}) {
           my $pkg = VC3::Package->new($self, $package_name, $bag_raw->{$package_name});
   
-          $packages->{$package_name} = $pkg;
+          if($pkg->operating_system) {
+              $op_sys->{$package_name}   = $pkg;
+          } else {
+              $packages->{$package_name} = $pkg;
+          }
       }
   
-      return $packages;
+      return ($packages, $op_sys);
   } 
   
   sub build_widget {
@@ -10858,6 +10926,14 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
       return 0;
   }
   
+  sub operating_system {
+      my ($self, $new_os) = @_;
+  
+      $self->{operating_system} = $new_os if($new_os);
+  
+      return $self->{operating_system};
+  }
+  
   sub add_main_targets {
       my ($self, @requires) = @_;
   
@@ -10959,14 +11035,13 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
           $success = 0;
           die('bug, this should not happen.');
       } else {
-  
           if($self->add_dependencies($widget->dependencies)) {
               if($widget->source) {
                   my $s = $self->add_source($widget->source);
                   if($s) {
                       $success = 1;
                   } else {
-                      $self->say("could not add any source for: @{[$widget->package->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
+                      $self->say("could not add source for: @{[$widget->package->name, $version]} => [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
                       $success = 0;
                   }
               } else {
@@ -11673,7 +11748,7 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   package VC3::Source::Singularity;
   use base 'VC3::Source::Generic';
   use Carp;
-  use File::Spec::Functions qw/catfile/;
+  use File::Spec::Functions qw/catfile file_name_is_absolute/;
   
   sub new {
       my ($class, $widget, $json_description) = @_;
@@ -11684,8 +11759,8 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   
       my $self = $class->SUPER::new($widget, $json_description);
   
-      $self->image($json_description->{image});
-      $self->setup_wrapper();
+      $self->{prerequisites} ||= [];
+      unshift @{$self->{prerequisites}}, 'which singularity';
   
       unless($self->recipe) {
       }
@@ -11695,6 +11770,22 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       }
   
       $self->{dependencies}{'singularity'} ||= [];
+  
+      my $image = $json_description->{image};
+      unless($image) {
+          die "No image specified for '" . $widget->package->name . "'\n";
+      }
+  
+      if($image =~ m^://^ or file_name_is_absolute($image)) {
+          $self->image($image);
+      } else {
+          $image = catfile('images', 'singularity', $image);
+          $self->image(catfile($self->widget->package->bag->files_dir, $image));
+          push @{$self->files}, $image;
+      }
+  
+      $self->setup_wrapper();
+  
       return $self;
   }
   
@@ -11722,11 +11813,6 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   sub setup_wrapper {
       my ($self) = @_;
   
-      my $image = $self->image;
-      unless($image =~ m^://^) {
-          $image = catfile($self->widget->package->bag->files_dir, $image);
-      }
-  
       my $wrapper = 'singularity';
   
       if($self->widget->package->bag->{on_terminal}) {
@@ -11735,8 +11821,17 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
           $wrapper .= ' exec'
       }
   
-      $wrapper .= ' --home ${VC3_INSTALL_USER_HOME}';
-      $wrapper .= " $image";
+      my $bag = $self->widget->package->bag;
+      my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
+  
+      # this will fail if names above point to the same dir!
+      $wrapper .= ' -B ' . $bag->root_dir  . ':/opt/vc3-root';
+      $wrapper .= ' -B ' . $bag->home_dir  . ':/opt/vc3-home';
+      $wrapper .= ' -B ' . $bag->files_dir . ':/opt/vc3-distfiles';
+      $wrapper .= ' -B ' . $bag->tmp_dir   . ':/opt/vc3-tmp';
+      $wrapper .= ' '    . $self->image;
+  
+      print "$wrapper \n";
   
       $self->widget->wrapper($wrapper);
   }
@@ -14702,7 +14797,9 @@ sub remove_vc3_vars() {
 
 sub main {
     my @requires     = ();
+
     my $require_os;
+    my $no_os_switch = 0;
 
     my $print_help   = 0;
     my $make_jobs    = 4;
@@ -14742,6 +14839,8 @@ sub main {
     VC3::Builder::remove_vc3_vars();
     VC3::Builder::fix_http_proxy_vars();
 
+    my @saved_args = @ARGV;
+
     my $opt_result = GetOptions(
         "help"        => \$print_help,
 
@@ -14752,6 +14851,7 @@ sub main {
         "require=s"   => \@requires, 
 
         "require-os=s" => \$require_os, 
+        "no-os-switch" => \$no_os_switch, 
 
         "install=s" => \$vc3_root,
         "home=s"    => \$vc3_user_home,
@@ -14880,7 +14980,13 @@ sub main {
 
     push @cleanups, sub { $bag->cleanup() };
 
-    $bag->set_plan_for($require_os, @requires);
+    # following call may produce an exec to a container.  original command line
+    # is executed, dropping --require-os.
+    if($require_os and !$no_os_switch) {
+        $bag->switch_os($require_os, $0, @saved_args);
+    }
+
+    $bag->set_plan_for(@requires);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);
@@ -18774,13 +18880,21 @@ __DATA__
         ]
     },
 
-    "centos6":{
+    "redhat6":{
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
         "versions":[
             {
-                "version":"6.4",
+                "version":"6",
+                "source":{
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
+                    ]
+                }
+            },
+            {
+                "version":"6.9",
                 "source":{
                     "type":"singularity",
                     "image":"Singularity.cctools-reqs.x86_64-centos6.img"

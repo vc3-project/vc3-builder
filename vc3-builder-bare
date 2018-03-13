@@ -183,7 +183,9 @@ sub remove_vc3_vars() {
 
 sub main {
     my @requires     = ();
+
     my $require_os;
+    my $no_os_switch = 0;
 
     my $print_help   = 0;
     my $make_jobs    = 4;
@@ -223,6 +225,8 @@ sub main {
     VC3::Builder::remove_vc3_vars();
     VC3::Builder::fix_http_proxy_vars();
 
+    my @saved_args = @ARGV;
+
     my $opt_result = GetOptions(
         "help"        => \$print_help,
 
@@ -233,6 +237,7 @@ sub main {
         "require=s"   => \@requires, 
 
         "require-os=s" => \$require_os, 
+        "no-os-switch" => \$no_os_switch, 
 
         "install=s" => \$vc3_root,
         "home=s"    => \$vc3_user_home,
@@ -361,7 +366,13 @@ sub main {
 
     push @cleanups, sub { $bag->cleanup() };
 
-    $bag->set_plan_for($require_os, @requires);
+    # following call may produce an exec to a container.  original command line
+    # is executed, dropping --require-os.
+    if($require_os and !$no_os_switch) {
+        $bag->switch_os($require_os, $0, @saved_args);
+    }
+
+    $bag->set_plan_for(@requires);
 
     if(defined $dot_output) {
         $bag->dot_graph($dot_output);

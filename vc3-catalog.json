@@ -807,8 +807,9 @@
                 "environment-variables":[
                     {
                         "name":"VC3_PARROT_EXTRA_OPTIONS",
-                        "value":"--disable-service cvmfs",
-                        "absolute":1
+                        "value":"--disable-service=cvmfs",
+                        "absolute":1,
+                        "clobber":1
                     }
                 ]
             },
@@ -832,7 +833,14 @@
         "versions":[
             {
                 "version":"v6.0.0",
-                "wrapper":"parrot_run --dynamic-mounts -p \"${PARROT_HTTP_PROXY}\" --cvmfs-repo-switching $(echo \"${VC3_PARROT_EXTRA_OPTIONS}\" | sed 's/:/ /g') -- {}",
+                "wrapper":[
+                    "parrot_run",
+                    "--dynamic-mounts",
+                    "-p", "\"${PARROT_HTTP_PROXY}\"",
+                    "--cvmfs-repo-switching",
+                    "${VC3_PARROT_EXTRA_OPTIONS}",
+                    "{}"
+                ],
                 "dependencies":{
                     "cctools":[
                         "v6.0.0"
@@ -3846,7 +3854,7 @@
                 "version":"auto",
                 "source":{
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ]
                 }
             },
@@ -3872,7 +3880,7 @@
                 "version":"auto",
                 "source":{
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ]
                 }
             },
@@ -3898,7 +3906,7 @@
                 "version":"auto",
                 "source":{
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ]
                 }
             },

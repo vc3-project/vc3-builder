@@ -8,7 +8,7 @@ use File::Spec::Functions qw/catfile rel2abs file_name_is_absolute/;
 use File::Temp qw/tempfile/;
 use FindBin  qw/$RealBin $RealScript/;
 use JSON::Tiny;
-use List::Util qw/max/;
+use List::Util qw/first max/;
 use POSIX ();
 use Tie::RefHash;
 use version ();
@@ -79,7 +79,7 @@ sub switch_os {
     my $builder_path = catfile($self->tmp_dir, 'vc3-builder');
     copy($0, $builder_path);
     chmod 0755, $builder_path;
-    unshift @args, ('/opt/vc3-tmp/vc3-builder --no-os-switch');
+    unshift @args, ('/opt/vc3-tmp/vc3-builder', '--no-os-switch');
 
     my $op_source;
     for my $w (@{$pkg->widgets}) {
@@ -105,7 +105,8 @@ sub switch_os {
 
         eval {
             $w->source->get_files();
-            $self->execute($w->wrapper . ' ' . join(' ', @args));
+            #$self->execute($w->wrapper . ' ' . join(' ', @args));
+            system(@{$w->wrapper}, @args);
         };
 
         if($@) {
@@ -1024,27 +1025,28 @@ cd  "\${HOME}"
 
 EOFP
 
-    my $payload = $pay_file;
+    my @payload = ($pay_file);
 
     my $env = $self->active_widgets();
     if($self->plan and $self->plan->order) {
         for my $w (@{$self->plan->order}) {
             next unless $env->{$w};
+            next unless $w->wrapper;
 
-            my $wrap = $w->wrapper;
+            my @wrap = @{$w->wrapper};
+            my $braces_pos = first { $wrap[$_] eq '{}' } 0..$#wrap;
 
-            next unless $wrap;
-
-            if( $wrap =~ /\{\}/ ) {
-                $wrap =~ s/\{\}/$payload/;
-                $payload = $wrap;
+            if(defined($braces_pos)) {
+                my @tmp = @payload;
+                @payload = @wrap;
+                splice @payload, $braces_pos, 1, @tmp;
             } else {
-                $payload = $wrap . ' ' . $payload;
+                @payload = (@wrap, @payload);
             }
         }
     }
 
-    print { $sh_f_wrap } "exec $payload\n\n";
+    print { $sh_f_wrap } "exec @payload\n\n";
 
     close($sh_f_wrap);
     chmod 0755, $wrap_file;

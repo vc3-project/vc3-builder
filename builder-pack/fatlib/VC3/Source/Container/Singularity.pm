@@ -63,25 +63,25 @@ sub image {
 sub setup_wrapper {
     my ($self) = @_;
 
-    my $wrapper = 'singularity';
+    my @wrapper = ('singularity');
 
     if($self->widget->package->bag->{on_terminal}) {
-        $wrapper .= ' shell'
+        push @wrapper, 'shell';
     } else {
-        $wrapper .= ' exec'
+        push @wrapper, 'exec';
     }
 
     my $bag = $self->widget->package->bag;
     my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
 
     # this will fail if names above point to the same dir!
-    $wrapper .= ' -B ' . $bag->root_dir  . ':/opt/vc3-root';
-    $wrapper .= ' -B ' . $bag->home_dir  . ':/opt/vc3-home';
-    $wrapper .= ' -B ' . $bag->files_dir . ':/opt/vc3-distfiles';
-    $wrapper .= ' -B ' . $bag->tmp_dir   . ':/opt/vc3-tmp';
-    $wrapper .= ' '    . $self->image;
+    push @wrapper, ('-B', $bag->root_dir  . ':/opt/vc3-root');
+    push @wrapper, ('-B', $bag->home_dir  . ':/opt/vc3-home');
+    push @wrapper, ('-B', $bag->files_dir . ':/opt/vc3-distfiles');
+    push @wrapper, ('-B', $bag->tmp_dir   . ':/opt/vc3-tmp');
+    push @wrapper, $self->image;
 
-    $self->widget->wrapper($wrapper);
+    $self->widget->wrapper(\@wrapper);
 }
 
 1;

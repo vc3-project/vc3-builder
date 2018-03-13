@@ -1,0 +1,307 @@
+#! /usr/bin/env perl
+
+# base singularity generate images for vc3 builder
+
+use strict;
+use warnings;
+use Carp;
+use Getopt::Long;
+use File::Copy;
+use File::Path;
+
+use v5.10;
+
+my @dev_dependencies = qw{
+cmake
+bzip2
+curl
+cc
+cplusplus
+find
+fortran
+git
+gmake
+m4
+gtar
+perl
+python
+vim
+which
+};
+
+my @dependencies = (@dev_dependencies);
+
+# distribution -> list of versions
+my %versions_of; 
+
+# list of name of package in distribution
+my %extras_for;
+
+# distribution -> command to install name of package in distribution
+my %command_for;
+
+$versions_of{centos} = [ qw{ 7 6 } ];
+$command_for{centos} = 'yum install -y';
+
+$versions_of{ubuntu} = [ qw{ 16.04  } ];
+$command_for{ubuntu} = 'apt-get update && apt-get install -y';
+
+$versions_of{debian} = [ qw{ 9.2 } ];
+$command_for{debian} = $command_for{ubuntu};
+
+$versions_of{opensuse} = [ qw{ 42.3 } ];
+$command_for{opensuse} = 'zypper --non-interactive update && zypper --non-interactive patch && zypper --non-interactive install';
+
+
+# e.g., $package_for{distro}{version}{dependency} == 'package'
+my %package_for;
+
+########## CENTOS ########## 
+$package_for{centos}{default} = {
+bzip2                    => 'bzip2',
+cmake                    => 'cmake',
+cc                       => 'gcc',
+cplusplus                => 'gcc-c++',
+curl                     => 'curl',
+find                     => 'findutils',
+fortran                  => 'gfortran',
+git                      => 'git',
+gmake                    => 'make',
+gtar                     => 'tar',
+m4                       => 'm4',
+perl                     => 'perl-devel',
+python                   => 'python-devel',
+vim                      => 'vim',
+which                    => 'which',
+};
+
+$extras_for{centos}{default} = ['perl-core', 'libc-devel'];
+
+########## UBUNTU ########## 
+$package_for{ubuntu}{default} = {
+cmake                    => 'cmake',
+bzip2                    => 'bzip2',
+cc                       => 'gcc',
+curl                     => 'curl',
+cplusplus                => 'g++',
+find                     => 'findutils',
+fortran                  => 'gfortran',
+git                      => 'git',
+gmake                    => 'make',
+m4                       => 'm4',
+gtar                     => 'tar',
+perl                     => 'libperl-dev',
+python                   => 'python-dev',
+vim                      => 'vim',
+which                    => 'debianutils',
+};
+
+$extras_for{ubuntu}{default} = ['tzdata'];
+
+########## DEBIAN ########## 
+$package_for{debian}{default}          = { %{$package_for{ubuntu}{default}} };
+
+########## OPENSUSE ########## 
+$package_for{opensuse}{default} = {
+bzip2                    => 'bzip2',
+cmake                    => 'cmake',
+cc                       => 'gcc',
+cplusplus                => 'gcc-c++',
+curl                     => 'curl',
+find                     => 'findutils',
+fortran                  => 'gcc-fortran',
+git                      => 'git',
+gmake                    => 'make',
+gtar                     => 'tar',
+m4                       => 'm4',
+perl                     => 'perl',
+python                   => 'python-devel',
+vim                      => 'vim',
+which                    => 'which',
+};
+
+$extras_for{opensuse}{default} = ['timezone'];
+
+unless (caller) {
+    main();
+}
+
+sub main {
+
+	# architecture of current machine.
+    chomp(my $arch = qx(uname -m));
+
+	my $arch_opt = $arch;
+	my $help;
+	my $list;
+	my $build;
+	my $recp;
+	my $all;
+	my $output_dir = 'images';
+
+	GetOptions(
+		"help", => \$help,
+		"list", => \$list,
+		"recp", => \$recp,
+		"build" => \$build,
+		"arch=s", => \$arch_opt,
+		"all",    => \$all,
+		"output_dir=s", => \$output_dir,
+	) or die "@{[ show_help() ]}\n";
+
+	if($help) {
+		show_help();
+		exit 0;
+	}
+
+	unless($arch eq $arch_opt) {
+		die "Required architecture '$ARGV[0]' is not the architecture of the current machine $arch.\n";
+	}
+
+	if($list) {
+		for my $p (list_known_platforms()) {
+			say $p;
+		}
+		exit 0;
+	}
+
+	if(@{ARGV} > 0 and $all) {
+		die "individual builds cannot be specified with --all=<dir>.\n"; 
+	}
+
+	unless( -d $output_dir && -w $output_dir ) {
+		mkdir $output_dir, 0755 || croak "Problem creating '$output_dir': $@";
+	}
+
+	if($all) {
+		generate_all_images($arch, $output_dir, $recp);
+	} else {
+		my ($dist, $version, $output_name) = @{ARGV};
+		generate_image($arch, $dist, $version, $output_dir, $output_name, $recp);
+	}
+}
+
+sub generate_image {
+	my ($arch, $dist, $version, $output_dir, $output_name, $recp) = @_;
+
+	unless($dist and $version) {
+		show_help();
+		exit 1;
+	}
+
+	unless($versions_of{$dist}) {
+		die "I don't know about the distribution $dist\n";
+	}
+
+	unless($version ~~ @{$versions_of{$dist}}) {
+		warn "I don't know about version $version for the distribution $dist.\nUsing defaults that are not tested!\n";
+	}
+
+	unless($output_name) {
+		$output_name = output_name($arch, $dist, $version);
+		warn "No output prefix given, using $output_name\n";
+	}
+
+	my $sin_name = "$output_dir/$output_name.sin";
+	my $img_name = "$output_dir/$output_name.img";
+
+	say "Creating Singularity file: $sin_name";
+	open my $sin_fh, '>', $sin_name || croak "Problem with '$sin_name': $@";
+	print { $sin_fh } sinfile_for($dist, $version, $img_name, $sin_name);
+	close $sin_fh;
+
+	unless($recp) {
+		say "Build image $img_name from: $sin_name";
+
+		-e "$img_name"     && qx(sudo rm -rf "$img_name");
+		-d "$img_name.sbx" && qx(sudo rm -rf "$img_name.sbx");
+
+		qx(sudo singularity build --sandbox "$img_name.sbx" "$sin_name")
+		|| die "Could not build image with $sin_name\n";
+
+		qx(sudo singularity build "$img_name" "$img_name.sbx")
+		|| die "Could not build from $img_name.sbx\n";
+
+		qx(sudo rm -rf $img_name.sbx);
+	}
+}
+
+sub generate_all_images {
+	my ($arch, $output_dir, $recp) = @_;
+
+	for my $dist (keys %versions_of) {
+		for my $version (@{$versions_of{$dist}}) {
+			generate_image($arch, $dist, $version, $output_dir, output_name($arch, $dist, $version), $recp);
+		}
+	}
+}
+
+sub show_help {
+	say "Use:";
+	say "$0 [options] [distribution version outputprefix]";
+	say "\n Example:\n$0 --arch x86_64 centos 7 Singularity.vc3.x86_64-centos7";
+	say "\nproduces Singularity.vc3.x86_64-centos7.{sin,img}";
+	say "\noptions:";
+	say "\t--help            Show this message.";
+	say "\t--all             Build all known platforms.";
+	say "\t--outputdir=<dir> Build platforms into dir (default ./images).";
+	say "\t--build           Build from previously generated reciped only.";
+	say "\t--arch=<arch>     Othen than x86_64 (the default), nothing has been tested.";
+	say "\t--list            List known platforms.";
+	say "\t--recp            Generate recipes only, not images.";
+
+	return '';
+}
+
+sub output_name {
+	my ($arch, $dist, $version) = @_;
+
+	return "Singularity.vc3.$arch-$dist$version";
+}
+
+
+sub list_known_platforms {
+	my @platforms = ();
+
+	for my $dist (keys %versions_of) {
+		for my $v (@{$versions_of{$dist}}) {
+			push @platforms, "${dist} ${v}";
+		}
+	}
+
+	@platforms = sort { $a cmp $b } @platforms;
+
+	return @platforms;
+}
+
+sub sinfile_for {
+    my ($dist, $version, $img_name, $sin_name) = @_;
+    my @packages;
+	
+	@packages = map { $package_for{$dist}{$version}{$_} || $package_for{$dist}{default}{$_} || die "Undefined dependency $_" } @dependencies;
+
+	if($extras_for{$dist} and $extras_for{$dist}{$version}) {
+		@packages = (@packages, @{$extras_for{$dist}{$version}});
+	}
+
+	if($extras_for{$dist} and $extras_for{$dist}{default}) {
+		@packages = (@packages, @{$extras_for{$dist}{default}});
+	}
+
+	my $sinfile = <<EOF;
+# Singularity image VC3 for $dist$version
+# Build as: singularity build $img_name $sin_name
+# Run as:   singularity run   $img_name -- /bin/sh
+#
+
+Bootstrap: docker
+From: $dist:$version
+
+%post
+	$command_for{$dist} @packages
+EOF
+
+	return $sinfile;
+}
+
+# vim: set noexpandtab tabstop=4:

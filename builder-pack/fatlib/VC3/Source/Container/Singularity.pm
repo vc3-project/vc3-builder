@@ -63,13 +63,9 @@ sub image {
 sub setup_wrapper {
     my ($self) = @_;
 
-    my @wrapper = ('singularity');
-
-    if($self->widget->package->bag->{on_terminal}) {
-        push @wrapper, 'shell';
-    } else {
-        push @wrapper, 'exec';
-    }
+    my @wrapper;
+    push @wrapper, 'singularity';
+    push @wrapper, 'exec';
 
     my $bag = $self->widget->package->bag;
     my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);

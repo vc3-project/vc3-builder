@@ -716,7 +716,28 @@ sub distribution {
         die "Could not find debian version!\n" unless $version;
 
         $distribution="debian${version}"
+    } elsif (-f '/etc/os-release') {
+
+        open (my $file_fh, '<', '/etc/os-release');
+
+        my $version;
+        for my $line (<$file_fh>) {
+
+            if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
+                my ($key, $value) = ($+{key}, $+{value});
+
+                if($key eq 'VERSION') {
+                    if($value =~ m/^"(?<version>[0-9]+)/) {
+                        $version = $+{version};
+                    }
+                }
+            }
+        }
+
+        die "Could not find opensuse version!\n" unless $version;
+        $distribution="opensuse${version}"
     }
+
 
     return $distribution;
 }

@@ -665,21 +665,36 @@ sub glibc_version {
 # reads /etc/readhat-release and transforms something like:
 # 'Red Hat Enterprise Linux Server release 6.5 (Santiago)'
 # into 'redhat6'.
+# or /etc/debian_version into 'debian9
+# etc.
 sub distribution {
     my ($self) = @_;
 
     my $distribution='generic';
     
     if (-f '/etc/redhat-release') {
+
         open (my $file_fh, '<', '/etc/redhat-release');
-        my $redhat_version_line = <$file_fh>;
+        my $version_line = <$file_fh>;
 
-        $redhat_version_line =~ /\brelease\b\s+([0-9]+)\b/;
-        my $redhat_version = $1;
+        $version_line =~ /\brelease\b\s+([0-9]+)\b/;
+        my $version = $1;
 
-        die 'Could not find redhat version!' unless $redhat_version;
+        die 'Could not find redhat version!' unless $version;
 
-        $distribution="redhat${redhat_version}"
+        $distribution="redhat${version}"
+
+    } elsif (-f '/etc/debian_version') {
+
+        open (my $file_fh, '<', '/etc/debian_version');
+        my $version_line = <$file_fh>;
+
+        $version_line =~ /^([0-9]+)/;
+        my $version = $1;
+
+        die 'Could not find debian version!' unless $version;
+
+        $distribution="debian${version}"
     }
     
     return $distribution;

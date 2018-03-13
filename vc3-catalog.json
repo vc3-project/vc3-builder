@@ -3880,7 +3880,7 @@
                 "version":"auto",
                 "source":{
                     "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
+                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/debian9\" ] || exit 1"
                     ]
                 }
             },

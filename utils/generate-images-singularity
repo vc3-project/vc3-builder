@@ -23,8 +23,10 @@ git
 gmake
 m4
 gtar
+openssl
 perl
 python
+strace
 vim
 which
 };
@@ -39,6 +41,9 @@ my %extras_for;
 
 # distribution -> command to install name of package in distribution
 my %command_for;
+
+# list of shell commands to execute post installation.
+my %postinstall_for;
 
 $versions_of{centos} = [ qw{ 7 6 } ];
 $command_for{centos} = 'yum install -y';
@@ -65,12 +70,15 @@ cplusplus                => 'gcc-c++',
 curl                     => 'curl',
 find                     => 'findutils',
 fortran                  => 'gfortran',
+gdb                      => 'gdb',
 git                      => 'git',
 gmake                    => 'make',
 gtar                     => 'tar',
 m4                       => 'm4',
+openssl                  => 'openssl',
 perl                     => 'perl-devel',
 python                   => 'python-devel',
+strace                   => 'strace',
 vim                      => 'vim',
 which                    => 'which',
 };
@@ -88,18 +96,29 @@ find                     => 'findutils',
 fortran                  => 'gfortran',
 git                      => 'git',
 gmake                    => 'make',
-m4                       => 'm4',
 gtar                     => 'tar',
+m4                       => 'm4',
+openssl                  => 'openssl',
 perl                     => 'libperl-dev',
 python                   => 'python-dev',
+strace                   => 'strace',
 vim                      => 'vim',
 which                    => 'debianutils',
 };
 
-$extras_for{ubuntu}{default} = ['tzdata'];
+$extras_for{ubuntu}{default} = ['tzdata', 'locales'];
 
-########## DEBIAN ########## 
-$package_for{debian}{default}          = { %{$package_for{ubuntu}{default}} };
+$postinstall_for{ubuntu}{default} = [
+	'echo en_US.UTF-8 UTF-8 >> /etc/locale.gen',
+	'/usr/sbin/locale-gen'
+];
+
+########## DEBIAN ##########
+$package_for{debian}{default}     = { %{$package_for{ubuntu}{default}} };
+
+$extras_for{debian}{default}      = [ @{$extras_for{ubuntu}{default}} ];
+
+$postinstall_for{debian}{default} = [ @{$postinstall_for{ubuntu}{default}} ];
 
 ########## OPENSUSE ########## 
 $package_for{opensuse}{default} = {
@@ -114,8 +133,10 @@ git                      => 'git',
 gmake                    => 'make',
 gtar                     => 'tar',
 m4                       => 'm4',
+openssl                  => 'openssl',
 perl                     => 'perl',
 python                   => 'python-devel',
+strace                   => 'strace',
 vim                      => 'vim',
 which                    => 'which',
 };
@@ -299,7 +320,17 @@ From: $dist:$version
 
 %post
 	$command_for{$dist} @packages
+
 EOF
+
+	if($postinstall_for{$dist}) {
+		my $posts = $postinstall_for{$dist}{$version} || $postinstall_for{$dist}{default};
+		if($posts) { 
+			$sinfile = join("\n\t", $sinfile, @{$posts});
+		}
+
+		$sinfile .= "\n";
+	}
 
 	return $sinfile;
 }

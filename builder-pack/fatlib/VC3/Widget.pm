@@ -299,16 +299,6 @@ sub available {
     return $self->{available};
 }
 
-sub operating_system {
-    my ($self, $new_operating_system) = @_;
-
-    $self->{operating_system} = $new_operating_system if($new_operating_system);
-
-    my $operating_system = $self->{operating_system} || $self->package->operating_system;
-
-    return $operating_system;
-}
-
 sub root_dir {
     my ($self, $new) = @_;
 

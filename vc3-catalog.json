@@ -3786,9 +3786,12 @@
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"6",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
@@ -3809,9 +3812,12 @@
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"7",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
@@ -3832,9 +3838,12 @@
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"16",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
@@ -3855,9 +3864,12 @@
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"16",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
@@ -3878,9 +3890,12 @@
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"42",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"

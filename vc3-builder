@@ -9545,16 +9545,15 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub list_packages() {
       my ($self, $option) = @_;
   
-      my @ps = values %{$self->{packages}};
+      my $ps;
+      if($option eq 'os') {
+          @ps = values %{$self->{op_sys}};
+      } else {
+          @ps = values %{$self->{packages}};
+      }
   
       if($option ne 'all') {
           @ps = grep { $_->show_in_list } @ps;
-      }
-  
-      if($option eq 'os') {
-          @ps = grep { $_->operating_system } @ps;
-      } else {
-          @ps = grep { ! $_->operating_system } @ps;
       }
   
       my $by_tags = ($option eq 'section');
@@ -12697,16 +12696,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       $self->{available} = $new_available if(defined $new_available);
   
       return $self->{available};
-  }
-  
-  sub operating_system {
-      my ($self, $new_operating_system) = @_;
-  
-      $self->{operating_system} = $new_operating_system if($new_operating_system);
-  
-      my $operating_system = $self->{operating_system} || $self->package->operating_system;
-  
-      return $operating_system;
   }
   
   sub root_dir {
@@ -18873,9 +18862,12 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"6",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
@@ -18896,9 +18888,12 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"7",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
@@ -18919,9 +18914,12 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"16",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
@@ -18942,9 +18940,12 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"16",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
@@ -18965,9 +18966,12 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+        ],
         "versions":[
             {
-                "version":"42",
+                "version":"auto",
                 "source":{
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"

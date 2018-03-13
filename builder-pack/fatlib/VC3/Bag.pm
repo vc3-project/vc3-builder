@@ -126,16 +126,15 @@ sub switch_os {
 sub list_packages() {
     my ($self, $option) = @_;
 
-    my @ps = values %{$self->{packages}};
+    my $ps;
+    if($option eq 'os') {
+        @ps = values %{$self->{op_sys}};
+    } else {
+        @ps = values %{$self->{packages}};
+    }
 
     if($option ne 'all') {
         @ps = grep { $_->show_in_list } @ps;
-    }
-
-    if($option eq 'os') {
-        @ps = grep { $_->operating_system } @ps;
-    } else {
-        @ps = grep { ! $_->operating_system } @ps;
     }
 
     my $by_tags = ($option eq 'section');

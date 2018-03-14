@@ -369,7 +369,7 @@ sub main {
     # following call may produce an exec to a container.  original command line
     # is executed, dropping --require-os.
     if($require_os and !$no_os_switch) {
-        $bag->switch_os($require_os, $0, @saved_args);
+        $bag->switch_os($require_os, $0, \@saved_args, \@ARGV); # ARGV is original payload now.
     }
 
     $bag->set_plan_for(@requires);

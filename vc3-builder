@@ -9486,7 +9486,13 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   }
   
   sub switch_os {
-      my ($self, $os, $exe, @args) = @_;
+      my ($self, $os, $exe, $all_args, $payload_args) = @_;
+  
+      # chop payload args from all args to only get builder args.
+      my $builder_args  = [@{$all_args}];
+      my $payload_count = scalar @payload_args;
+      splice @{$builder_args}, -1 * $payload_count;
+      splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
   
       unless($os) {
           # No os requirement, so we simply return.
@@ -9494,11 +9500,11 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       }
   
       my $pkg = $self->{op_sys}{$os};
-  
       unless($pkg) {
           die "I don't know anything about operating system '$os'.\n";
       }
   
+      # try to satisfy the os requirement
       for my $w (@{$pkg->widgets}) {
           my $exit_status = -1;
           eval { $exit_status = $w->source->check_prerequisites() };
@@ -9516,7 +9522,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           }
   
           eval {
-              $w->source->prepare_recipe_sandbox(@args);
+              $w->source->prepare_recipe_sandbox($builder_args, $payload_args);
               system @{$w->wrapper};
           };
   
@@ -11885,7 +11891,7 @@ $fatpacked{"VC3/Source/Container/SingularityVC3os.pm"} = '#line '.(1+__LINE__).'
   use File::Spec::Functions qw/catfile file_name_is_absolute/;
   
   sub setup_wrapper {
-      my ($self, @original_args) = @_;
+      my ($self, $builder_args, $payload_args) = @_;
   
       my $bag = $self->widget->package->bag;
       my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
@@ -11907,10 +11913,15 @@ $fatpacked{"VC3/Source/Container/SingularityVC3os.pm"} = '#line '.(1+__LINE__).'
   
       push @wrapper, '/opt/vc3-tmp/vc3-builder';
       push @wrapper, '--no-os-switch';
-      push @wrapper, @original_args;
+      push @wrapper, @{$builder_args};
       push @wrapper, ('--install',   '/opt/vc3-root');
       push @wrapper, ('--distfiles', '/opt/vc3-distfiles');
       push @wrapper, ('--home',      '/opt/vc3-home');
+  
+      if(scalar @{$payload_args} > 0) {
+          push @wrapper, '--';
+          push @wrapper, @{$payload_args};
+      }
   
       $self->widget->wrapper(\@wrapper);
   
@@ -11922,10 +11933,10 @@ $fatpacked{"VC3/Source/Container/SingularityVC3os.pm"} = '#line '.(1+__LINE__).'
   }
   
   sub prepare_recipe_sandbox {
-      my ($self, @args) = @_;
+      my ($self, $builder_args, $payload_args) = @_;
   
       $self->get_files();
-      $self->setup_wrapper(@args);
+      $self->setup_wrapper($builder_args, $payload_args);
   }
   
   1;
@@ -15069,7 +15080,7 @@ sub main {
     # following call may produce an exec to a container.  original command line
     # is executed, dropping --require-os.
     if($require_os and !$no_os_switch) {
-        $bag->switch_os($require_os, $0, @saved_args);
+        $bag->switch_os($require_os, $0, \@saved_args, \@ARGV); # ARGV is original payload now.
     }
 
     $bag->set_plan_for(@requires);

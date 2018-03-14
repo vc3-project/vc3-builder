@@ -67,7 +67,13 @@ sub new {
 }
 
 sub switch_os {
-    my ($self, $os, $exe, @args) = @_;
+    my ($self, $os, $exe, $all_args, $payload_args) = @_;
+
+    # chop payload args from all args to only get builder args.
+    my $builder_args  = [@{$all_args}];
+    my $payload_count = scalar @payload_args;
+    splice @{$builder_args}, -1 * $payload_count;
+    splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
 
     unless($os) {
         # No os requirement, so we simply return.
@@ -75,11 +81,11 @@ sub switch_os {
     }
 
     my $pkg = $self->{op_sys}{$os};
-
     unless($pkg) {
         die "I don't know anything about operating system '$os'.\n";
     }
 
+    # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
@@ -97,7 +103,7 @@ sub switch_os {
         }
 
         eval {
-            $w->source->prepare_recipe_sandbox(@args);
+            $w->source->prepare_recipe_sandbox($builder_args, $payload_args);
             system @{$w->wrapper};
         };
 

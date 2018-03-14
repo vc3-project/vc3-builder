@@ -5,7 +5,7 @@ use File::Copy;
 use File::Spec::Functions qw/catfile file_name_is_absolute/;
 
 sub setup_wrapper {
-    my ($self, @original_args) = @_;
+    my ($self, $builder_args, $payload_args) = @_;
 
     my $bag = $self->widget->package->bag;
     my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
@@ -27,10 +27,15 @@ sub setup_wrapper {
 
     push @wrapper, '/opt/vc3-tmp/vc3-builder';
     push @wrapper, '--no-os-switch';
-    push @wrapper, @original_args;
+    push @wrapper, @{$builder_args};
     push @wrapper, ('--install',   '/opt/vc3-root');
     push @wrapper, ('--distfiles', '/opt/vc3-distfiles');
     push @wrapper, ('--home',      '/opt/vc3-home');
+
+    if(scalar @{$payload_args} > 0) {
+        push @wrapper, '--';
+        push @wrapper, @{$payload_args};
+    }
 
     $self->widget->wrapper(\@wrapper);
 
@@ -42,10 +47,10 @@ sub setup_wrapper {
 }
 
 sub prepare_recipe_sandbox {
-    my ($self, @args) = @_;
+    my ($self, $builder_args, $payload_args) = @_;
 
     $self->get_files();
-    $self->setup_wrapper(@args);
+    $self->setup_wrapper($builder_args, $payload_args);
 }
 
 1;

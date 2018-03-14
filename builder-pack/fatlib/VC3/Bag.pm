@@ -542,8 +542,8 @@ sub execute_plan {
     my ($self, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
 
     for my $w (@{$self->plan->order}) {
-        $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
         $self->activate_widget($w);
+        $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
     }
 }
 

@@ -9961,8 +9961,8 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       my ($self, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
   
       for my $w (@{$self->plan->order}) {
-          $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
           $self->activate_widget($w);
+          $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
       }
   }
   
@@ -12299,8 +12299,6 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
       $self->say("details: " .  $self->widget->build_log);
   
       for my $step (@steps) {
-          my $date = gmtime();
-          print { $build_in } ": $date\n";
           print { $build_in } "$step\n";
       }
   
@@ -12555,6 +12553,10 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
           $self->add_widget_variable('VERSION', $majmin);
           $self->add_widget_variable('VERSION_FULL', $majminbug);
+      }
+  
+      if($self->package->options) {
+          $self->add_widget_variable('OPTIONS', @{$self->package->options});
       }
   
       unless($self->source) {
@@ -15916,6 +15918,47 @@ __DATA__
         ]
     },
 
+    "cmssw-environment":{
+        "tags":["environments"],
+        "versions":[
+            {
+                "version":"1.0",
+                "phony":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "if [ -z $VC3_OPTIONS_CMSSW_ENVIRONMENT ]; then",
+                        "cat <<EOF",
+                        "    No CMSSW environment defined. For example:",
+                        "    vc3-builder -o cmssw-environment=CMSSW_9_3_0_pre2 ...",
+                        "EOF",
+                        "exit 1",
+                        "fi"
+                    ]
+                },
+                "prologue":[
+                    ". /cvmfs/cms.cern.ch/cmsset_default.sh",
+                    "if [ ! -d ${HOME}/${VC3_OPTIONS_CMSSW_ENVIRONMENT} ]; then",
+                    "   cd ${HOME}",
+                    "   vc3_cmsrel=$(alias cmsrel | sed -r -e \"s/.*='(.*)'/\\1/\")",
+                    "   ${vc3_cmsrel} ${VC3_OPTIONS_CMSSW_ENVIRONMENT}",
+                    "fi",
+                    "if [ -d ${HOME}/${VC3_OPTIONS_CMSSW_ENVIRONMENT} ]; then",
+                    "    cd ${HOME}/${VC3_OPTIONS_CMSSW_ENVIRONMENT}",
+                    "    vc3_cmsenv=$(alias cmsenv | sed -r -e \"s/.*='(.*)'/\\1/\")",
+                    "    ${vc3_cmsenv} ${VC3_OPTIONS_CMSSW_ENVIRONMENT}",
+                    "    cd ${HOME}",
+                    "fi"
+                ],
+
+                "dependencies":{
+                    "cvmfs":[
+                        "v2.0"
+                    ]
+                }
+            }
+        ]
+    },
 
     "vc3-glidein":{
         "versions": [

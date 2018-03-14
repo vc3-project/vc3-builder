@@ -59,6 +59,10 @@ sub new {
         $self->add_widget_variable('VERSION_FULL', $majminbug);
     }
 
+    if($self->package->options) {
+        $self->add_widget_variable('OPTIONS', @{$self->package->options});
+    }
+
     unless($self->source) {
         my $null_source = {};
         $null_source->{type}   = 'generic';

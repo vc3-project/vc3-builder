@@ -362,8 +362,6 @@ sub execute_recipe_unlocked {
     $self->say("details: " .  $self->widget->build_log);
 
     for my $step (@steps) {
-        my $date = gmtime();
-        print { $build_in } ": $date\n";
         print { $build_in } "$step\n";
     }
 

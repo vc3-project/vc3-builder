@@ -737,6 +737,47 @@
         ]
     },
 
+    "cmssw-environment":{
+        "tags":["environments"],
+        "versions":[
+            {
+                "version":"1.0",
+                "phony":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "if [ -z $VC3_OPTIONS_CMSSW_ENVIRONMENT ]; then",
+                        "cat <<EOF",
+                        "    No CMSSW environment defined. For example:",
+                        "    vc3-builder -o cmssw-environment=CMSSW_9_3_0_pre2 ...",
+                        "EOF",
+                        "exit 1",
+                        "fi"
+                    ]
+                },
+                "prologue":[
+                    ". /cvmfs/cms.cern.ch/cmsset_default.sh",
+                    "if [ ! -d ${HOME}/${VC3_OPTIONS_CMSSW_ENVIRONMENT} ]; then",
+                    "   cd ${HOME}",
+                    "   vc3_cmsrel=$(alias cmsrel | sed -r -e \"s/.*='(.*)'/\\1/\")",
+                    "   ${vc3_cmsrel} ${VC3_OPTIONS_CMSSW_ENVIRONMENT}",
+                    "fi",
+                    "if [ -d ${HOME}/${VC3_OPTIONS_CMSSW_ENVIRONMENT} ]; then",
+                    "    cd ${HOME}/${VC3_OPTIONS_CMSSW_ENVIRONMENT}",
+                    "    vc3_cmsenv=$(alias cmsenv | sed -r -e \"s/.*='(.*)'/\\1/\")",
+                    "    ${vc3_cmsenv} ${VC3_OPTIONS_CMSSW_ENVIRONMENT}",
+                    "    cd ${HOME}",
+                    "fi"
+                ],
+
+                "dependencies":{
+                    "cvmfs":[
+                        "v2.0"
+                    ]
+                }
+            }
+        ]
+    },
 
     "vc3-glidein":{
         "versions": [

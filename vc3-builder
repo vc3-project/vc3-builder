@@ -9494,13 +9494,6 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           die "I don't know anything about operating system '$os'.\n";
       }
   
-      # avoid infinite loop by setting os to no requirement.
-      my $builder_path = catfile($self->tmp_dir, 'vc3-builder');
-      copy($0, $builder_path);
-      chmod 0755, $builder_path;
-      unshift @args, ('/opt/vc3-tmp/vc3-builder', '--no-os-switch');
-  
-      my $op_source;
       for my $w (@{$pkg->widgets}) {
           my $exit_status = -1;
           eval { $exit_status = $w->source->check_prerequisites() };
@@ -9523,9 +9516,8 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           }
   
           eval {
-              $w->source->get_files();
-              #$self->execute($w->wrapper . ' ' . join(' ', @args));
-              system(@{$w->wrapper}, @args);
+              $w->source->setup_wrapper(@args);
+              system(@{$w->wrapper});
           };
   
           if($@) {
@@ -9537,9 +9529,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           }
       }
   
-      unless($op_source) {
-          die "Could not satisfy operating system requirement '$os'.\n";
-      }
+      die "Could not satisfy operating system requirement '$os'.\n";
   }
   
   
@@ -11629,18 +11619,20 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   use VC3::Source::System;
   use VC3::Source::Perl;
   use VC3::Source::Container::Singularity;
+  use VC3::Source::Container::SingularityVC3os;
   
   our $class_of = {};
   
-  $class_of->{'generic'} = VC3::Source::Generic;
-  $class_of->{'configure'} = VC3::Source::Configure;
-  $class_of->{'cmake'} = VC3::Source::CMake;
-  $class_of->{'tarball'} = VC3::Source::Tarball;
+  $class_of->{'generic'}             = VC3::Source::Generic;
+  $class_of->{'configure'}           = VC3::Source::Configure;
+  $class_of->{'cmake'}               = VC3::Source::CMake;
+  $class_of->{'tarball'}             = VC3::Source::Tarball;
   $class_of->{'manual-distribution'} = VC3::Source::ManualDist;
-  $class_of->{'binary'} = VC3::Source::Binary;
-  $class_of->{'system'} = VC3::Source::System;
-  $class_of->{'cpan'} = VC3::Source::Perl;
-  $class_of->{'singularity'} = VC3::Source::Singularity;
+  $class_of->{'binary'}              = VC3::Source::Binary;
+  $class_of->{'system'}              = VC3::Source::System;
+  $class_of->{'cpan'}                = VC3::Source::Perl;
+  $class_of->{'singularity'}         = VC3::Source::Container::Singularity;
+  $class_of->{'singularity-vc3os'}   = VC3::Source::Container::SingularityVC3os;
   
   sub new {
       my ($class, $widget, $source_raw) = @_;
@@ -11804,7 +11796,7 @@ $fatpacked{"VC3/Source/Configure.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
 VC3_SOURCE_CONFIGURE
 
 $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_SINGULARITY';
-  package VC3::Source::Singularity;
+  package VC3::Source::Container::Singularity;
   use base 'VC3::Source::Generic';
   use Carp;
   use File::Spec::Functions qw/catfile file_name_is_absolute/;
@@ -11840,8 +11832,6 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
           push @{$self->files}, $image;
       }
   
-      $self->setup_wrapper();
-  
       return $self;
   }
   
@@ -11850,6 +11840,9 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   
       my $sh = $self->SUPER::to_hash();
       $sh->{image} = $self->image;
+  
+      # wrapper is generated automatically:
+      delete $sh->{wrapper};
   
       return $sh;
   }
@@ -11866,29 +11859,57 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       return $self->{image};
   }
   
-  sub setup_wrapper {
-      my ($self) = @_;
+  1;
   
-      my @wrapper;
-      push @wrapper, 'singularity';
-      push @wrapper, 'exec';
+VC3_SOURCE_CONTAINER_SINGULARITY
+
+$fatpacked{"VC3/Source/Container/SingularityVC3os.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_SINGULARITYVC3OS';
+  package VC3::Source::Container::SingularityVC3os;
+  use base 'VC3::Source::Container::Singularity';
+  use Carp;
+  use File::Copy;
+  use File::Spec::Functions qw/catfile file_name_is_absolute/;
+  
+  sub setup_wrapper {
+      my ($self, @original_args) = @_;
   
       my $bag = $self->widget->package->bag;
       my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
+  
+      push @wrapper, 'singularity';
+      push @wrapper, 'exec';
   
       # this will fail if names above point to the same dir!
       push @wrapper, ('-B', $bag->root_dir  . ':/opt/vc3-root');
       push @wrapper, ('-B', $bag->home_dir  . ':/opt/vc3-home');
       push @wrapper, ('-B', $bag->files_dir . ':/opt/vc3-distfiles');
       push @wrapper, ('-B', $bag->tmp_dir   . ':/opt/vc3-tmp');
+  
       push @wrapper, $self->image;
   
+      push @wrapper, '/opt/vc3-tmp/vc3-builder';
+      push @wrapper, '--no-os-switch',
+      push @wrapper, @original_args;
+      push @wrapper, ('--install',   '/opt/vc3-root');
+      push @wrapper, ('--distfiles', '/opt/vc3-distfiles');
+      push @wrapper, ('--home',      '/opt/vc3-home');
+  
       $self->widget->wrapper(\@wrapper);
+  
+  
+      # hack to clean soon:
+      my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
+      copy($0, $builder_path);
+      chmod 0755, $builder_path;
+  
+      print "@wrapper\n";
   }
   
   1;
   
-VC3_SOURCE_CONTAINER_SINGULARITY
+  
+  
+VC3_SOURCE_CONTAINER_SINGULARITYVC3OS
 
 $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_GENERIC';
   package VC3::Source::Generic;
@@ -15742,7 +15763,6 @@ __DATA__
         ]
     },
 
-
     "vc3-builder":{
         "tags":["environment tools"],
         "show-in-list":1,
@@ -18931,7 +18951,7 @@ __DATA__
             {
                 "version":"6.9",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-centos6.img"
                 }
             }
@@ -18957,7 +18977,7 @@ __DATA__
             {
                 "version":"7.4",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-centos7.img"
                 }
             }
@@ -18983,7 +19003,7 @@ __DATA__
             {
                 "version":"16",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-ubuntu16.04.img"
                 }
             }
@@ -19009,7 +19029,7 @@ __DATA__
             {
                 "version":"9.2",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-debian9.2.img"
                 }
             }
@@ -19035,7 +19055,7 @@ __DATA__
             {
                 "version":"42.3",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-opensuse42.3.img"
                 }
             }

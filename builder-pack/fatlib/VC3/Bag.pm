@@ -75,13 +75,6 @@ sub switch_os {
         die "I don't know anything about operating system '$os'.\n";
     }
 
-    # avoid infinite loop by setting os to no requirement.
-    my $builder_path = catfile($self->tmp_dir, 'vc3-builder');
-    copy($0, $builder_path);
-    chmod 0755, $builder_path;
-    unshift @args, ('/opt/vc3-tmp/vc3-builder', '--no-os-switch');
-
-    my $op_source;
     for my $w (@{$pkg->widgets}) {
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
@@ -104,9 +97,8 @@ sub switch_os {
         }
 
         eval {
-            $w->source->get_files();
-            #$self->execute($w->wrapper . ' ' . join(' ', @args));
-            system(@{$w->wrapper}, @args);
+            $w->source->setup_wrapper(@args);
+            system(@{$w->wrapper});
         };
 
         if($@) {
@@ -118,9 +110,7 @@ sub switch_os {
         }
     }
 
-    unless($op_source) {
-        die "Could not satisfy operating system requirement '$os'.\n";
-    }
+    die "Could not satisfy operating system requirement '$os'.\n";
 }
 
 

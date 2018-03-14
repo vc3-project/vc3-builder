@@ -620,7 +620,6 @@
         ]
     },
 
-
     "vc3-builder":{
         "tags":["environment tools"],
         "show-in-list":1,
@@ -3809,7 +3808,7 @@
             {
                 "version":"6.9",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-centos6.img"
                 }
             }
@@ -3835,7 +3834,7 @@
             {
                 "version":"7.4",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-centos7.img"
                 }
             }
@@ -3861,7 +3860,7 @@
             {
                 "version":"16",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-ubuntu16.04.img"
                 }
             }
@@ -3887,7 +3886,7 @@
             {
                 "version":"9.2",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-debian9.2.img"
                 }
             }
@@ -3913,7 +3912,7 @@
             {
                 "version":"42.3",
                 "source":{
-                    "type":"singularity",
+                    "type":"singularity-vc3os",
                     "image":"Singularity.vc3.x86_64-opensuse42.3.img"
                 }
             }

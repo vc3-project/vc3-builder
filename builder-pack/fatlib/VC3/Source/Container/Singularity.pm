@@ -1,4 +1,4 @@
-package VC3::Source::Singularity;
+package VC3::Source::Container::Singularity;
 use base 'VC3::Source::Generic';
 use Carp;
 use File::Spec::Functions qw/catfile file_name_is_absolute/;
@@ -34,8 +34,6 @@ sub new {
         push @{$self->files}, $image;
     }
 
-    $self->setup_wrapper();
-
     return $self;
 }
 
@@ -44,6 +42,9 @@ sub to_hash {
 
     my $sh = $self->SUPER::to_hash();
     $sh->{image} = $self->image;
+
+    # wrapper is generated automatically:
+    delete $sh->{wrapper};
 
     return $sh;
 }
@@ -58,26 +59,6 @@ sub image {
     }
     
     return $self->{image};
-}
-
-sub setup_wrapper {
-    my ($self) = @_;
-
-    my @wrapper;
-    push @wrapper, 'singularity';
-    push @wrapper, 'exec';
-
-    my $bag = $self->widget->package->bag;
-    my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
-
-    # this will fail if names above point to the same dir!
-    push @wrapper, ('-B', $bag->root_dir  . ':/opt/vc3-root');
-    push @wrapper, ('-B', $bag->home_dir  . ':/opt/vc3-home');
-    push @wrapper, ('-B', $bag->files_dir . ':/opt/vc3-distfiles');
-    push @wrapper, ('-B', $bag->tmp_dir   . ':/opt/vc3-tmp');
-    push @wrapper, $self->image;
-
-    $self->widget->wrapper(\@wrapper);
 }
 
 1;

@@ -316,7 +316,7 @@ sub sinfile_for {
 	my $sinfile = <<EOF;
 # Singularity image VC3 for $dist$version
 # Build as: singularity build $img_name $sin_name
-# Run as:   singularity run   $img_name -- /bin/sh
+# Run as:   singularity shell $img_name -- /bin/sh
 #
 
 Bootstrap: docker

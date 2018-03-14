@@ -14769,10 +14769,6 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --dot <file>          Write a dependency graph of the requirements to <file>.
 
   --parallel <dir>      Write specifications for a parallel build to <dir>.
-                        (Implies --prestage.)
-
-  --prestage            Download all files to --distfiles <dir> before
-                        processing.
 
   --list                List general packages available.
 
@@ -14852,7 +14848,6 @@ sub main {
     my $interactive_run    = 0;
     my $silent             = 0;
     my $force_rebuild      = 0;
-    my $prestage           = 0;
     my $timeout;
 
     my $ignore_locks       = 0;
@@ -14912,7 +14907,6 @@ sub main {
 
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
-        "prestage" => \$prestage,
         "list:s"   => \$list_option,
 
         "interactive" => \$interactive_run,
@@ -15044,14 +15038,11 @@ sub main {
  
         $bag->set_plan_for('cctools-statics');
         $ignore_locks = 1;
-        $prestage     = 1;
     }
 
     $bag->check_manual_requirements();
 
-    if($prestage) {
-        $bag->plan->prestage();
-    }
+    $bag->plan->prestage();
 
     $bag->execute_plan($sh_on_error, $force_rebuild, $ignore_locks);
 

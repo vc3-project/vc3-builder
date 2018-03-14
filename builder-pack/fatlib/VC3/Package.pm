@@ -15,6 +15,7 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->wrapper($json_description->{wrapper});
     $self->prologue($json_description->{prologue});
+    $self->options($json_description->{options});
     $self->environment_variables($json_description->{'environment-variables'});
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
@@ -68,6 +69,14 @@ sub name {
     unless($self->{name}); 
 
     return $self->{name};
+}
+
+sub options {
+    my ($self, $new_options) = @_;
+
+    $self->{options} = $new_options if($new_options);
+
+    return $self->{options};
 }
 
 sub dependencies {

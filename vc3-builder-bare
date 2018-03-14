@@ -180,6 +180,8 @@ sub remove_vc3_vars() {
 sub main {
     my @requires     = ();
 
+    my %pkg_opts;
+
     my $require_os;
     my $no_os_switch = 0;
 
@@ -234,6 +236,17 @@ sub main {
         "require-os=s" => \$require_os, 
         "no-os-switch" => \$no_os_switch, 
 
+        "option|o=s"     =>
+            sub {
+                my ($o, $s) = @_;
+                my ($key, $value) = split('=', $s, 2);
+                unless(defined $key and defined $value) {
+                    die "\n--option should be of the form package=option\n";
+                }
+                $pkg_opts{$key} ||= [];
+                push @{$pkg_opts{$key}}, $value;
+            },
+
         "install=s" => \$vc3_root,
         "home=s"    => \$vc3_user_home,
 
@@ -271,8 +284,7 @@ sub main {
     );
 
     unless($opt_result) {
-        print usage($script_name);
-        exit 1;
+        die "\nTerminating because of invalid command line arguments.\n";
     }
 
     if($debug_run) {
@@ -347,6 +359,7 @@ sub main {
         on_terminal=> $interactive_run,
         silent     => $silent,
         databases  => \@databases,
+        pkg_opts   => \%pkg_opts,
         sys_manual => \@sys_manual,
         no_sys     => \@no_sys,
         env_vars   => \@extra_env_vars);

@@ -29,6 +29,7 @@ sub new {
     #    on_terminal
     #    silent     
     #    databases  
+    #    pkg_opts  
     #    sys_manual 
     #    no_sys     
     #    env_vars   
@@ -45,7 +46,11 @@ sub new {
     $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
 
     # read the catalog of available packages
-    ($self->{'packages'}, $self->{'op_sys'}) = $self->decode_bags($args{databases});
+    ($self->{'packages'}, $self->{'op_sys'}) = $self->decode_bags($args{databases}, $args{'pkg_opts'});
+
+    if(%{$args{'pkg_opts'}}) {
+        warn 'The options for these packages were unused: ', join(',', keys %{$args{'pkg_opts'}}) . "\n";
+    }
 
     $self->{no_system} = { map { ( $_ => 1 ), } @{$args{no_sys}} };
     $self->{system}    = {};
@@ -735,20 +740,20 @@ sub widgets_of {
 }
 
 sub decode_bags {
-    my ($self, $databases) = @_;
+    my ($self, $databases, $pkg_opts) = @_;
 
     my $packages = {};
     my $op_sys   = {};
 
     for my $filename (@{$databases}) {
-        $self->decode_bag($filename, $packages, $op_sys);
+        $self->decode_bag($filename, $pkg_opts, $packages, $op_sys);
     }
 
     return ($packages, $op_sys);
 }
 
 sub decode_bag {
-    my ($self, $filename, $packages, $op_sys) = @_;
+    my ($self, $filename, $pkg_opts, $packages, $op_sys) = @_;
 
     {
         no warnings;
@@ -771,8 +776,15 @@ sub decode_bag {
 
     my $bag_raw = JSON::Tiny::decode_json($contents);
 
+
     for my $package_name (keys %{$bag_raw}) {
-        my $pkg = VC3::Package->new($self, $package_name, $bag_raw->{$package_name});
+
+        if(exists $pkg_opts->{$package_name}) {
+            $bag_raw->{$package_name}{options} = $pkg_opts->{$package_name};
+            delete $pkg_opts->{$package_name};
+        }
+
+        my $pkg = VC3::Package->new($self, $package_name, $bag_raw->{$package_name}, $pkg_opts);
 
         if($pkg->operating_system) {
             $op_sys->{$package_name}   = $pkg;

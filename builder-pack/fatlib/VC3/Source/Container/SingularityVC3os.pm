@@ -19,6 +19,10 @@ sub setup_wrapper {
     push @wrapper, ('-B', $bag->files_dir . ':/opt/vc3-distfiles');
     push @wrapper, ('-B', $bag->tmp_dir   . ':/opt/vc3-tmp');
 
+    if($bag->{packages}{singularity}->options) {
+        push @wrapper, @{$bag->{packages}{'singularity'}->options};
+    }
+
     push @wrapper, $self->image;
 
     push @wrapper, '/opt/vc3-tmp/vc3-builder';

@@ -37,6 +37,13 @@ sub setup_wrapper {
     chmod 0755, $builder_path;
 }
 
+sub prepare_recipe_sandbox {
+    my ($self, @args) = @_;
+
+    $self->get_files();
+    $self->setup_wrapper(@args);
+}
+
 1;
 
 

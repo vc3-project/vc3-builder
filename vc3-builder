@@ -9511,7 +9511,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           }
   
           eval {
-              $w->source->setup_wrapper(@args);
+              $w->source->prepare_recipe_sandbox(@args);
               system @{$w->wrapper};
           };
   
@@ -11894,6 +11894,13 @@ $fatpacked{"VC3/Source/Container/SingularityVC3os.pm"} = '#line '.(1+__LINE__).'
       my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
       copy($0, $builder_path);
       chmod 0755, $builder_path;
+  }
+  
+  sub prepare_recipe_sandbox {
+      my ($self, @args) = @_;
+  
+      $self->get_files();
+      $self->setup_wrapper(@args);
   }
   
   1;

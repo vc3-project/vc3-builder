@@ -92,7 +92,7 @@ sub switch_os {
         }
 
         eval {
-            $w->source->setup_wrapper(@args);
+            $w->source->prepare_recipe_sandbox(@args);
             system @{$w->wrapper};
         };
 

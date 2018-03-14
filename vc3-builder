@@ -10079,30 +10079,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub distribution {
       my ($self) = @_;
   
-      my $distribution='generic';
-  
-      if (-f '/etc/lsb-release') {
-  
-          open (my $file_fh, '<', '/etc/lsb-release');
-  
-          my ($name, $version);
-          for my $line (<$file_fh>) {
-  
-              if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
-                  my ($key, $value) = ($+{key}, $+{value});
-  
-                  if($key eq 'DISTRIB_ID') {
-                      $name = lc($value);
-                  } elsif($key eq 'DISTRIB_RELEASE') {
-                      if($value =~ m/(?<version>^[0-9]+)/) {
-                          $version = $+{version};
-                      }
-                  }
-              }
-          }
-          die "Could not find version from lsb-release!\n" unless ($name and $version);
-          $distribution="${name}${version}";
-      } elsif (-f '/etc/redhat-release') {
+      if (-f '/etc/redhat-release') {
   
           open (my $file_fh, '<', '/etc/redhat-release');
           my $version_line = <$file_fh>;
@@ -10145,8 +10122,29 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
           die "Could not find opensuse version!\n" unless $version;
           $distribution="opensuse${version}"
-      }
   
+      } elsif if (-f '/etc/lsb-release') {
+  
+          open (my $file_fh, '<', '/etc/lsb-release');
+  
+          my ($name, $version);
+          for my $line (<$file_fh>) {
+  
+              if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
+                  my ($key, $value) = ($+{key}, $+{value});
+  
+                  if($key eq 'DISTRIB_ID') {
+                      $name = lc($value);
+                  } elsif($key eq 'DISTRIB_RELEASE') {
+                      if($value =~ m/(?<version>^[0-9]+)/) {
+                          $version = $+{version};
+                      }
+                  }
+              }
+          }
+          die "Could not find version from lsb-release!\n" unless ($name and $version);
+          $distribution="${name}${version}";
+      }
   
       return $distribution;
   }

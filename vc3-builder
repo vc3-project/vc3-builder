@@ -9505,11 +9505,6 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
           $self->say('OS trying ' . $os . ' ' . $w->source->type);
   
-          # if no wrapper, nothing to do, continue as usual.
-          unless($w->wrapper) {
-              return
-          }
-  
           # if generic, nothing to do, as it is not a container
           if($w->source->type eq 'generic') {
               return;
@@ -9517,7 +9512,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
           eval {
               $w->source->setup_wrapper(@args);
-              system(@{$w->wrapper});
+              system @{$w->wrapper};
           };
   
           if($@) {
@@ -10123,7 +10118,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           die "Could not find opensuse version!\n" unless $version;
           $distribution="opensuse${version}"
   
-      } elsif if (-f '/etc/lsb-release') {
+      } elsif (-f '/etc/lsb-release') {
   
           open (my $file_fh, '<', '/etc/lsb-release');
   
@@ -11886,7 +11881,7 @@ $fatpacked{"VC3/Source/Container/SingularityVC3os.pm"} = '#line '.(1+__LINE__).'
       push @wrapper, $self->image;
   
       push @wrapper, '/opt/vc3-tmp/vc3-builder';
-      push @wrapper, '--no-os-switch',
+      push @wrapper, '--no-os-switch';
       push @wrapper, @original_args;
       push @wrapper, ('--install',   '/opt/vc3-root');
       push @wrapper, ('--distfiles', '/opt/vc3-distfiles');
@@ -11899,8 +11894,6 @@ $fatpacked{"VC3/Source/Container/SingularityVC3os.pm"} = '#line '.(1+__LINE__).'
       my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
       copy($0, $builder_path);
       chmod 0755, $builder_path;
-  
-      print "@wrapper\n";
   }
   
   1;

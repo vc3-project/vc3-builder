@@ -86,11 +86,6 @@ sub switch_os {
 
         $self->say('OS trying ' . $os . ' ' . $w->source->type);
 
-        # if no wrapper, nothing to do, continue as usual.
-        unless($w->wrapper) {
-            return
-        }
-
         # if generic, nothing to do, as it is not a container
         if($w->source->type eq 'generic') {
             return;
@@ -98,7 +93,7 @@ sub switch_os {
 
         eval {
             $w->source->setup_wrapper(@args);
-            system(@{$w->wrapper});
+            system @{$w->wrapper};
         };
 
         if($@) {

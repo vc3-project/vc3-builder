@@ -22,7 +22,7 @@ sub setup_wrapper {
     push @wrapper, $self->image;
 
     push @wrapper, '/opt/vc3-tmp/vc3-builder';
-    push @wrapper, '--no-os-switch',
+    push @wrapper, '--no-os-switch';
     push @wrapper, @original_args;
     push @wrapper, ('--install',   '/opt/vc3-root');
     push @wrapper, ('--distfiles', '/opt/vc3-distfiles');
@@ -35,8 +35,6 @@ sub setup_wrapper {
     my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
     copy($0, $builder_path);
     chmod 0755, $builder_path;
-
-    print "@wrapper\n";
 }
 
 1;

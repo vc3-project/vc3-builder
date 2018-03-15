@@ -910,8 +910,8 @@ sub set_environment_variables {
     $expansion->{'LD_LIBRARY_PATH'} ||= [];
 
     # use default PATH:
-    push @{$expansion->{'PATH'}}, split(/:/, $ENV{'PATH'} || '/bin:/usr/bin:/usr/local/bin');
-    push @{$expansion->{'LD_LIBRARY_PATH'}}, split(/:/, $ENV{'LD_LIBRARY_PATH'} || '/lib:/usr/lib:/usr/local/lib');
+    push @{$expansion->{'PATH'}},            $ENV{'PATH'}            || qw(/bin /usr/bin /usr/local/bin);
+    push @{$expansion->{'LD_LIBRARY_PATH'}}, $ENV{'LD_LIBRARY_PATH'} || qw(/lib /usr/lib /usr/local/lib);
 
     for my $var_name (keys %{$expansion}) {
         my @values = $self->clean_varialble_repetitions($expansion->{$var_name});

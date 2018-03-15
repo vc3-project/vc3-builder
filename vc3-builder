@@ -9631,7 +9631,6 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       return 1;
   }
   
-  
   sub active_widgets {
       my ($self) = @_;
   
@@ -9645,9 +9644,28 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       return $self->{active_widgets};
   }
   
+  sub active_widgets_vars {
+      my ($self) = @_;
+  
+      unless($self->{active_widgets_vars}) {
+          my %new;
+          tie %new, 'Tie::RefHash';
+  
+          $self->{active_widgets_vars} = \%new;
+      }
+  
+      return $self->{active_widgets_vars};
+  }
+  
   sub activate_widget {
       my ($self, $widget) = @_;
+      $self->activate_widget_vars($widget);
       $self->active_widgets->{$widget} = 1;
+  }
+  
+  sub activate_widget_vars {
+      my ($self, $widget) = @_;
+      $self->active_widgets_vars->{$widget} = 1;
   }
   
   sub set_builder_variables {
@@ -9967,8 +9985,9 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       my ($self, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
   
       for my $w (@{$self->plan->order}) {
-          $self->activate_widget($w);
+          $self->activate_widget_vars($w);
           $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
+          $self->activate_widget($w);
       }
   }
   
@@ -10291,7 +10310,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub set_environment_variables {
       my ($self, $sh_f) = @_;
   
-      my $env = $self->active_widgets();
+      my $env = $self->active_widgets_vars();
   
       my $expansion = {};
   
@@ -11426,8 +11445,9 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
       open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
   
       for my $w (@{$self->order}) {
-          $self->bag->activate_widget($w);
+          $self->bag->activate_widget_vars($w);
           $self->bag->set_environment_variables($f_h);
+          $self->bag->activate_widget($w);
       }
   
       close $f_h;

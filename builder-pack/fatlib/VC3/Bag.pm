@@ -212,7 +212,6 @@ sub check_manual_requirements() {
     return 1;
 }
 
-
 sub active_widgets {
     my ($self) = @_;
 
@@ -226,9 +225,28 @@ sub active_widgets {
     return $self->{active_widgets};
 }
 
+sub active_widgets_vars {
+    my ($self) = @_;
+
+    unless($self->{active_widgets_vars}) {
+        my %new;
+        tie %new, 'Tie::RefHash';
+
+        $self->{active_widgets_vars} = \%new;
+    }
+
+    return $self->{active_widgets_vars};
+}
+
 sub activate_widget {
     my ($self, $widget) = @_;
+    $self->activate_widget_vars($widget);
     $self->active_widgets->{$widget} = 1;
+}
+
+sub activate_widget_vars {
+    my ($self, $widget) = @_;
+    $self->active_widgets_vars->{$widget} = 1;
 }
 
 sub set_builder_variables {
@@ -548,8 +566,9 @@ sub execute_plan {
     my ($self, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
 
     for my $w (@{$self->plan->order}) {
-        $self->activate_widget($w);
+        $self->activate_widget_vars($w);
         $self->build_widget($w, $sh_on_error, $force_rebuild, $ignore_locks);
+        $self->activate_widget($w);
     }
 }
 
@@ -872,7 +891,7 @@ EOFF
 sub set_environment_variables {
     my ($self, $sh_f) = @_;
 
-    my $env = $self->active_widgets();
+    my $env = $self->active_widgets_vars();
 
     my $expansion = {};
 

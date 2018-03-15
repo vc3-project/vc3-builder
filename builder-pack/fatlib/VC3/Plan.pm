@@ -515,8 +515,9 @@ sub to_script {
     open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
 
     for my $w (@{$self->order}) {
-        $self->bag->activate_widget($w);
+        $self->bag->activate_widget_vars($w);
         $self->bag->set_environment_variables($f_h);
+        $self->bag->activate_widget($w);
     }
 
     close $f_h;

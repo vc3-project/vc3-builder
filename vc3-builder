@@ -11882,8 +11882,8 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       push @wrapper, '--no-os-switch';
       push @wrapper, $self->remove_mount_args(@{$builder_args});
       push @wrapper, ('--install',   $root_target);
-      push @wrapper, ('--distfiles', $home_target);
-      push @wrapper, ('--home',      $files_target);
+      push @wrapper, ('--distfiles', $files_target);
+      push @wrapper, ('--home',      $home_target);
   
       if(scalar @{$payload_args} > 0) {
           push @wrapper, '--';
@@ -11912,8 +11912,6 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
           $mount_map->{$from} = $default_target;
       }
   
-      print "$from -> $mount_map->{$from}\n";
-  
       return $mount_map->{$from};
   }
   
@@ -11929,7 +11927,7 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
               next;
           }
   
-          if($a =~ m/^--mount\s+/) {
+          if($a =~ m/^--mount/) {
               $prev_mount = 1;
               next;
           }

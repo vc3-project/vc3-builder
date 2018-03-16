@@ -66,7 +66,7 @@ sub image {
 }
 
 sub setup_wrapper {
-    my ($self, $builder_args, $payload_args) = @_;
+    my ($self, $builder_args, $payload_args, $mount_map) = @_;
 
     my $bag = $self->widget->package->bag;
     my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
@@ -74,11 +74,13 @@ sub setup_wrapper {
     push @wrapper, 'singularity';
     push @wrapper, 'exec';
 
-    # this will fail if names above point to the same dir!
-    push @wrapper, ('-B', $bag->root_dir  . ':/opt/vc3-root');
-    push @wrapper, ('-B', $bag->home_dir  . ':/opt/vc3-home');
-    push @wrapper, ('-B', $bag->files_dir . ':/opt/vc3-distfiles');
-    push @wrapper, ('-B', $bag->tmp_dir   . ':/opt/vc3-tmp');
+    my $root_target  = $self->add_mount($mount_map, $bag->root_dir,  '/opt/vc3-root');
+    my $home_target  = $self->add_mount($mount_map, $bag->home_dir,  '/opt/vc3-home');
+    my $files_target = $self->add_mount($mount_map, $bag->files_dir, '/opt/vc3-distfiles');
+
+    for my $from (keys %{$mount_map}) {
+        push @wrapper, ('-B', $from . ':' . $mount_map->{$from});
+    }
 
     if($bag->{packages}{singularity}->options) {
         push @wrapper, @{$bag->{packages}{'singularity'}->options};
@@ -86,12 +88,12 @@ sub setup_wrapper {
 
     push @wrapper, $self->image;
 
-    push @wrapper, '/opt/vc3-tmp/vc3-builder';
+    push @wrapper, catfile($root_target, 'tmp', 'vc3-builder');
     push @wrapper, '--no-os-switch';
-    push @wrapper, @{$builder_args};
-    push @wrapper, ('--install',   '/opt/vc3-root');
-    push @wrapper, ('--distfiles', '/opt/vc3-distfiles');
-    push @wrapper, ('--home',      '/opt/vc3-home');
+    push @wrapper, $self->remove_mount_args(@{$builder_args});
+    push @wrapper, ('--install',   $root_target);
+    push @wrapper, ('--distfiles', $files_target);
+    push @wrapper, ('--home',      $home_target);
 
     if(scalar @{$payload_args} > 0) {
         push @wrapper, '--';
@@ -107,10 +109,47 @@ sub setup_wrapper {
 }
 
 sub prepare_recipe_sandbox {
-    my ($self, $builder_args, $payload_args) = @_;
+    my ($self, $builder_args, $payload_args, $mount_map) = @_;
 
     $self->get_files();
-    $self->setup_wrapper($builder_args, $payload_args);
+    $self->setup_wrapper($builder_args, $payload_args, $mount_map);
+}
+
+sub add_mount {
+    my ($self, $mount_map, $from, $default_target) = @_;
+
+    unless($mount_map->{$from}) {
+        $mount_map->{$from} = $default_target;
+    }
+
+    return $mount_map->{$from};
+}
+
+sub remove_mount_args {
+    my ($self, @args) = @_;
+
+    my @builder_args;
+
+    my $prev_mount = 0;
+    for my $a (@args) {
+        if($prev_mount) {
+            $prev_mount = 0;
+            next;
+        }
+
+        if($a =~ m/^--mount/) {
+            $prev_mount = 1;
+            next;
+        }
+
+        if($a =~ m/^--mount=/) {
+            next;
+        }
+
+        push @builder_args, $a;
+    }
+
+    return @builder_args;
 }
 
 1;

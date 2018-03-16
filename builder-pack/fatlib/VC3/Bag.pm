@@ -66,60 +66,6 @@ sub new {
     return $self;
 }
 
-sub switch_os {
-    my ($self, $os, $exe, $all_args, $payload_args) = @_;
-
-    # chop payload args from all args to only get builder args.
-    my $builder_args  = [@{$all_args}];
-    my $payload_count = scalar @payload_args;
-    splice @{$builder_args}, -1 * $payload_count;
-    splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
-
-    unless($os) {
-        # No os requirement, so we simply return.
-        return;
-    }
-
-    my $pkg = $self->{op_sys}{$os};
-    unless($pkg) {
-        die "I don't know anything about operating system '$os'.\n";
-    }
-
-    # try to satisfy the os requirement
-    for my $w (@{$pkg->widgets}) {
-        my $exit_status = -1;
-        eval { $exit_status = $w->source->check_prerequisites() };
-
-        if($exit_status) {
-            $self->say('OS fail-prereq ' . $os . ' ' . $w->source->type);
-            next;
-        }
-
-        $self->say('OS trying ' . $os . ' ' . $w->source->type);
-
-        # if generic, nothing to do, as it is not a container
-        if($w->source->type eq 'generic') {
-            return;
-        }
-
-        eval {
-            $w->source->prepare_recipe_sandbox($builder_args, $payload_args);
-            system @{$w->wrapper};
-        };
-
-        if($@) {
-            $self->say('OS failed ' . $os . ' ' . $w->source->type . ": $@");
-            next;
-        } else {
-            # payload executed, so we end this builder.
-            exit(0);
-        }
-    }
-
-    die "Could not satisfy operating system requirement '$os'.\n";
-}
-
-
 sub list_packages() {
     my ($self, $option) = @_;
 
@@ -685,51 +631,7 @@ sub glibc_version {
 sub distribution {
     my ($self) = @_;
 
-    if (-f '/etc/redhat-release') {
-
-        open (my $file_fh, '<', '/etc/redhat-release');
-        my $version_line = <$file_fh>;
-
-        $version_line =~ /\brelease\b\s+([0-9]+)\b/;
-        my $version = $1;
-
-        die "Could not find redhat version!\n" unless $version;
-
-        $distribution="redhat${version}"
-
-    } elsif (-f '/etc/debian_version') {
-
-        open (my $file_fh, '<', '/etc/debian_version');
-        my $version_line = <$file_fh>;
-
-        $version_line =~ /^([0-9]+)/;
-        my $version = $1;
-
-        die "Could not find debian version!\n" unless $version;
-
-        $distribution="debian${version}"
-    } elsif (-f '/etc/os-release') {
-
-        open (my $file_fh, '<', '/etc/os-release');
-
-        my $version;
-        for my $line (<$file_fh>) {
-
-            if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
-                my ($key, $value) = ($+{key}, $+{value});
-
-                if($key eq 'VERSION') {
-                    if($value =~ m/^"(?<version>[0-9]+)/) {
-                        $version = $+{version};
-                    }
-                }
-            }
-        }
-
-        die "Could not find opensuse version!\n" unless $version;
-        $distribution="opensuse${version}"
-
-    } elsif (-f '/etc/lsb-release') {
+    if (-f '/etc/lsb-release') {
 
         open (my $file_fh, '<', '/etc/lsb-release');
 
@@ -748,11 +650,63 @@ sub distribution {
                 }
             }
         }
-        die "Could not find version from lsb-release!\n" unless ($name and $version);
-        $distribution="${name}${version}";
+
+        if($name and $version) {
+            return "${name}${version}";
+        }
     }
 
-    return $distribution;
+    if (-f '/etc/redhat-release') {
+
+        open (my $file_fh, '<', '/etc/redhat-release');
+        my $version_line = <$file_fh>;
+
+        $version_line =~ /\brelease\b\s+([0-9]+)\b/;
+        my $version = $1;
+
+        if($version) {
+            return "redhat${version}"
+        }
+    } 
+    
+    if (-f '/etc/debian_version') {
+
+        open (my $file_fh, '<', '/etc/debian_version');
+        my $version_line = <$file_fh>;
+
+        $version_line =~ /^([0-9]+)/;
+        my $version = $1;
+
+        if($version) {
+            return "debian${version}"
+        }
+    }
+
+    if (-f '/etc/os-release') {
+
+        open (my $file_fh, '<', '/etc/os-release');
+
+        my $version;
+        for my $line (<$file_fh>) {
+
+            if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
+                my ($key, $value) = ($+{key}, $+{value});
+
+                if($key eq 'VERSION') {
+                    if($value =~ m/^"(?<version>[0-9]+)/) {
+                        $version = $+{version};
+                    }
+                }
+            }
+        }
+
+        if($version) {
+            return "opensuse${version}";
+        }
+    }
+
+    warn "Could not find any OS version. Using 'generic'\n";
+    return 'generic';
 }
 
 sub widgets_of {

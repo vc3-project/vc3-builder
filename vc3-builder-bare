@@ -13,7 +13,7 @@ use VC3::Source;
 package VC3::Builder;
 
 use English qw/-mo_match_vars/;
-use File::Spec::Functions qw/catfile rel2abs/;
+use File::Spec::Functions qw/catfile rel2abs file_name_is_absolute/;
 use Getopt::Long qw/GetOptions/;
 use Cwd;
 
@@ -75,6 +75,14 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         fulfill the requirement. May be specified several times,
                         but only the last occurance is honored.
                         Use --list=os for a list of available operating systems. 
+
+  --mount /<x>          Ensure that path /<x> is exists inside the execution
+                        environment. If using --require-os with a non-native operating
+                        system, it is equivalent to --mount /<x>:/<x>
+  
+  --mount /<x>:/<y>     Mount path <x> into path <y> inside the execution environment.
+                        When executing in a native operating system, <x> and <y>
+                        cannot be different paths.
 
   --force               Reinstall the packages named with --require and the
                         packages they depend on.
@@ -185,6 +193,8 @@ sub main {
     my $require_os;
     my $no_os_switch = 0;
 
+    my @mounts       = ();
+
     my $print_help   = 0;
     my $make_jobs    = 4;
     my $sh_on_error  = 0;
@@ -235,6 +245,8 @@ sub main {
 
         "require-os=s" => \$require_os, 
         "no-os-switch" => \$no_os_switch, 
+
+        "mount=s" => \@mounts,
 
         "option|o=s"     =>
             sub {
@@ -329,6 +341,9 @@ sub main {
         push @no_sys, 'ALL';
     }
 
+    # split mounts
+    my $mount_map = get_mount_map(@mounts);
+
     # set defaults
     my @command_and_args = @ARGV;
     if(!@command_and_args) {
@@ -366,10 +381,15 @@ sub main {
 
     push @cleanups, sub { $bag->cleanup() };
 
-    # following call may produce an exec to a container.  original command line
-    # is executed, dropping --require-os.
-    if($require_os and !$no_os_switch) {
-        $bag->switch_os($require_os, $0, \@saved_args, \@ARGV); # ARGV is original payload now.
+
+    if($require_os and not $no_os_switch) {
+        # following call may produce an exec to a container.  original command line
+        # is executed, dropping --require-os.
+        switch_os($bag, $require_os, $0, \@saved_args, \@ARGV, $mount_map); # ARGV is original payload now.
+    } else {
+        unless(check_local_mounts($mount_map)) {
+            die "Some mount points do not exists locally and no mounting can be performed natively.\n";
+        }
     }
 
     $bag->set_plan_for(@requires);
@@ -475,4 +495,102 @@ sub uniq_words {
     return keys %words;
 }
 
+sub switch_os {
+    my ($bag, $os, $exe, $all_args, $payload_args, $mount_map) = @_;
+
+    # chop payload args from all args to only get builder args.
+    my $builder_args  = [@{$all_args}];
+    my $payload_count = scalar @{$payload_args};
+    if($payload_count > 0) {
+        splice @{$builder_args}, -1 * $payload_count;
+    }
+    splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
+
+    my $pkg = $bag->{op_sys}{$os};
+    unless($pkg) {
+        die "I don't know anything about operating system '$os'.\n";
+    }
+
+    # try to satisfy the os requirement
+    for my $w (@{$pkg->widgets}) {
+        my $exit_status = -1;
+        eval { $exit_status = $w->source->check_prerequisites() };
+
+        if($exit_status) {
+            $bag->say('OS fail-prereq ' . $os . ' ' . $w->source->type);
+            next;
+        }
+
+        $bag->say('OS trying ' . $os . ' ' . $w->source->type);
+
+        # if generic, simply check mount points.
+        if($w->source->type eq 'generic') {
+            if(check_local_mounts($mount_map)) {
+                return;
+            } else {
+                $bag->say('OS fail-mounts ' . $os . ' ' . $w->source->type);
+                next;
+            }
+        }
+
+        eval {
+            $w->source->prepare_recipe_sandbox($builder_args, $payload_args, $mount_map);
+            system @{$w->wrapper};
+        };
+
+        if($@) {
+            $bag->say('OS failed ' . $os . ' ' . $w->source->type . ": $@");
+            next;
+        } else {
+            # payload executed, so we end this builder.
+            exit(0);
+        }
+    }
+
+    die "Could not satisfy operating system requirement '$os'.\n";
+}
+
+sub get_mount_map {
+    my (@mounts) = @_;
+
+    my %mount_map;
+    for my $spec (@mounts) {
+        $spec =~ m/^(?<from>[^:]+)(:(?<to>.*))?/;
+
+        unless($+{from}) {
+            die "Malformed mount specification: '$spec'.\n";
+        }
+
+        $mount_map{$+{from}} = $+{to} || $+{from}; 
+
+        unless(file_name_is_absolute($+{from})) {
+            die "Path '$+{from}' is not absolute.\n";
+        }
+
+        unless(file_name_is_absolute($mount_map{$+{from}})) {
+            die "Path '$mount_map{$+{from}}' is not absolute.\n";
+        }
+    }
+    
+    return \%mount_map;
+}
+
+sub check_local_mounts {
+    my ($mount_map) = @_;
+
+    my $all_present = 1;
+    for my $from (keys %{$mount_map}) {
+        my $to = $mount_map->{$from};
+
+        if($from ne $to) {
+            $all_present = 0;
+            print("Mount source '$from' and target '$to' are different.\n");
+        } elsif(! -d $to) {
+            $all_present = 0;
+            print("Mount target '$to' does not exist locally.\n");
+        }
+    }
+
+    return $all_present;
+}
 

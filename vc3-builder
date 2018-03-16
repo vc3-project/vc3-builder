@@ -9485,60 +9485,6 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       return $self;
   }
   
-  sub switch_os {
-      my ($self, $os, $exe, $all_args, $payload_args) = @_;
-  
-      # chop payload args from all args to only get builder args.
-      my $builder_args  = [@{$all_args}];
-      my $payload_count = scalar @payload_args;
-      splice @{$builder_args}, -1 * $payload_count;
-      splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
-  
-      unless($os) {
-          # No os requirement, so we simply return.
-          return;
-      }
-  
-      my $pkg = $self->{op_sys}{$os};
-      unless($pkg) {
-          die "I don't know anything about operating system '$os'.\n";
-      }
-  
-      # try to satisfy the os requirement
-      for my $w (@{$pkg->widgets}) {
-          my $exit_status = -1;
-          eval { $exit_status = $w->source->check_prerequisites() };
-  
-          if($exit_status) {
-              $self->say('OS fail-prereq ' . $os . ' ' . $w->source->type);
-              next;
-          }
-  
-          $self->say('OS trying ' . $os . ' ' . $w->source->type);
-  
-          # if generic, nothing to do, as it is not a container
-          if($w->source->type eq 'generic') {
-              return;
-          }
-  
-          eval {
-              $w->source->prepare_recipe_sandbox($builder_args, $payload_args);
-              system @{$w->wrapper};
-          };
-  
-          if($@) {
-              $self->say('OS failed ' . $os . ' ' . $w->source->type . ": $@");
-              next;
-          } else {
-              # payload executed, so we end this builder.
-              exit(0);
-          }
-      }
-  
-      die "Could not satisfy operating system requirement '$os'.\n";
-  }
-  
-  
   sub list_packages() {
       my ($self, $option) = @_;
   
@@ -10104,51 +10050,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub distribution {
       my ($self) = @_;
   
-      if (-f '/etc/redhat-release') {
-  
-          open (my $file_fh, '<', '/etc/redhat-release');
-          my $version_line = <$file_fh>;
-  
-          $version_line =~ /\brelease\b\s+([0-9]+)\b/;
-          my $version = $1;
-  
-          die "Could not find redhat version!\n" unless $version;
-  
-          $distribution="redhat${version}"
-  
-      } elsif (-f '/etc/debian_version') {
-  
-          open (my $file_fh, '<', '/etc/debian_version');
-          my $version_line = <$file_fh>;
-  
-          $version_line =~ /^([0-9]+)/;
-          my $version = $1;
-  
-          die "Could not find debian version!\n" unless $version;
-  
-          $distribution="debian${version}"
-      } elsif (-f '/etc/os-release') {
-  
-          open (my $file_fh, '<', '/etc/os-release');
-  
-          my $version;
-          for my $line (<$file_fh>) {
-  
-              if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
-                  my ($key, $value) = ($+{key}, $+{value});
-  
-                  if($key eq 'VERSION') {
-                      if($value =~ m/^"(?<version>[0-9]+)/) {
-                          $version = $+{version};
-                      }
-                  }
-              }
-          }
-  
-          die "Could not find opensuse version!\n" unless $version;
-          $distribution="opensuse${version}"
-  
-      } elsif (-f '/etc/lsb-release') {
+      if (-f '/etc/lsb-release') {
   
           open (my $file_fh, '<', '/etc/lsb-release');
   
@@ -10167,11 +10069,63 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
                   }
               }
           }
-          die "Could not find version from lsb-release!\n" unless ($name and $version);
-          $distribution="${name}${version}";
+  
+          if($name and $version) {
+              return "${name}${version}";
+          }
       }
   
-      return $distribution;
+      if (-f '/etc/redhat-release') {
+  
+          open (my $file_fh, '<', '/etc/redhat-release');
+          my $version_line = <$file_fh>;
+  
+          $version_line =~ /\brelease\b\s+([0-9]+)\b/;
+          my $version = $1;
+  
+          if($version) {
+              return "redhat${version}"
+          }
+      } 
+      
+      if (-f '/etc/debian_version') {
+  
+          open (my $file_fh, '<', '/etc/debian_version');
+          my $version_line = <$file_fh>;
+  
+          $version_line =~ /^([0-9]+)/;
+          my $version = $1;
+  
+          if($version) {
+              return "debian${version}"
+          }
+      }
+  
+      if (-f '/etc/os-release') {
+  
+          open (my $file_fh, '<', '/etc/os-release');
+  
+          my $version;
+          for my $line (<$file_fh>) {
+  
+              if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
+                  my ($key, $value) = ($+{key}, $+{value});
+  
+                  if($key eq 'VERSION') {
+                      if($value =~ m/^"(?<version>[0-9]+)/) {
+                          $version = $+{version};
+                      }
+                  }
+              }
+          }
+  
+          if($version) {
+              return "opensuse${version}";
+          }
+      }
+  
+      warn "Could not find any OS version. Using 'generic'\n";
+      return 'generic';
   }
   
   sub widgets_of {
@@ -11837,6 +11791,7 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   package VC3::Source::Container::Singularity;
   use base 'VC3::Source::Generic';
   use Carp;
+  use File::Copy;
   use File::Spec::Functions qw/catfile file_name_is_absolute/;
   
   sub new {
@@ -11901,7 +11856,7 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   }
   
   sub setup_wrapper {
-      my ($self, $builder_args, $payload_args) = @_;
+      my ($self, $builder_args, $payload_args, $mount_map) = @_;
   
       my $bag = $self->widget->package->bag;
       my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
@@ -11909,11 +11864,13 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       push @wrapper, 'singularity';
       push @wrapper, 'exec';
   
-      # this will fail if names above point to the same dir!
-      push @wrapper, ('-B', $bag->root_dir  . ':/opt/vc3-root');
-      push @wrapper, ('-B', $bag->home_dir  . ':/opt/vc3-home');
-      push @wrapper, ('-B', $bag->files_dir . ':/opt/vc3-distfiles');
-      push @wrapper, ('-B', $bag->tmp_dir   . ':/opt/vc3-tmp');
+      my $root_target  = $self->add_mount($mount_map, $bag->root_dir,  '/opt/vc3-root');
+      my $home_target  = $self->add_mount($mount_map, $bag->home_dir,  '/opt/vc3-home');
+      my $files_target = $self->add_mount($mount_map, $bag->files_dir, '/opt/vc3-distfiles');
+  
+      for my $from (keys %{$mount_map}) {
+          push @wrapper, ('-B', $from . ':' . $mount_map->{$from});
+      }
   
       if($bag->{packages}{singularity}->options) {
           push @wrapper, @{$bag->{packages}{'singularity'}->options};
@@ -11921,12 +11878,12 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   
       push @wrapper, $self->image;
   
-      push @wrapper, '/opt/vc3-tmp/vc3-builder';
+      push @wrapper, catfile($root_target, 'tmp', 'vc3-builder');
       push @wrapper, '--no-os-switch';
-      push @wrapper, @{$builder_args};
-      push @wrapper, ('--install',   '/opt/vc3-root');
-      push @wrapper, ('--distfiles', '/opt/vc3-distfiles');
-      push @wrapper, ('--home',      '/opt/vc3-home');
+      push @wrapper, $self->remove_mount_args(@{$builder_args});
+      push @wrapper, ('--install',   $root_target);
+      push @wrapper, ('--distfiles', $home_target);
+      push @wrapper, ('--home',      $files_target);
   
       if(scalar @{$payload_args} > 0) {
           push @wrapper, '--';
@@ -11942,77 +11899,54 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
   }
   
   sub prepare_recipe_sandbox {
-      my ($self, $builder_args, $payload_args) = @_;
+      my ($self, $builder_args, $payload_args, $mount_map) = @_;
   
       $self->get_files();
-      $self->setup_wrapper($builder_args, $payload_args);
+      $self->setup_wrapper($builder_args, $payload_args, $mount_map);
+  }
+  
+  sub add_mount {
+      my ($self, $mount_map, $from, $default_target) = @_;
+  
+      unless($mount_map->{$from}) {
+          $mount_map->{$from} = $default_target;
+      }
+  
+      print "$from -> $mount_map->{$from}\n";
+  
+      return $mount_map->{$from};
+  }
+  
+  sub remove_mount_args {
+      my ($self, @args) = @_;
+  
+      my @builder_args;
+  
+      my $prev_mount = 0;
+      for my $a (@args) {
+          if($prev_mount) {
+              $prev_mount = 0;
+              next;
+          }
+  
+          if($a =~ m/^--mount\s+/) {
+              $prev_mount = 1;
+              next;
+          }
+  
+          if($a =~ m/^--mount=/) {
+              next;
+          }
+  
+          push @builder_args, $a;
+      }
+  
+      return @builder_args;
   }
   
   1;
   
 VC3_SOURCE_CONTAINER_SINGULARITY
-
-$fatpacked{"VC3/Source/Container/SingularityVC3os.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_SINGULARITYVC3OS';
-  package VC3::Source::Container::SingularityVC3os;
-  use base 'VC3::Source::Container::Singularity';
-  use Carp;
-  use File::Copy;
-  use File::Spec::Functions qw/catfile file_name_is_absolute/;
-  
-  sub setup_wrapper {
-      my ($self, $builder_args, $payload_args) = @_;
-  
-      my $bag = $self->widget->package->bag;
-      my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
-  
-      push @wrapper, 'singularity';
-      push @wrapper, 'exec';
-  
-      # this will fail if names above point to the same dir!
-      push @wrapper, ('-B', $bag->root_dir  . ':/opt/vc3-root');
-      push @wrapper, ('-B', $bag->home_dir  . ':/opt/vc3-home');
-      push @wrapper, ('-B', $bag->files_dir . ':/opt/vc3-distfiles');
-      push @wrapper, ('-B', $bag->tmp_dir   . ':/opt/vc3-tmp');
-  
-      if($bag->{packages}{singularity}->options) {
-          push @wrapper, @{$bag->{packages}{'singularity'}->options};
-      }
-  
-      push @wrapper, $self->image;
-  
-      push @wrapper, '/opt/vc3-tmp/vc3-builder';
-      push @wrapper, '--no-os-switch';
-      push @wrapper, @{$builder_args};
-      push @wrapper, ('--install',   '/opt/vc3-root');
-      push @wrapper, ('--distfiles', '/opt/vc3-distfiles');
-      push @wrapper, ('--home',      '/opt/vc3-home');
-  
-      if(scalar @{$payload_args} > 0) {
-          push @wrapper, '--';
-          push @wrapper, @{$payload_args};
-      }
-  
-      $self->widget->wrapper(\@wrapper);
-  
-  
-      # hack to clean soon:
-      my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
-      copy($0, $builder_path);
-      chmod 0755, $builder_path;
-  }
-  
-  sub prepare_recipe_sandbox {
-      my ($self, $builder_args, $payload_args) = @_;
-  
-      $self->get_files();
-      $self->setup_wrapper($builder_args, $payload_args);
-  }
-  
-  1;
-  
-  
-  
-VC3_SOURCE_CONTAINER_SINGULARITYVC3OS
 
 $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_GENERIC';
   package VC3::Source::Generic;
@@ -14793,7 +14727,7 @@ use VC3::Source;
 package VC3::Builder;
 
 use English qw/-mo_match_vars/;
-use File::Spec::Functions qw/catfile rel2abs/;
+use File::Spec::Functions qw/catfile rel2abs file_name_is_absolute/;
 use Getopt::Long qw/GetOptions/;
 use Cwd;
 
@@ -14855,6 +14789,14 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         fulfill the requirement. May be specified several times,
                         but only the last occurance is honored.
                         Use --list=os for a list of available operating systems. 
+
+  --mount /<x>          Ensure that path /<x> is exists inside the execution
+                        environment. If using --require-os with a non-native operating
+                        system, it is equivalent to --mount /<x>:/<x>
+  
+  --mount /<x>:/<y>     Mount path <x> into path <y> inside the execution environment.
+                        When executing in a native operating system, <x> and <y>
+                        cannot be different paths.
 
   --force               Reinstall the packages named with --require and the
                         packages they depend on.
@@ -14965,6 +14907,8 @@ sub main {
     my $require_os;
     my $no_os_switch = 0;
 
+    my @mounts       = ();
+
     my $print_help   = 0;
     my $make_jobs    = 4;
     my $sh_on_error  = 0;
@@ -15015,6 +14959,8 @@ sub main {
 
         "require-os=s" => \$require_os, 
         "no-os-switch" => \$no_os_switch, 
+
+        "mount=s" => \@mounts,
 
         "option|o=s"     =>
             sub {
@@ -15109,6 +15055,9 @@ sub main {
         push @no_sys, 'ALL';
     }
 
+    # split mounts
+    my $mount_map = get_mount_map(@mounts);
+
     # set defaults
     my @command_and_args = @ARGV;
     if(!@command_and_args) {
@@ -15146,10 +15095,15 @@ sub main {
 
     push @cleanups, sub { $bag->cleanup() };
 
-    # following call may produce an exec to a container.  original command line
-    # is executed, dropping --require-os.
-    if($require_os and !$no_os_switch) {
-        $bag->switch_os($require_os, $0, \@saved_args, \@ARGV); # ARGV is original payload now.
+
+    if($require_os and not $no_os_switch) {
+        # following call may produce an exec to a container.  original command line
+        # is executed, dropping --require-os.
+        switch_os($bag, $require_os, $0, \@saved_args, \@ARGV, $mount_map); # ARGV is original payload now.
+    } else {
+        unless(check_local_mounts($mount_map)) {
+            die "Some mount points do not exists locally and no mounting can be performed natively.\n";
+        }
     }
 
     $bag->set_plan_for(@requires);
@@ -15255,6 +15209,104 @@ sub uniq_words {
     return keys %words;
 }
 
+sub switch_os {
+    my ($bag, $os, $exe, $all_args, $payload_args, $mount_map) = @_;
+
+    # chop payload args from all args to only get builder args.
+    my $builder_args  = [@{$all_args}];
+    my $payload_count = scalar @{$payload_args};
+    if($payload_count > 0) {
+        splice @{$builder_args}, -1 * $payload_count;
+    }
+    splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
+
+    my $pkg = $bag->{op_sys}{$os};
+    unless($pkg) {
+        die "I don't know anything about operating system '$os'.\n";
+    }
+
+    # try to satisfy the os requirement
+    for my $w (@{$pkg->widgets}) {
+        my $exit_status = -1;
+        eval { $exit_status = $w->source->check_prerequisites() };
+
+        if($exit_status) {
+            $bag->say('OS fail-prereq ' . $os . ' ' . $w->source->type);
+            next;
+        }
+
+        $bag->say('OS trying ' . $os . ' ' . $w->source->type);
+
+        # if generic, simply check mount points.
+        if($w->source->type eq 'generic') {
+            if(check_local_mounts($mount_map)) {
+                return;
+            } else {
+                $bag->say('OS fail-mounts ' . $os . ' ' . $w->source->type);
+                next;
+            }
+        }
+
+        eval {
+            $w->source->prepare_recipe_sandbox($builder_args, $payload_args, $mount_map);
+            system @{$w->wrapper};
+        };
+
+        if($@) {
+            $bag->say('OS failed ' . $os . ' ' . $w->source->type . ": $@");
+            next;
+        } else {
+            # payload executed, so we end this builder.
+            exit(0);
+        }
+    }
+
+    die "Could not satisfy operating system requirement '$os'.\n";
+}
+
+sub get_mount_map {
+    my (@mounts) = @_;
+
+    my %mount_map;
+    for my $spec (@mounts) {
+        $spec =~ m/^(?<from>[^:]+)(:(?<to>.*))?/;
+
+        unless($+{from}) {
+            die "Malformed mount specification: '$spec'.\n";
+        }
+
+        $mount_map{$+{from}} = $+{to} || $+{from}; 
+
+        unless(file_name_is_absolute($+{from})) {
+            die "Path '$+{from}' is not absolute.\n";
+        }
+
+        unless(file_name_is_absolute($mount_map{$+{from}})) {
+            die "Path '$mount_map{$+{from}}' is not absolute.\n";
+        }
+    }
+    
+    return \%mount_map;
+}
+
+sub check_local_mounts {
+    my ($mount_map) = @_;
+
+    my $all_present = 1;
+    for my $from (keys %{$mount_map}) {
+        my $to = $mount_map->{$from};
+
+        if($from ne $to) {
+            $all_present = 0;
+            print("Mount source '$from' and target '$to' are different.\n");
+        } elsif(! -d $to) {
+            $all_present = 0;
+            print("Mount target '$to' does not exist locally.\n");
+        }
+    }
+
+    return $all_present;
+}
 
 
 package VC3::Builder;

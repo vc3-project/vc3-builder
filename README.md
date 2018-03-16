@@ -28,12 +28,12 @@ OPTIONS
 
 Option                       | Description                                                      
 ---------------------------- | ------------
-command-and-args             |  defaults to /bin/sh
---database=<catalog>         |  defaults to <internal> if available, otherwise to ./vc3_catalog.json. May be specified several times, with latter package recipes overwriting previous ones.
---install=<root>             |  Install with base <root>. Default is ${vc3_root}
---home=<home>                |  Set \${HOME} to <root>/<home> if <home> is a relative path, otherwise to <home> if it is an absolute path. Default is ${vc3_user_home}.
---distfiles=<dir>            |  Directory to cache unbuilt packages locally. Default is ${vc3_distfiles}
---repository=<url>           |  Site to fetch packages if needed. Default is ${vc3_repository}
+command-and-args             |  defaults to an interactive shell.
+--database=<catalog>         |  defaults to <internal> if available, otherwise to `./vc3-catalog.json.` May be specified several times, with latter package recipes overwriting previous ones.
+--install=<root>             |  Install with base <root>. Default is `vc3-root`.
+--home=<home>                |  Set \${HOME} to <root>/<home> if <home> is a relative path, otherwise to <home> if it is an absolute path. Default is `vc3-home`.
+--distfiles=<dir>            |  Directory to cache unbuilt packages locally. Default is `vc3_distfiles`
+--repository=<url>           |  Site to fetch packages if needed. Default is the vc3 repository.
 --require-os=<name>          |  Ensure the operating system is <name>. May use a container to fulfill the requirement. May be specified several times, but only the last occurance is honored. Use --list=os for a list of available operating systems.
 --mount=/<x>                 |  Ensure that path /<x> is exists inside the execution environment. If using --require-os with a non-native operating system, it is equivalent to --mount /<x>:/<x>
 --mount=/<x>:/<y>            |  Mount path <x> into path <y> inside the execution environment. When executing in a native operating system, <x> and <y> cannot be different paths.

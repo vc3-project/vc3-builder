@@ -2,10 +2,29 @@ package VC3::Source::System;
 use base 'VC3::Source::Generic';
 use Carp;
 
-sub phony {
-    my ($self) = @_;
+sub new {
+    my ($class, $widget, $json_description) = @_;
 
-    return 1;
+    $widget->local(1);
+
+    my $exe = $json_description->{executable};
+
+    if($exe) {
+        unless($json_description->{recipe}) {
+            $json_description->{recipe} = [
+                "bin=\$(dirname \$(which $exe))",
+                "echo VC3_ROOT_SYSTEM: \${bin%%bin}"
+            ];
+        }
+
+        unless($json_description->{prerequisites}) {
+            $json_description->{prerequisites} = [
+                "\$(which $exe)",
+            ];
+        }
+    }
+
+    my $self = $class->SUPER::new($widget, $json_description);
 }
 
 sub execute_recipe_unlocked {

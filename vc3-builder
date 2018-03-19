@@ -12426,10 +12426,29 @@ $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
   use base 'VC3::Source::Generic';
   use Carp;
   
-  sub phony {
-      my ($self) = @_;
+  sub new {
+      my ($class, $widget, $json_description) = @_;
   
-      return 1;
+      $widget->local(1);
+  
+      my $exe = $json_description->{executable};
+  
+      if($exe) {
+          unless($json_description->{recipe}) {
+              $json_description->{recipe} = [
+                  "bin=\$(dirname \$(which $exe))",
+                  "echo VC3_ROOT_SYSTEM: \${bin%%bin}"
+              ];
+          }
+  
+          unless($json_description->{prerequisites}) {
+              $json_description->{prerequisites} = [
+                  "\$(which $exe)",
+              ];
+          }
+      }
+  
+      my $self = $class->SUPER::new($widget, $json_description);
   }
   
   sub execute_recipe_unlocked {
@@ -16554,6 +16573,9 @@ __DATA__
     "cmake":{
         "tags":["compilation tools"],
         "show-in-list":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: $(cmake --version | sed -r -e 's/cmake version ([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
+        ],
         "versions":[
             {
                 "version":"auto",
@@ -16562,10 +16584,7 @@ __DATA__
                     "prerequisites":[
                         "which cmake"
                     ],
-                    "recipe":[
-                        "bin=$(dirname $(which cmake))",
-                        "echo VC3_ROOT_SYSTEM: ${bin%%bin}"
-                    ]
+                    "executable":"cmake"
                 }
             },
             {
@@ -16581,9 +16600,6 @@ __DATA__
                     ]
                 }
             }
-        ],
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(cmake --version | sed -r -e 's/cmake version ([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
         ],
         "environment-autovars":[
             "PATH"
@@ -16814,18 +16830,15 @@ __DATA__
     "wget":{
         "tags":["data transfer tools"],
         "show-in-list":1,
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: $(wget --version | head -n1 | sed -r 's/GNU Wget (([0-9]+.?)+).*/\\1/')"
+        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "prerequisites":[
-                        "which wget"
-                    ],
-                    "recipe":[
-                        "bin=$(dirname $(which wget))",
-                        "echo VC3_ROOT_SYSTEM: ${bin%%bin}"
-                    ]
+                    "executable":"wget"
                 }
             },
             {
@@ -16859,27 +16872,22 @@ __DATA__
                     "PATH"
                 ]
             }
-        ],
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(wget --version | head -n1 | sed -r 's/GNU Wget (([0-9]+.?)+).*/\\1/')"
         ]
     },
 
     "git":{
         "tags":["source version control", "compilation tools"],
         "show-in-list":1,
+        "auto-version":[
+            "echo $PATH >> /tmp/o",
+            "echo VC3_VERSION_SYSTEM: $(git --version | sed -r -e 's/git version (([0-9]+\\.){2}[0-9]+).*/\\1/')"
+        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "prerequisites":[
-                        "which git"
-                    ],
-                    "recipe":[
-                        "bin=$(dirname $(which git))",
-                        "echo VC3_ROOT_SYSTEM: ${bin%%bin}"
-                    ]
+                    "executable":"git"
                 }
             },
             {
@@ -16924,10 +16932,6 @@ __DATA__
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
                 ]
             }
-        ],
-        "auto-version":[
-            "echo $PATH >> /tmp/o",
-            "echo VC3_VERSION_SYSTEM: $(git --version | sed -r -e 's/git version (([0-9]+\\.){2}[0-9]+).*/\\1/')"
         ]
     },
 
@@ -17283,14 +17287,15 @@ __DATA__
     "perl":{
         "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
+        "auto-version":[
+            "perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
+        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "prerequisites":[
-                        "which perl"
-                    ],
+                    "executable":"perl",
                     "recipe":[
                         "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
@@ -17316,9 +17321,6 @@ __DATA__
                 "v0.5.0"
             ]
         },
-        "auto-version":[
-            "perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
-        ],
         "environment-variables":[
             {
                 "name":"PATH",
@@ -17478,14 +17480,15 @@ __DATA__
     "python":{
         "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
+        "auto-version":[
+            "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
+        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "prerequisites":[
-                        "which python"
-                    ],
+                    "executable":"python",
                     "recipe":[
                         "cmd=$(which python)",
                         "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
@@ -17524,9 +17527,6 @@ __DATA__
                 }
             }
         ],
-        "auto-version":[
-            "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
-        ],
         "environment-autovars":[
             "PATH"
         ],
@@ -17542,14 +17542,15 @@ __DATA__
     "python3":{
         "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
+        "auto-version":[
+            "python3 -c 'import sys; print(\"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2]))'"
+        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "prerequisites":[
-                        "which python3"
-                    ],
+                    "executable":"python3",
                     "recipe":[
                         "cmd=$(which python3)",
                         "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python3$:\\1:p')",
@@ -17586,9 +17587,6 @@ __DATA__
                     }
                 }
             }
-        ],
-        "auto-version":[
-            "python3 -c 'import sys; print(\"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2]))'"
         ],
         "environment-autovars":[
             "PATH"
@@ -18559,17 +18557,15 @@ __DATA__
     },
 
     "findutils":{
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: $(find --version | head -n1 | sed -r -e 's/.*([0-9]+(\\.[0-9]+){2}).*/\\1/')"
+        ],
         "versions":[
             {
-                "version":"v4.1.20",
+                "version":"auto",
                 "source":{
                     "type":"system",
-                    "recipe": [
-                        "cmd=$(which find)",
-                        "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/find$:\\1:p')",
-                        "[ -n \"$base\" ] || exit 1",
-                        "echo \"VC3_ROOT_SYSTEM: $base\""
-                    ]
+                    "executable":"find"
                 }
             },
             {
@@ -19130,23 +19126,17 @@ __DATA__
 
     "singularity":{
         "tags":["containers"],
+        "auto-version":[
+            "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/([0-9]+(\\.[0-9]+){2}).*/\\1/')"
+        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "prerequisites":[
-                        "which singularity"
-                    ],
-                    "recipe":[
-                        "bin=$(dirname $(which singularity))",
-                        "echo VC3_ROOT_SYSTEM: ${bin%%bin}"
-                    ]
+                    "executable":"singularity"
                 }
             }
-        ],
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/([0-9]+(\\.[0-9]+){2,3}).*/\\1/')"
         ]
     },
 

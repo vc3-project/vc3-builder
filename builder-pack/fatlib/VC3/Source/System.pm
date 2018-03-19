@@ -22,9 +22,27 @@ sub new {
                 "which $exe",
             ];
         }
+
+        unless($json_description->{'auto-version'}) {
+            $json_description->{'auto-version'} = [
+                "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/.*([0-9]+(\\.[0-9]+){0,2}).*/\\1/')"
+            ];
+        }
     }
 
     my $self = $class->SUPER::new($widget, $json_description);
+
+    $self->auto_version($json_description->{'auto-version'});
+
+    return $self;
+}
+
+sub auto_version {
+    my ($self, $new_auto_version) = @_;
+
+    $self->{auto_version} = $new_auto_version if($new_auto_version);
+
+    return $self->{auto_version};
 }
 
 sub execute_recipe_unlocked {

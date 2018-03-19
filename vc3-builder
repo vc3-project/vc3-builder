@@ -10659,7 +10659,6 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       $self->environment_autovars($json_description->{'environment-autovars'});
       $self->phony($json_description->{phony});
       $self->operating_system($json_description->{'operating-system'});
-      $self->auto_version($json_description->{'auto-version'});
   
       $self->show_in_list($json_description->{'show-in-list'});
       $self->tags($json_description->{'tags'});
@@ -10758,14 +10757,6 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       return $self->{environment_autovars};
   }
   
-  sub auto_version {
-      my ($self, $new_auto_version) = @_;
-  
-      $self->{auto_version} = $new_auto_version if($new_auto_version);
-  
-      return $self->{auto_version};
-  }
-  
   sub bag {
       my ($self, $new_bag) = @_;
   
@@ -10776,74 +10767,6 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
   
       return $self->{bag};
   }
-  
-  sub compute_auto_version {
-      my ($self, $root) = @_;
-  
-      unless($self->auto_version) {
-          die "I don't know how to compute the version of '" . $self->name . "'\n";
-      }
-  
-      if($root) {
-          $self->bag->add_builder_variable('VC3_PREFIX', $root);
-      }
-  
-      my ($pid, $auto_in) = $self->bag->shell();
-  
-      if($root) {
-          $self->bag->del_builder_variable('VC3_PREFIX');
-      }
-  
-      croak "Could not open $shell for auto-version."
-      unless $auto_in;
-  
-      my $template = catfile($self->bag->tmp_dir, $self->name . 'XXXXXX');
-      my $fh = File::Temp->new(template => $template, unlink => 1);
-      close($fh);
-      
-      my $fname = $fh->filename;
-  
-      # redirect all output to our log file.
-      print { $auto_in } 'exec 1> ' . $fname . "\n";
-      print { $auto_in } "exec 2>&1\n";
-      print { $auto_in } "set -ex\n";
-  
-      if($root) {
-          print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
-      }
-  
-      for my $step (@{$self->auto_version}) {
-          print { $auto_in } "$step\n";
-      }
-      print { $auto_in } "exit 0\n";
-  
-      my $status = -1;
-      eval { close $auto_in; $status = $? };
-  
-      if($@) {
-          carp $@;
-      }
-  
-      open(my $f, '<', $fname) || die 'Did not produce auto-version file';
-      my @lines;
-      my $version;
-      while( my $line = <$f>) {
-          push @lines, $line;
-          if($line =~ m/^VC3_VERSION_SYSTEM:\s*v?(?<version>([0-9]+(\.?[0-9]){0,3}))$/) {
-              $version = $+{version};
-              chomp($version);
-              last;
-          }
-      }
-      close $f;
-      if(!$version) {
-          die "Did not produce version information:\n" . join("\n", @lines);
-      }
-  
-      return $version;
-  }
-  
-  
   
   sub phony {
       my ($self, $new_phony) = @_;
@@ -12457,9 +12380,27 @@ $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
                   "which $exe",
               ];
           }
+  
+          unless($json_description->{'auto-version'}) {
+              $json_description->{'auto-version'} = [
+                  "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/.*([0-9]+(\\.[0-9]+){0,2}).*/\\1/')"
+              ];
+          }
       }
   
       my $self = $class->SUPER::new($widget, $json_description);
+  
+      $self->auto_version($json_description->{'auto-version'});
+  
+      return $self;
+  }
+  
+  sub auto_version {
+      my ($self, $new_auto_version) = @_;
+  
+      $self->{auto_version} = $new_auto_version if($new_auto_version);
+  
+      return $self->{auto_version};
   }
   
   sub execute_recipe_unlocked {
@@ -12558,9 +12499,11 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       $self->package($pkg);
       $self->available(1);
   
+      $self->source($json_description->{source});
+  
       if($json_description->{version} eq 'auto') {
           $self->from_system(1);
-          eval { $self->version($pkg->compute_auto_version()) };
+          eval { $self->version($self->compute_auto_version()) };
           if($@) {
               $self->available(0);
           }
@@ -12569,7 +12512,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
           $self->from_system(0);
       }
   
-      $self->source($json_description->{source});
       $self->dependencies($json_description->{dependencies});
       $self->wrapper($json_description->{wrapper});
       $self->prologue($json_description->{prologue});
@@ -13133,6 +13075,75 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       my ($self) = @_;
       return $self->package->bag->shell();
   }
+  
+  sub compute_auto_version {
+      my ($self, $root) = @_;
+  
+      unless($self->source->auto_version) {
+          die "I don't know how to compute the version of '" . $self->package->name . "'\n";
+      }
+  
+      if($root) {
+          $self->package->bag->add_builder_variable('VC3_PREFIX', $root);
+      }
+  
+      my ($pid, $auto_in) = $self->package->bag->shell();
+  
+      if($root) {
+          $self->package->bag->del_builder_variable('VC3_PREFIX');
+      }
+  
+      croak "Could not open $shell for auto-version."
+      unless $auto_in;
+  
+      my $template = catfile($self->package->bag->tmp_dir, $self->package->name . 'XXXXXX');
+      my $fh = File::Temp->new(template => $template, unlink => 1);
+      close($fh);
+      
+      my $fname = $fh->filename;
+  
+      # redirect all output to our log file.
+      print { $auto_in } 'exec 1> ' . $fname . "\n";
+      print { $auto_in } "exec 2>&1\n";
+      print { $auto_in } "set -ex\n";
+  
+      if($root) {
+          print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
+      }
+  
+      for my $step (@{$self->source->auto_version}) {
+          print { $auto_in } "$step\n";
+      }
+      print { $auto_in } "exit 0\n";
+  
+      my $status = -1;
+      eval { close $auto_in; $status = $? };
+  
+      if($@) {
+          carp $@;
+      }
+  
+      open(my $f, '<', $fname) || die 'Did not produce auto-version file';
+      my @lines;
+      my $version;
+      while( my $line = <$f>) {
+          push @lines, $line;
+          if($line =~ m/^VC3_VERSION_SYSTEM:\s*v?(?<version>([0-9]+(\.?[0-9]){0,3}))$/) {
+              $version = $+{version};
+              chomp($version);
+              last;
+          }
+      }
+      close $f;
+      if(!$version) {
+          die "Did not produce version information:\n" . join("\n", @lines);
+      }
+  
+      return $version;
+  }
+  
+  
+  
   
   1;
   
@@ -15578,6 +15589,13 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"make"
+                }
+            },
+            {
                 "version":"v3.82",
                 "source":{
                     "type":"binary",
@@ -15598,6 +15616,13 @@ __DATA__
     "sed":{
         "versions":[
             {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"sed"
+                }
+            },
+            {
                 "version":"v4.2",
                 "source":{
                     "type":"binary",
@@ -15605,7 +15630,7 @@ __DATA__
                         "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
                     ],
                     "files":[
-                        "sed-4.2.tar.gz"
+                        "sed4.2.tar.gz"
                     ]
                 }
             }
@@ -16277,10 +16302,11 @@ __DATA__
         "versions":[
             {
                 "version":"auto",
-                "phony":1,
-                "local":1,
                 "source":{
                     "type":"system",
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: $(cvmfs2 -V | sed -r -e 's/CernVM-FS version\\s+([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
+                    ],
                     "prerequisites":[
                         "stat /cvmfs/cms.cern.ch"
                     ],
@@ -16305,9 +16331,6 @@ __DATA__
                     ]
                 }
             }
-        ],
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(cvmfs2 -V | sed -r -e 's/CernVM-FS version\\s+([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
         ]
     },
 
@@ -16668,9 +16691,6 @@ __DATA__
     "patch":{
         "tags":["file utilities", "compilation tools"],
         "show-in-list":1,
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(patch --version | head -n1 | sed -r -e 's/.*([0-9]+(\\.[0-9]+){2}).*/\\1/')"
-        ],
         "versions":[
             {
                 "version":"auto",
@@ -16706,15 +16726,15 @@ __DATA__
     "cmake":{
         "tags":["compilation tools"],
         "show-in-list":1,
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(cmake --version | sed -r -e 's/cmake version ([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "executable":"cmake"
+                    "executable":"cmake",
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: $(cmake --version | sed -r -e 's/cmake version ([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
+                    ]
                 }
             },
             {
@@ -16966,9 +16986,6 @@ __DATA__
     "wget":{
         "tags":["data transfer tools"],
         "show-in-list":1,
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(wget --version | head -n1 | sed -r 's/GNU Wget (([0-9]+.?)+).*/\\1/')"
-        ],
         "versions":[
             {
                 "version":"auto",
@@ -17026,16 +17043,15 @@ __DATA__
     "git":{
         "tags":["source version control", "compilation tools"],
         "show-in-list":1,
-        "auto-version":[
-            "echo $PATH >> /tmp/o",
-            "echo VC3_VERSION_SYSTEM: $(git --version | sed -r -e 's/git version (([0-9]+\\.){2}[0-9]+).*/\\1/')"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "executable":"git"
+                    "executable":"git",
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: $(git --version | sed -r -e 's/git version (([0-9]+\\.){2}[0-9]+).*/\\1/')"
+                    ]
                 }
             },
             {
@@ -17444,15 +17460,15 @@ __DATA__
     "perl":{
         "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
-        "auto-version":[
-            "perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
                     "executable":"perl",
+                    "auto-version":[
+                        "perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
+                    ],
                     "recipe":[
                         "perl -MConfig -e '$cmd = $Config{perlpath}; $cmd =~ s:(.*)\/bin/perl:\\1:; print \"VC3_ROOT_SYSTEM: $cmd\n\"'"
                     ]
@@ -17637,15 +17653,15 @@ __DATA__
     "python":{
         "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
-        "auto-version":[
-            "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
                     "executable":"python",
+                    "auto-version":[
+                        "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
+                    ],
                     "recipe":[
                         "cmd=$(which python)",
                         "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
@@ -17699,15 +17715,15 @@ __DATA__
     "python3":{
         "tags":["scripting languages", "programming languages"],
         "show-in-list":1,
-        "auto-version":[
-            "python3 -c 'import sys; print(\"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2]))'"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
                     "executable":"python3",
+                    "auto-version":[
+                        "python3 -c 'import sys; print(\"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2]))'"
+                    ],
                     "recipe":[
                         "cmd=$(which python3)",
                         "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python3$:\\1:p')",
@@ -18714,9 +18730,6 @@ __DATA__
     },
 
     "findutils":{
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(find --version | head -n1 | sed -r -e 's/.*([0-9]+(\\.[0-9]+){2}).*/\\1/')"
-        ],
         "versions":[
             {
                 "version":"auto",
@@ -19295,14 +19308,14 @@ __DATA__
 
     "singularity":{
         "tags":["containers"],
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/([0-9]+(\\.[0-9]+){2}).*/\\1/')"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/([0-9]+(\\.[0-9]+){2}).*/\\1/')"
+                    ],
                     "executable":"singularity"
                 }
             }
@@ -19313,13 +19326,13 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+                    ],
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ]
@@ -19339,13 +19352,13 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+                    ],
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                     ]
@@ -19365,13 +19378,13 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+                    ],
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ]
@@ -19391,13 +19404,13 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+                    ],
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/debian9\" ] || exit 1"
                     ]
@@ -19417,13 +19430,13 @@ __DATA__
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
-        "auto-version":[
-            "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-        ],
         "versions":[
             {
                 "version":"auto",
                 "source":{
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
+                    ],
                     "prerequisites":[
                         "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ]

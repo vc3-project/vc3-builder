@@ -20,7 +20,6 @@ sub new {
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
     $self->operating_system($json_description->{'operating-system'});
-    $self->auto_version($json_description->{'auto-version'});
 
     $self->show_in_list($json_description->{'show-in-list'});
     $self->tags($json_description->{'tags'});
@@ -119,14 +118,6 @@ sub environment_autovars {
     return $self->{environment_autovars};
 }
 
-sub auto_version {
-    my ($self, $new_auto_version) = @_;
-
-    $self->{auto_version} = $new_auto_version if($new_auto_version);
-
-    return $self->{auto_version};
-}
-
 sub bag {
     my ($self, $new_bag) = @_;
 
@@ -137,74 +128,6 @@ sub bag {
 
     return $self->{bag};
 }
-
-sub compute_auto_version {
-    my ($self, $root) = @_;
-
-    unless($self->auto_version) {
-        die "I don't know how to compute the version of '" . $self->name . "'\n";
-    }
-
-    if($root) {
-        $self->bag->add_builder_variable('VC3_PREFIX', $root);
-    }
-
-    my ($pid, $auto_in) = $self->bag->shell();
-
-    if($root) {
-        $self->bag->del_builder_variable('VC3_PREFIX');
-    }
-
-    croak "Could not open $shell for auto-version."
-    unless $auto_in;
-
-    my $template = catfile($self->bag->tmp_dir, $self->name . 'XXXXXX');
-    my $fh = File::Temp->new(template => $template, unlink => 1);
-    close($fh);
-    
-    my $fname = $fh->filename;
-
-    # redirect all output to our log file.
-    print { $auto_in } 'exec 1> ' . $fname . "\n";
-    print { $auto_in } "exec 2>&1\n";
-    print { $auto_in } "set -ex\n";
-
-    if($root) {
-        print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
-    }
-
-    for my $step (@{$self->auto_version}) {
-        print { $auto_in } "$step\n";
-    }
-    print { $auto_in } "exit 0\n";
-
-    my $status = -1;
-    eval { close $auto_in; $status = $? };
-
-    if($@) {
-        carp $@;
-    }
-
-    open(my $f, '<', $fname) || die 'Did not produce auto-version file';
-    my @lines;
-    my $version;
-    while( my $line = <$f>) {
-        push @lines, $line;
-        if($line =~ m/^VC3_VERSION_SYSTEM:\s*v?(?<version>([0-9]+(\.?[0-9]){0,3}))$/) {
-            $version = $+{version};
-            chomp($version);
-            last;
-        }
-    }
-    close $f;
-    if(!$version) {
-        die "Did not produce version information:\n" . join("\n", @lines);
-    }
-
-    return $version;
-}
-
-
 
 sub phony {
     my ($self, $new_phony) = @_;

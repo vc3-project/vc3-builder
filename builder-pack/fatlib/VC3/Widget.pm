@@ -20,9 +20,11 @@ sub new {
     $self->package($pkg);
     $self->available(1);
 
+    $self->source($json_description->{source});
+
     if($json_description->{version} eq 'auto') {
         $self->from_system(1);
-        eval { $self->version($pkg->compute_auto_version()) };
+        eval { $self->version($self->compute_auto_version()) };
         if($@) {
             $self->available(0);
         }
@@ -31,7 +33,6 @@ sub new {
         $self->from_system(0);
     }
 
-    $self->source($json_description->{source});
     $self->dependencies($json_description->{dependencies});
     $self->wrapper($json_description->{wrapper});
     $self->prologue($json_description->{prologue});
@@ -595,6 +596,75 @@ sub shell {
     my ($self) = @_;
     return $self->package->bag->shell();
 }
+
+sub compute_auto_version {
+    my ($self, $root) = @_;
+
+    unless($self->source->auto_version) {
+        die "I don't know how to compute the version of '" . $self->package->name . "'\n";
+    }
+
+    if($root) {
+        $self->package->bag->add_builder_variable('VC3_PREFIX', $root);
+    }
+
+    my ($pid, $auto_in) = $self->package->bag->shell();
+
+    if($root) {
+        $self->package->bag->del_builder_variable('VC3_PREFIX');
+    }
+
+    croak "Could not open $shell for auto-version."
+    unless $auto_in;
+
+    my $template = catfile($self->package->bag->tmp_dir, $self->package->name . 'XXXXXX');
+    my $fh = File::Temp->new(template => $template, unlink => 1);
+    close($fh);
+    
+    my $fname = $fh->filename;
+
+    # redirect all output to our log file.
+    print { $auto_in } 'exec 1> ' . $fname . "\n";
+    print { $auto_in } "exec 2>&1\n";
+    print { $auto_in } "set -ex\n";
+
+    if($root) {
+        print { $auto_in } q(export PATH="${VC3_PREFIX}/bin":"$PATH") . "\n";
+    }
+
+    for my $step (@{$self->source->auto_version}) {
+        print { $auto_in } "$step\n";
+    }
+    print { $auto_in } "exit 0\n";
+
+    my $status = -1;
+    eval { close $auto_in; $status = $? };
+
+    if($@) {
+        carp $@;
+    }
+
+    open(my $f, '<', $fname) || die 'Did not produce auto-version file';
+    my @lines;
+    my $version;
+    while( my $line = <$f>) {
+        push @lines, $line;
+        if($line =~ m/^VC3_VERSION_SYSTEM:\s*v?(?<version>([0-9]+(\.?[0-9]){0,3}))$/) {
+            $version = $+{version};
+            chomp($version);
+            last;
+        }
+    }
+    close $f;
+    if(!$version) {
+        die "Did not produce version information:\n" . join("\n", @lines);
+    }
+
+    return $version;
+}
+
+
+
 
 1;
 

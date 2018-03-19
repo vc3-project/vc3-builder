@@ -17454,7 +17454,9 @@ __DATA__
                     ],
                     "recipe":[
                         "python pip-9.0.1.distribution --user --ignore-installed",
-                        "python -m pip install --user --upgrade pip setuptools wheel"
+                        "pip install -U pip",
+                        "pip install -U setuptools",
+                        "pip install -U wheel"
                     ]
                 },
                 "dependencies":{
@@ -17462,6 +17464,13 @@ __DATA__
                         "v2.6"
                     ]
                 }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"PATH",
+                "value":"${VC3_INSTALL_USER_HOME}/.local/bin",
+                "absolute":1
             }
         ]
     },

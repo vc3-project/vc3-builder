@@ -19,7 +19,7 @@ sub new {
 
         unless($json_description->{prerequisites}) {
             $json_description->{prerequisites} = [
-                "\$(which $exe)",
+                "which $exe",
             ];
         }
     }

@@ -280,7 +280,7 @@ sub prepare_recipe_sandbox {
 
     my $no_erase = $self->isa('VC3::Source::System');
 
-    my $result = $self->widget->prepare_recipe_sandbox($no_erase);
+    my $result = $self->widget->prepare_recipe_sandbox($self, $no_erase);
 
     if($result == 0) {
         return 0;

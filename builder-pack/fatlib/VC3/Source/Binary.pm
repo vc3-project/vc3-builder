@@ -7,6 +7,17 @@ sub new {
     my ($class, $widget, $json_description) = @_;
 
     $widget->local(1);
+
+    unless($json_description->{recipe}) {
+        $json_description->{recipe} = [
+            'mkdir -p ${VC3_PREFIX}',
+            'for file in $VC3_FILES; do',
+            '   tar -C ${VC3_PREFIX} --strip-components=1 -xf $file',
+            '   pax -z -r -s ":usr/local/::" -s ":usr/::" < $file',
+            'done'
+        ]
+    }
+
     return $class->SUPER::new($widget, $json_description);
 }
 

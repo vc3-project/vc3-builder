@@ -512,7 +512,7 @@ sub msgs_manual_requirements {
 }
 
 sub prepare_recipe_sandbox {
-    my ($self, $no_erase) = @_;
+    my ($self, $source, $no_erase) = @_;
 
     # clear build directory, to avoid bugs from uncleaned sources.
     my $build = $self->build_dir;
@@ -548,6 +548,7 @@ sub prepare_recipe_sandbox {
     # setting up the shell, so that the child created inherets it.
     $self->package->bag->add_builder_variable('VC3_PREFIX', $self->root_dir);
     $self->package->bag->add_builder_variable('VC3_BUILD',  $self->build_dir);
+    $self->package->bag->add_builder_variable('VC3_FILES',  join(" ", @{$source->files}));
 }
 
 sub cleanup_recipe_sandbox {
@@ -555,6 +556,7 @@ sub cleanup_recipe_sandbox {
 
     $self->package->bag->del_builder_variable('VC3_PREFIX');
     $self->package->bag->del_builder_variable('VC3_BUILD');
+    $self->package->bag->del_builder_variable('VC3_FILES');
 
     if($result eq '0') {
         File::Path::rmtree($self->build_dir);

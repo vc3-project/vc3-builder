@@ -188,6 +188,7 @@ sub add_widget {
         $success = 0;
     } elsif($p && $e) {
         # already in plan, simple refinenment of versions
+        $self->say("refining version for: @{[$widget->package->name, $version]} => [@{[$self->version_str($e->{min})]}, @{[$self->version_str($e->{max})]}]");
         $success = 1;
     } elsif(!$e) {
         $success = 0;

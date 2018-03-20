@@ -364,6 +364,8 @@ sub main {
         }
     }
 
+    is_safe_path($vc3_root);
+
     my $bag = VC3::Bag->new(
         root       => $vc3_root,
         home       => $vc3_user_home,
@@ -601,5 +603,24 @@ sub check_local_mounts {
     }
 
     return $all_present;
+}
+
+sub is_safe_path {
+    my ($root) = @_;
+
+    my $unsafe_chars = qr/[\\"#\$&'`\n]/;
+
+    my @chars = ($root =~ m/(${unsafe_chars})/g);
+
+    if(@chars) {
+        my %uniq = map { ( $_ => 1 ) } @chars;
+
+        if($uniq{"\n"}) {
+            delete $uniq{"\n"};
+            $uniq{'\n'} = 1;
+        }
+
+        die 'Terminating because installation path contains unsafe characters: ' . join(' ', keys %uniq) . "\n";
+    }
 }
 

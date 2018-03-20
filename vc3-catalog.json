@@ -2275,9 +2275,9 @@
                     ],
                     "recipe":[
                         "python pip-9.0.1.distribution --user --ignore-installed",
-                        "pip install -U pip",
-                        "pip install -U setuptools",
-                        "pip install -U wheel"
+                        "pip install --user -U pip",
+                        "pip install --user -U setuptools",
+                        "pip install --user -U wheel"
                     ]
                 },
                 "dependencies":{

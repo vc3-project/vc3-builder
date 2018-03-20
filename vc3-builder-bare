@@ -666,7 +666,7 @@ sub bosco_fix_path {
     warn "Fixing bosco path...";
 
     rename $original_root, $new_root;
-    unless(symlink $original_root, $new_root) {
+    unless(symlink $new_root, $original_root) {
         die "Could not make symlink\n";
     }
 

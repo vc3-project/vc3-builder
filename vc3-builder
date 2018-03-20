@@ -15450,6 +15450,8 @@ sub bosco_fix_path {
     #
     my ($original_root) = @_;
 
+    $original_root = rel2abs($original_root);
+
     my $bosco_infix = qr^bosco/sandbox/[[:xdigit:]]+/[[:xdigit:]]+/^;
 
     eval { is_safe_path($original_root); };

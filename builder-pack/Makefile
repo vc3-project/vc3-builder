@@ -11,16 +11,17 @@ all: vc3-builder
 
 vc3-builder: $(BARE) | fatlib
 	$(FATPACKER) file $^ -bare > $@ 
-	echo >> $@
-	echo 'package VC3::Builder;' >> $@
-	echo '__DATA__' >> $@
-	cat ../vc3-catalog.json >> $@
+	@sed -i $@ -e '2s/^/#\n# This is an automatically generated file. Do not modify! All changes\n# should go into vc3-builder-bare and the modules in VC3.\n#\n/' 
+	@echo >> $@
+	@echo 'package VC3::Builder;' >> $@
+	@echo '__DATA__' >> $@
+	@cat ../vc3-catalog.json >> $@
 	@chmod 755 $@
 	@echo generated $@
 
-fatlib:
-	#for module in $(MODULES); do cpanm --reinstall -Llocal -nq $${module}; done
-	#cd fatlib local/lib/perl5 && for file in $(MODULES_DIR); do ln -sf ../local/lib/perl5/$${file}; done
+fatlib-install:
+	for module in $(MODULES); do cpanm --reinstall -Llocal -nq $${module}; done
+	cd fatlib local/lib/perl5 && for file in $(MODULES_DIR); do ln -sf ../local/lib/perl5/$${file}; done
 
 .PHONY: clean
 

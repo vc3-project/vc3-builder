@@ -3996,12 +3996,8 @@
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/redhat6"
                 }
             },
             {
@@ -4022,12 +4018,8 @@
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/redhat7"
                 }
             },
             {
@@ -4048,12 +4040,8 @@
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/ubuntu16"
                 }
             },
             {
@@ -4074,12 +4062,8 @@
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/debian9\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/debian9"
                 }
             },
             {
@@ -4100,12 +4084,8 @@
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/opensuse42"
                 }
             },
             {

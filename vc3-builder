@@ -10016,7 +10016,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       $self->{glibc_version} = $1
       || 'unknown';
   
-      $self->add_builder_variable('VC3_MACHINE_OS',            $self->osname);
+      $self->add_builder_variable('VC3_MACHINE_OS',            catfile($self->{osname}, $self->distribution));
       $self->add_builder_variable('VC3_MACHINE_ARCH',          $self->architecture);
       $self->add_builder_variable('VC3_MACHINE_GLIBC_VERSION', $self->glibc_version);
       $self->add_builder_variable('VC3_MACHINE_TARGET',        $self->{target});
@@ -10063,7 +10063,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
                   if($key eq 'DISTRIB_ID') {
                       $name = lc($value);
                   } elsif($key eq 'DISTRIB_RELEASE') {
-                      if($value =~ m/(?<version>^[0-9]+)/) {
+                      if($value =~ m/(?<version>^[0-9]+(\.[0-9]+){0,2})/) {
                           $version = $+{version};
                       }
                   }
@@ -10080,8 +10080,8 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           open (my $file_fh, '<', '/etc/redhat-release');
           my $version_line = <$file_fh>;
   
-          $version_line =~ /\brelease\b\s+([0-9]+)\b/;
-          my $version = $1;
+          $version_line =~ /\brelease\b\s+(?<version>[0-9]+(\.[0-9]+){0,2})\b/;
+          my $version = $+{version};
   
           if($version) {
               return "redhat${version}"
@@ -10093,8 +10093,8 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           open (my $file_fh, '<', '/etc/debian_version');
           my $version_line = <$file_fh>;
   
-          $version_line =~ /^([0-9]+)/;
-          my $version = $1;
+          $version_line =~ /^(?<version>[0-9]+(\.[0-9]+){0,2})/;
+          my $version = $+{version};
   
           if($version) {
               return "debian${version}"
@@ -10112,7 +10112,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
                   my ($key, $value) = ($+{key}, $+{value});
   
                   if($key eq 'VERSION') {
-                      if($value =~ m/^"(?<version>[0-9]+)/) {
+                      if($value =~ m/^"(?<version>[0-9]+(\.[0-9]+){0,2})/) {
                           $version = $+{version};
                       }
                   }
@@ -11536,6 +11536,7 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   use VC3::Source::System;
   use VC3::Source::Perl;
   use VC3::Source::Container::Singularity;
+  use VC3::Source::OSNative;
   
   our $class_of = {};
   
@@ -11548,6 +11549,7 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   $class_of->{'system'}              = VC3::Source::System;
   $class_of->{'cpan'}                = VC3::Source::Perl;
   $class_of->{'singularity'}         = VC3::Source::Container::Singularity;
+  $class_of->{'os-native'}           = VC3::Source::OSNative;
   
   sub new {
       my ($class, $widget, $source_raw) = @_;
@@ -12306,6 +12308,56 @@ $fatpacked{"VC3/Source/ManualDist.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
   1;
   
 VC3_SOURCE_MANUALDIST
+
+$fatpacked{"VC3/Source/OSNative.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_OSNATIVE';
+  package VC3::Source::OSNative;
+  use base 'VC3::Source::Generic';
+  use Carp;
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      $widget->local(1);
+  
+      unless($json_description->{prerequisites}) {
+  
+          unless($json_description->{native}) {
+              die "No method to verify native OS provided. Add prerequisites or native field.\n";
+          }
+  
+          $json_description->{prerequisites} = [
+              ": check if native is prefix of target",
+              'pref=${VC3_MACHINE_TARGET#' . $json_description->{native} . '}',
+              '[ $pref != ${VC3_MACHINE_TARGET} ] || exit 1'
+          ];
+      }
+  
+      unless($json_description->{'auto-version'}) {
+          $json_description->{'auto-version'} = [
+              'echo VC3_VERSION_SYSTEM: $(echo ${VC3_MACHINE_OS} | sed -r -e "s:[^0-9]+([0-9.]+)$:\\1:")'
+          ];
+      }
+  
+      my $self = $class->SUPER::new($widget, $json_description);
+  
+      $self->auto_version($json_description->{'auto-version'});
+  
+      return $self;
+  }
+  
+  
+  sub auto_version {
+      my ($self, $new_auto_version) = @_;
+  
+      $self->{auto_version} = $new_auto_version if($new_auto_version);
+  
+      return $self->{auto_version};
+  }
+  
+  
+  1;
+  
+VC3_SOURCE_OSNATIVE
 
 $fatpacked{"VC3/Source/Perl.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_PERL';
   package VC3::Source::Perl;
@@ -15267,33 +15319,42 @@ sub switch_os {
 
     # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
+        $bag->say('OS trying:         ' . $os . ' ' . $w->source->type);
+
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
 
         if($exit_status) {
-            $bag->say('OS fail-prereq ' . $os . ' ' . $w->source->type);
+            $bag->say('OS fail prereq:    ' . $os . ' ' . $w->source->type);
             next;
         }
 
-        $bag->say('OS trying ' . $os . ' ' . $w->source->type);
-
         # if generic, simply check mount points.
-        if($w->source->type eq 'generic') {
+        if($w->source->type eq 'os-native') {
             if(check_local_mounts($mount_map)) {
                 return;
             } else {
-                $bag->say('OS fail-mounts ' . $os . ' ' . $w->source->type);
+                $bag->say('OS fail mounts:    ' . $os . ' ' . $w->source->type);
                 next;
             }
         }
 
         eval {
-            $w->source->prepare_recipe_sandbox($builder_args, $payload_args, $mount_map);
+            if($w->source) {
+                $w->source->prepare_recipe_sandbox($builder_args, $payload_args, $mount_map);
+            }
+
+            unless($w->wrapper) {
+                $bag->say('OS fail nowrapper: ' . $os . ' ' . $w->source->type);
+                die "\n";
+                
+            }
+
             system @{$w->wrapper};
         };
 
         if($@) {
-            $bag->say('OS failed ' . $os . ' ' . $w->source->type . ": $@");
+            $bag->say('OS failed:         ' . $os . ' ' . $w->source->type . ": $@");
             next;
         } else {
             # payload executed, so we end this builder.
@@ -19349,12 +19410,8 @@ __DATA__
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/redhat6"
                 }
             },
             {
@@ -19375,12 +19432,8 @@ __DATA__
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/redhat7"
                 }
             },
             {
@@ -19401,12 +19454,8 @@ __DATA__
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/ubuntu16"
                 }
             },
             {
@@ -19427,12 +19476,8 @@ __DATA__
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/debian9\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/debian9"
                 }
             },
             {
@@ -19453,12 +19498,8 @@ __DATA__
             {
                 "version":"auto",
                 "source":{
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: ${VC3_MACHINE_OS}"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
-                    ]
+                    "type":"os-native",
+                    "native":"x86_64/opensuse42"
                 }
             },
             {

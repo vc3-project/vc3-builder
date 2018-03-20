@@ -513,33 +513,42 @@ sub switch_os {
 
     # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
+        $bag->say('OS trying:         ' . $os . ' ' . $w->source->type);
+
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
 
         if($exit_status) {
-            $bag->say('OS fail-prereq ' . $os . ' ' . $w->source->type);
+            $bag->say('OS fail prereq:    ' . $os . ' ' . $w->source->type);
             next;
         }
 
-        $bag->say('OS trying ' . $os . ' ' . $w->source->type);
-
         # if generic, simply check mount points.
-        if($w->source->type eq 'generic') {
+        if($w->source->type eq 'os-native') {
             if(check_local_mounts($mount_map)) {
                 return;
             } else {
-                $bag->say('OS fail-mounts ' . $os . ' ' . $w->source->type);
+                $bag->say('OS fail mounts:    ' . $os . ' ' . $w->source->type);
                 next;
             }
         }
 
         eval {
-            $w->source->prepare_recipe_sandbox($builder_args, $payload_args, $mount_map);
+            if($w->source) {
+                $w->source->prepare_recipe_sandbox($builder_args, $payload_args, $mount_map);
+            }
+
+            unless($w->wrapper) {
+                $bag->say('OS fail nowrapper: ' . $os . ' ' . $w->source->type);
+                die "\n";
+                
+            }
+
             system @{$w->wrapper};
         };
 
         if($@) {
-            $bag->say('OS failed ' . $os . ' ' . $w->source->type . ": $@");
+            $bag->say('OS failed:         ' . $os . ' ' . $w->source->type . ": $@");
             next;
         } else {
             # payload executed, so we end this builder.

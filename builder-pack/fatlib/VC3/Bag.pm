@@ -597,7 +597,7 @@ sub set_machine_vars {
     $self->{glibc_version} = $1
     || 'unknown';
 
-    $self->add_builder_variable('VC3_MACHINE_OS',            $self->osname);
+    $self->add_builder_variable('VC3_MACHINE_OS',            catfile($self->{osname}, $self->distribution));
     $self->add_builder_variable('VC3_MACHINE_ARCH',          $self->architecture);
     $self->add_builder_variable('VC3_MACHINE_GLIBC_VERSION', $self->glibc_version);
     $self->add_builder_variable('VC3_MACHINE_TARGET',        $self->{target});
@@ -644,7 +644,7 @@ sub distribution {
                 if($key eq 'DISTRIB_ID') {
                     $name = lc($value);
                 } elsif($key eq 'DISTRIB_RELEASE') {
-                    if($value =~ m/(?<version>^[0-9]+)/) {
+                    if($value =~ m/(?<version>^[0-9]+(\.[0-9]+){0,2})/) {
                         $version = $+{version};
                     }
                 }
@@ -661,8 +661,8 @@ sub distribution {
         open (my $file_fh, '<', '/etc/redhat-release');
         my $version_line = <$file_fh>;
 
-        $version_line =~ /\brelease\b\s+([0-9]+)\b/;
-        my $version = $1;
+        $version_line =~ /\brelease\b\s+(?<version>[0-9]+(\.[0-9]+){0,2})\b/;
+        my $version = $+{version};
 
         if($version) {
             return "redhat${version}"
@@ -674,8 +674,8 @@ sub distribution {
         open (my $file_fh, '<', '/etc/debian_version');
         my $version_line = <$file_fh>;
 
-        $version_line =~ /^([0-9]+)/;
-        my $version = $1;
+        $version_line =~ /^(?<version>[0-9]+(\.[0-9]+){0,2})/;
+        my $version = $+{version};
 
         if($version) {
             return "debian${version}"
@@ -693,7 +693,7 @@ sub distribution {
                 my ($key, $value) = ($+{key}, $+{value});
 
                 if($key eq 'VERSION') {
-                    if($value =~ m/^"(?<version>[0-9]+)/) {
+                    if($value =~ m/^"(?<version>[0-9]+(\.[0-9]+){0,2})/) {
                         $version = $+{version};
                     }
                 }

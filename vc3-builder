@@ -15030,6 +15030,8 @@ sub main {
     my $to_script;
     my $list_option;
 
+    my $bosco_fix;
+
     my @extra_env_vars = ();
     my @databases   = ();
     my @re_vars     = ();
@@ -15093,6 +15095,8 @@ sub main {
         "dry-run"  => \$dry_run,
         "no-run"   => \$no_run,
         "list:s"   => \$list_option,
+
+        "bosco-workaround" => \$bosco_fix,
 
         "interactive" => \$interactive_run,
 
@@ -15178,7 +15182,13 @@ sub main {
         }
     }
 
-    is_safe_path($vc3_root);
+    if($bosco_fix) {
+        #remove this case once we figure out how to give installation paths to
+        #bosco
+        $vc3_root = bosco_fix_path($vc3_root);
+    } else {
+        is_safe_path($vc3_root);
+    }
 
     my $bag = VC3::Bag->new(
         root       => $vc3_root,
@@ -15433,6 +15443,45 @@ sub is_safe_path {
 
         die 'Terminating because installation path contains unsafe characters: ' . join(' ', keys %uniq) . "\n";
     }
+}
+
+sub bosco_fix_path {
+    #remove this function once we figure out how to give installation paths to bosco
+    #
+    my ($original_root) = @_;
+
+    my $bosco_infix = qr^bosco/sandbox/[[:xdigit:]]+/[[:xdigit:]]+/^;
+
+    eval { is_safe_path($original_root); };
+    my $msg = $@;
+
+    unless($msg) {
+        # path does not need any fixes.
+        return $original_root;
+    }
+
+    unless($original_root =~ m^(?<pre>.*?${bosco_infix})(?<post>.*)^) {
+        die "This does not look like a bosco path with a sandbox.\n$msg\n";
+    }
+
+    my ($pre, $post) = ($+{pre}, $+{post});
+
+    if($pre =~ m/${unsafe_path}/) {
+        die "This bosco path cannot be fixed inside the sandbox.\n$msg\n";
+    }
+
+    $post =~ s^${unsafe_path}^_^g;
+    $post =~ s^/^_^g;
+
+    my $new_root = catfile($pre, $post); 
+
+    warn "Fixing bosco path by linking\n$new_root\n  to\n$original_root\n";
+
+    unless(symlink $original_root, $new_root) {
+        die "Could not make symlink\n";
+    }
+
+    return $new_root;
 }
 
 

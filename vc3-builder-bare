@@ -663,8 +663,9 @@ sub bosco_fix_path {
 
     my $new_root = catfile($pre, $post); 
 
-    warn "Fixing bosco path by linking\n$new_root\n  to\n$original_root\n";
+    warn "Fixing bosco path...";
 
+    rename $original_root, $new_root;
     unless(symlink $original_root, $new_root) {
         die "Could not make symlink\n";
     }

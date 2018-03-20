@@ -16,7 +16,7 @@ sub new {
     $self->widget($widget);
     $self->recipe($json_description->{recipe});
     $self->files($json_description->{files});
-    $self->msg_manual_requirement($json_description->{msg_manual_requirement});
+    $self->msg_manual_requirement($json_description->{'msg-manual-requirement'});
     $self->dependencies($json_description->{dependencies});
     $self->prerequisites($json_description->{prerequisites});
 

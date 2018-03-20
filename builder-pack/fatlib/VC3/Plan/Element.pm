@@ -1,7 +1,7 @@
 package VC3::Plan::Element;
 
 sub new {
-    my ($class, $widget, $min, $max, $source) = @_;
+    my ($class, $widget, $min, $max) = @_;
 
     my $self = bless {}, $class;
 

@@ -186,14 +186,11 @@ sub add_widget {
     if($p && !$e) {
         $self->say("conflicting versions: @{[$widget->package->name]} [@{[ $self->version_str($p->{min}) ]}, @{[ $self->version_str($p->{max})]} <=> [@{[$self->version_str($min)]}, @{[$self->version_str($max)]}]");
         $success = 0;
-    } elsif($p && $e) {
-        # already in plan, simple refinenment of versions
-        $self->say("refining version for: @{[$widget->package->name, $version]} => [@{[$self->version_str($e->{min})]}, @{[$self->version_str($e->{max})]}]");
-        $success = 1;
     } elsif(!$e) {
         $success = 0;
         die('bug, this should not happen.');
     } else {
+        $self->say("Refining version: @{[$widget->package->name, $version]} => [@{[$self->version_str($e->{min})]}, @{[$self->version_str($e->{max})]}]");
         if($self->add_dependencies($widget->dependencies)) {
             if($widget->source) {
                 my $s = $self->add_source($widget->source);
@@ -278,10 +275,12 @@ sub add_source {
 sub refine {
     my ($self, $widget, $p, $min, $max) = @_;
 
+    my $e = VC3::Plan::Element->new($widget, $min, $max);
+
     if($p) {
-        return $p->refine($min, $max);
+        return $e->refine($min, $max);
     } else {
-        VC3::Plan::Element->new($widget, $min, $max, undef);
+        return $e;
     }
 }
 
@@ -293,6 +292,7 @@ sub order {
         my @ordered = sort { ($ordinals->{$a} <=> $ordinals->{$b}) || ($a cmp $b) } keys %{$ordinals};
         $self->{order} = [ map { $self->elements->{$_}{widget} } @ordered ];
     }
+
 
     return $self->{order};
 }

@@ -10883,6 +10883,8 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
               next;
           }
   
+          # This is a naive search!
+          # We also want to check for different order of targets.
           if($self->add_widget($widget, $min, $max)) {
               $self->bag->{indent_level}--;
               return 1;
@@ -11103,7 +11105,6 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
           my @ordered = sort { ($ordinals->{$a} <=> $ordinals->{$b}) || ($a cmp $b) } keys %{$ordinals};
           $self->{order} = [ map { $self->elements->{$_}{widget} } @ordered ];
       }
-  
   
       return $self->{order};
   }

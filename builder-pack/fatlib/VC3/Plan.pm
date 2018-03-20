@@ -72,6 +72,8 @@ sub add_target {
             next;
         }
 
+        # This is a naive search!
+        # We also want to check for different order of targets.
         if($self->add_widget($widget, $min, $max)) {
             $self->bag->{indent_level}--;
             return 1;
@@ -292,7 +294,6 @@ sub order {
         my @ordered = sort { ($ordinals->{$a} <=> $ordinals->{$b}) || ($a cmp $b) } keys %{$ordinals};
         $self->{order} = [ map { $self->elements->{$_}{widget} } @ordered ];
     }
-
 
     return $self->{order};
 }

@@ -33,6 +33,8 @@ my $vc3_repository = "http://download.virtualclusters.org/builder-files";
 
 my $shell          = '/bin/sh';
 
+my $unsafe_path    = qr/[\\"#\$&'`\n]/;
+
 my @external_dependencies = qw/perl sh tail tar gcc g++ ld pkconfig make/;
 my @cleanups;     # functions to call on exit.
 
@@ -608,10 +610,7 @@ sub check_local_mounts {
 sub is_safe_path {
     my ($root) = @_;
 
-    my $unsafe_chars = qr/[\\"#\$&'`\n]/;
-
-    my @chars = ($root =~ m/(${unsafe_chars})/g);
-
+    my @chars = ($root =~ m/(${unsafe_path})/g);
     if(@chars) {
         my %uniq = map { ( $_ => 1 ) } @chars;
 

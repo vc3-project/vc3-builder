@@ -11664,7 +11664,6 @@ $fatpacked{"VC3/Source/Binary.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
               'mkdir -p ${VC3_PREFIX}',
               'for file in $VC3_FILES; do',
               '   tar -C ${VC3_PREFIX} --strip-components=1 -xf $file',
-              '   pax -z -r -s ":usr/local/::" -s ":usr/::" < $file',
               'done'
           ]
       }
@@ -12383,7 +12382,7 @@ $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
   
           unless($json_description->{'auto-version'}) {
               $json_description->{'auto-version'} = [
-                  "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/.*([0-9]+(\\.[0-9]+){0,2}).*/\\1/')"
+                  "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/(^|.*[^0-9.])([0-9]+(\\.[0-9]+){0,2}).*/\\2/')"
               ];
           }
       }
@@ -19306,6 +19305,26 @@ __DATA__
         ]
     },
 
+    "vim":{
+        "versions":[
+            {
+                "version":"v7.3.0",
+                "source":{
+                    "type":"binary",
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
+                    ],
+                    "files":[
+                        "vim-7.3-1.tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
     "singularity":{
         "tags":["containers"],
         "versions":[
@@ -19450,26 +19469,7 @@ __DATA__
                 }
             }
         ]
-    },
-
-    "vim":{
-        "versions":[
-            {
-                "version":"v7.3.0",
-                "source":{
-                    "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
-                    "files":[
-                        "vim-7.3-1.tar.gz"
-                    ]
-                }
-            }
-        ],
-        "environment-autovars":[
-            "PATH"
-        ]
     }
+
 }
 

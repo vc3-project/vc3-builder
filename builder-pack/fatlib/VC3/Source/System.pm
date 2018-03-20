@@ -25,7 +25,7 @@ sub new {
 
         unless($json_description->{'auto-version'}) {
             $json_description->{'auto-version'} = [
-                "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/.*([0-9]+(\\.[0-9]+){0,2}).*/\\1/')"
+                "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/(^|.*[^0-9.])([0-9]+(\\.[0-9]+){0,2}).*/\\2/')"
             ];
         }
     }

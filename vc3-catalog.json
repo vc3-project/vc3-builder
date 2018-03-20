@@ -3952,6 +3952,26 @@
         ]
     },
 
+    "vim":{
+        "versions":[
+            {
+                "version":"v7.3.0",
+                "source":{
+                    "type":"binary",
+                    "prerequisites":[
+                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
+                    ],
+                    "files":[
+                        "vim-7.3-1.tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
     "singularity":{
         "tags":["containers"],
         "versions":[
@@ -4096,26 +4116,7 @@
                 }
             }
         ]
-    },
-
-    "vim":{
-        "versions":[
-            {
-                "version":"v7.3.0",
-                "source":{
-                    "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
-                    "files":[
-                        "vim-7.3-1.tar.gz"
-                    ]
-                }
-            }
-        ],
-        "environment-autovars":[
-            "PATH"
-        ]
     }
+
 }
 

@@ -13,7 +13,6 @@ sub new {
             'mkdir -p ${VC3_PREFIX}',
             'for file in $VC3_FILES; do',
             '   tar -C ${VC3_PREFIX} --strip-components=1 -xf $file',
-            '   pax -z -r -s ":usr/local/::" -s ":usr/::" < $file',
             'done'
         ]
     }

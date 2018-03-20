@@ -15,6 +15,7 @@ package VC3::Builder;
 use English qw/-mo_match_vars/;
 use File::Spec::Functions qw/catfile rel2abs file_name_is_absolute/;
 use Getopt::Long qw/GetOptions/;
+use File::Path qw/remove_tree/;
 use Cwd;
 
 use Carp qw( confess );
@@ -668,6 +669,10 @@ sub bosco_fix_path {
     warn "Fixing bosco path...";
 
     rename $original_root, $new_root;
+
+    # cleanup directory on exit
+    push @cleanups, sub { remove_tree($new_root) };
+
     unless(symlink $new_root, $original_root) {
         die "Could not make symlink\n";
     }

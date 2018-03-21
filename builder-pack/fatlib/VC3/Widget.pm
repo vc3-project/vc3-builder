@@ -88,7 +88,8 @@ sub to_hash {
     $wh->{wrapper}       = $self->wrapper;
     $wh->{prologue}      = $self->prologue;
     $wh->{'environment-variables'} = $self->environment_variables;
-    $wh->{'environment-autovars'}  = $self->environment_autovars;
+
+    # environment-autovars already included in environment-variables
 
     for my $k (keys %{$wh}) {
         unless(defined $wh->{$k}) {
@@ -267,7 +268,7 @@ sub environment_autovars {
         push @{$self->{environment_variables}}, { 'name' => $var, 'value' => $target };
     }
 
-    return @autovars;
+    return \@autovars;
 }
 
 sub phony {

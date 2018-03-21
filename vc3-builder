@@ -10658,6 +10658,7 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       $self->dependencies($json_description->{dependencies});
       $self->wrapper($json_description->{wrapper});
       $self->prologue($json_description->{prologue});
+      $self->options($json_description->{options});
       $self->environment_variables($json_description->{'environment-variables'});
       $self->environment_autovars($json_description->{'environment-autovars'});
       $self->phony($json_description->{phony});
@@ -10691,6 +10692,7 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       $ph->{prologue}         = $self->prologue;
       $ph->{wrapper}          = $self->wrapper;
       $ph->{dependencies}     = $self->dependencies;
+      $ph->{options}          = $self->options;
       $ph->{operating_system} = $self->operating_system;
       $ph->{'environment-variables'} = $self->environment_variables;
       $ph->{'versions'}       = [];
@@ -10770,6 +10772,14 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       $self->{wrapper} = $new_wrapper if($new_wrapper);
   
       return $self->{wrapper};
+  }
+  
+  sub options {
+      my ($self, $new_options) = @_;
+  
+      $self->{options} = $new_options if($new_options);
+  
+      return $self->{options};
   }
   
   sub environment_variables {
@@ -11337,8 +11347,10 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
       my $output = {};
   
       for my $e (values %{$self->elements}) {
-          $output->{$e->widget->package->name} = $e->package->to_hash;
+          my $ph = $e->widget->package->to_hash;
           $ph->{versions} = [ $e->widget->to_hash ];
+  
+          $output->{$e->widget->package->name} = $ph;
       }
   
       open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
@@ -11646,6 +11658,9 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
       $sh->{preface}  = $self->preface;
       $sh->{options}  = $self->options;
       $sh->{postface} = $self->postface;
+  
+      # automatically computed, so we delete it.
+      delete $sh->{recipe};
   
       for my $k (keys %{$sh}) {
           unless(defined $sh->{$k}) {

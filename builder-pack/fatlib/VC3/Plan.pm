@@ -499,8 +499,10 @@ sub trimmed_database {
     my $output = {};
 
     for my $e (values %{$self->elements}) {
-        $output->{$e->widget->package->name} = $e->package->to_hash;
+        my $ph = $e->widget->package->to_hash;
         $ph->{versions} = [ $e->widget->to_hash ];
+
+        $output->{$e->widget->package->name} = $ph;
     }
 
     open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";

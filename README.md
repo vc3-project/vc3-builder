@@ -182,14 +182,25 @@ The build can be started using the `./build` command. The `./build` command
 uses the workflow system [makeflow](http://ccl.cse.nd.edu/software/makeflow) as
 a backend, which allows the build to be executed in different batch systems,
 such as `condor`, `slurm`, `sge`, `torque`, `moab`, `amazon` and `workqueue`.
+For debugging purposes, `local` may also be used.
 
 For example, if slurm is available, the build can be executed as:
 
 ```
 sh-4.2$ ./build -Tslurm
+...
+sh-4.2$ exit
+
 ```
 
+When the build is done, specifying the command:
 
+```
+$ ./vc3-builder --silent --require maker --install /scratch365/b/btovar/my-shared-dir
+```
+
+will launch the builder using the previously installed packages at the selected
+directory.
 
 
 RECIPES

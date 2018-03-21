@@ -15,6 +15,7 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->wrapper($json_description->{wrapper});
     $self->prologue($json_description->{prologue});
+    $self->options($json_description->{options});
     $self->environment_variables($json_description->{'environment-variables'});
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
@@ -48,6 +49,7 @@ sub to_hash {
     $ph->{prologue}         = $self->prologue;
     $ph->{wrapper}          = $self->wrapper;
     $ph->{dependencies}     = $self->dependencies;
+    $ph->{options}          = $self->options;
     $ph->{operating_system} = $self->operating_system;
     $ph->{'environment-variables'} = $self->environment_variables;
     $ph->{'versions'}       = [];
@@ -127,6 +129,14 @@ sub wrapper {
     $self->{wrapper} = $new_wrapper if($new_wrapper);
 
     return $self->{wrapper};
+}
+
+sub options {
+    my ($self, $new_options) = @_;
+
+    $self->{options} = $new_options if($new_options);
+
+    return $self->{options};
 }
 
 sub environment_variables {

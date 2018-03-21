@@ -42,6 +42,9 @@ sub to_hash {
     $sh->{options}  = $self->options;
     $sh->{postface} = $self->postface;
 
+    # automatically computed, so we delete it.
+    delete $sh->{recipe};
+
     for my $k (keys %{$sh}) {
         unless(defined $sh->{$k}) {
             delete $sh->{$k};

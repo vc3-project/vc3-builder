@@ -461,6 +461,48 @@ way to handle concurrent `python2` and `python3` installations.
 
 #### Recipes that provide environments
 
+
+### Environment prologues 
+
+It is sometimes required to run a command to complete setting the environment.
+For example, a script containing evinronment variables may need to be sourced
+before execution. For such cases, the `prologue` field can be used. The
+following is an example for setting the [OSG
+oasis](http://iopscience.iop.org/article/10.1088/1742-6596/513/3/032013/meta)
+environment:
+
+```json
+"..."
+"oasis-environment":{
+        "tags":["environments"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v1.0",
+                "type":"generic",
+                "prologue": [
+                    "source /cvmfs/oasis.opensciencegrid.org/osg/modules/lmod/current/init/bash"
+                ],
+                "dependencies":{
+                    "cvmfs":[
+                        "v2.0"
+                    ]
+                }
+            }
+        ]
+    },
+"..."
+```
+
+The lines in the `prologue` field are executed for every new shell executed
+inside the builder environment. Note that in this particular case there was no
+need to provide a `source` field.
+
+
+### Environment prologues 
+
+
+
 ### Operating system recipes
 
 Operating systems recipes are similar to package recipes, but they are labeled
@@ -504,10 +546,6 @@ In the `singularity` type, the image file provided is downloaded from
 `--repository` option. If the image is not file, but starts with `docker://` or
 `shub://`, it is downloaded from the corresponding image repository.
 
-
-### Execution wrappers
-
-(in progress)
 
 
 PARALLEL BUILD MODE

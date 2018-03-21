@@ -19,8 +19,9 @@ priviliges. Its primary application comes in deploying software dependencies in
 cloud, grid, and opportunistic computing, where deployment must be performed
 together with a batch job execution. 
 
-**vc3-builder** is a self-contained program that if desired, can be compiled to
-a truly static binary (see below).
+**vc3-builder** is a self-contained program (including the repository of
+dependencies recipes). If desired, it can be compiled to a truly static binary
+([see below](#compiling-the-builder-as-a-sttic-binary)).
 
 From the end-user perspective, **vc3-builder** is invoked as a command line
 tool which states the desired dependencies.  The builder will perform whatever
@@ -62,38 +63,36 @@ Since it is not, it downloads it and sets it up accordingly. As requested, all
 the installation was done in `/home/btovar/tmp/my-vc3`, a directory that was
 available as `/opt/vc3-root` inside the container.
 
-The builder installs dependencies as needed. Using [libcvmfs](https://cernvm.cern.ch/portal/filesystem) as an example:
+The builder installs dependencies as needed. Using [cvmfs](https://cernvm.cern.ch/portal/filesystem), a filesystem, as an example:
 
 ```
-./vc3-builder --require libcvmfs --dry-run
-..Plan:    libcvmfs => [, ]
-..Try:     libcvmfs => v2.4.0
-..Refining version: libcvmfs v2.4 => [, ]
-....Plan:    python => [v2.6, ]
-....Try:     python => v2.7.5
-....Refining version: python 2.7.5 => [v2.6.0, ]
-....Success: python v2.7.5 => [v2.6.0, ]
-....Plan:    openssl => [v1.0, ]
-....Try:     openssl => v1.0.2
-....Refining version: openssl v1.0.2 => [v1.0.0, ]
-......Plan:    perl => [v5.10, ]
-......Try:     perl => v5.16.3
-......Refining version: perl 5.16.3 => [v5.10.0, ]
+$ stat -t /cvmfs/cms.cern.ch
+stat: cannot stat '/cvmfs/cms.cern.ch': No such file or directory
+$ ./vc3-builder --require cvmfs
+./vc3-builder --require cvmfs
+..Plan:    cvmfs => [, ]
+..Try:     cvmfs => v2.4.0
+..Refining version: cvmfs v2.4.0 => [, ]
+....Plan:    cvmfs-parrot-libcvmfs => [v2.4.0, ]
+....Try:     cvmfs-parrot-libcvmfs => v2.4.0
+....Refining version: cvmfs-parrot-libcvmfs v2.4.0 => [v2.4.0, ]
+......Plan:    parrot-wrapper => [v6.0.0, ]
+......Try:     parrot-wrapper => v6.0.0
+......Refining version: parrot-wrapper v6.0.0 => [v6.0.0, ]
+........Plan:    cctools => [v6.0.0, ]
+........Try:     cctools => v6.2.5
+........Refining version: cctools v6.2.5 => [v6.0.0, ]
+..........Plan:    cctools-binary => [v6.2.5, ]
+
 ... etc ...
+
+sh-4.1$ stat -t /cvmfs/cms.cern.ch 
+/cvmfs/cms.cern.ch 4096 9 41ed 0 0 1 256 1 0 1 1409299789 1409299789 1409299789 0 65336
 ```
 
+In this case, the filesystem cvmfs is not provided natively and the builder tries to fulfill the requirement using the [parrot virtual file system](http://ccl.cse.nd.edu/software/parrot).
 
-
-
-to run NCBI BLAST on redhat6
-
-EXAMPLES
---------
-
-```
-    vc3-builder --require cvmfs -- ls /cvmfs/atlas.cern.ch
-    vc3-builder --require-os redhat6 --mount /var/scratch:/work
-```
+The *vc3-builder* includes a repository of recipes
 
 
 OPTIONS

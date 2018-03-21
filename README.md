@@ -515,6 +515,20 @@ PARALLEL BUILD MODE
 
 (in progress)
 
+COMPILING THE BUILDER AS A STATIC BINARY
+----------------------------------------
+
+```
+git clone https://github.com/vc3-project/vc3-builder.git
+cd vc3-builder
+make vc3-builder-static
+```
+
+The static version will be available at **vc3-builder-static**. 
+The steps above set a local [musl-libc](https://www.musl-libc.org) installation that compile **vc3-builder** into a [static perl](http://software.schmorp.de/pkg/App-Staticperl.html) interpreter.
+
+
+
 
 ALL OPTIONS
 -----------
@@ -547,19 +561,6 @@ command-and-args              |  defaults to an interactive shell.
 --list                        |  List general packages available.
 --list=section                |  List general packages available, classified by sections.
 --list=all                    |  List all the packages available, even vc3-internals.
-
-
-COMPILING THE BUILDER AS A STATIC BINARY
-----------------------------------------
-
-```
-git clone https://github.com/vc3-project/vc3-builder.git
-cd vc3-builder
-make vc3-builder-static
-```
-
-The static version will be available at **vc3-builder-static**. 
-The steps above set a local [musl-libc](https://www.musl-libc.org) installation that compile **vc3-builder** into a [static perl](http://software.schmorp.de/pkg/App-Staticperl.html) interpreter.
 
 
 REFERENCE

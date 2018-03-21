@@ -162,7 +162,7 @@ In this case, the filesystem cvmfs is not provided natively and the builder trie
 RECIPES
 -------
 
-The *vc3-builder* includes a repository of recipes. To list the packages available for the `--require` option, use:
+The **vc3-builder** includes a repository of recipes. To list the packages available for the `--require` option, use:
 
 ```
 ./vc3-builder --list
@@ -197,9 +197,164 @@ recognize that the correspoding requirement is already supplied by the host
 system.
 
 
+### WRITING RECIPES
+
+The builder can be provided with additional package recipes using the
+--database=\<catalog\> option. The option can be specified several times, with
+latter package recipes overwriting previous ones. 
+
+A recipe catalog is a JSON encoded object, in which the keys of the object are
+the names of the packages. Each package is a JSON object that, among other
+fields, specifies a list of versions of the package and a recipe to fulfill
+that version.
+
+As an example, we will write the recipes for `wget`. First as a generic recipe,
+and then with different specific support that builder provides.
+
+##### A generic recipe:
+
+```json
+$ cat my-wget-recipe.json
+{
+    "wget":{
+        "versions":[
+            {
+                "version":"v1.19.4",
+                "source":{
+                    "type":"generic",
+                    "files":[ "wget-1.19.4.tar.gz" ],
+                    "recipe":[
+                        "tar xf wget-1.19.4.tar.gz",
+                        "./configure --prefix=${VC3_PREFIX} --with-zlib --with-ssl=openssl --with-libssl-prefix=${VC3_ROOT_OPENSSL} --with-libuuid",
+                        "make",
+                        "make install"
+                    ]
+                }
+            }
+        ],
+        "dependencies":{
+            "zlib":[ "v1.2" ],
+            "openssl":[ "v1.0.2" ],
+            "uuid":[ "v1.0" ],
+            "libssh2":[ "v1.8.0" ]
+        }
+    }
+}
+```
+
+The field `versions` inside the package definition is a list of JSON objects,
+with each object providing the recipe for a version. The files listed in
+`files` are automatically downloaded from the site pointed by the --repository
+option. The lines in the `recipe` field are executed one by one inside a shell.
+
+Dependencies list the name of the package and a range of acceptable versions.
+If only one version is provided, it is taken as a minimum acceptable version.
+
+During the recipe execution, several environment variables are available. For
+example, VC3_PREFIX, which points to the package installation directory. Each
+package is installed into its own directory. Also, for each of the
+dependencies, a VC3_ROOT_dependency variable points to the dependency
+installation directory.
+
+##### A tarball recipe:
+
+We can refine the recipe above by using the `tarball` source type, which automatically untars the first file listed in `files`:
+
+```json
+{
+    "wget":{
+        "versions":[
+            {
+                "version":"v1.19.4",
+                "source":{
+                    "type":"tarball",
+                    "files":[ "wget-1.19.4.tar.gz" ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --with-zlib --with-ssl=openssl --with-libssl-prefix=${VC3_ROOT_OPENSSL} --with-libuuid",
+                        "make",
+                        "make install"
+                    ]
+                }
+            }
+        ],
+ ... etc ...
+```
+
+##### A configure recipe:
+
+Further, we can do without the recipe using the `configure` type:
+
+```json
+{
+    "wget":{
+        "versions":[
+            {
+                "version":"v1.19.4",
+                "source":{
+                    "type":"configure",
+                    "files":[ "wget-1.19.4.tar.gz" ],
+                    "options":"--with-zlib --with-ssl=openssl --with-libssl-prefix=${VC3_ROOT_OPENSSL} --with-libuuid",
+                }
+            }
+        ],
+ ... etc ...
+```
+
+For the `configure` type, there are also the `preface` and `postface` fields.
+They are lists of shell commands (as `recipe`), that execute before and after,
+respectively, of the `configure; make; make install` step.
+
+##### Adding auto-detection:
+
+```json
+ "wget":{
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"wget"
+                }
+            },
+            {
+                "version":"v1.19.4",
+                "source":{
+                    "type":"configure",
+ ... etc ...
+```
+
+We include the `system` version before the `configure` version as they are
+tried sequentially, and we would prefer not to build `wget` if it is not
+necessary. In this case, we simply provide the name of the executable to test,
+and the builder will try to get the version number out of the first line of the
+output from `executable --version`.
+
+If an system executable does not provide version information in such manner,
+`source` needs to provide an `auto-version` field that provides a recipe that
+eventually prints to standard output a line such as:
+
+```
+VC3_VERSION_SYSTEM: xxx.yyy.zzz
+```
+
+For example, in `perl` the version information is provided by the `$^V`
+variable, and the `auto-version` field would look like:
+
+```json
+...
+
+        "auto-version":[
+            "perl -e  'print(\"VC3_VERSION_SYSTEM: $^V\\n\");'"
+        ],
+...
+```
+
+Note that quotes and backslashes need to be escaped so that they are not
+interpreted as part of the JSON structure.
 
 
-## WRITING RECIPES
+
+
 
 
 

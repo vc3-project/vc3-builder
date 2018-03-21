@@ -33,7 +33,6 @@ sub to_hash {
     $sh->{files}         = $self->files;
     $sh->{dependencies}  = $self->dependencies;
     $sh->{prerequisites} = $self->prerequisites;
-    $sh->{options}       = $self->options;
     $sh->{'msg-manual-requirement'} = $self->msg_manual_requirement;
 
     for my $k (keys %{$sh}) {

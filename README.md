@@ -122,6 +122,12 @@ sh-4.2$ which python
 
 Use `./vc3-builder --list` to obtain the current list of packages available.
 
+HOME
+----
+
+By default, the HOME variable is to a directory created by the builder. This
+can be changed using the `--home` option.
+
 MOUNTING FILESYSTEMS
 --------------------
 

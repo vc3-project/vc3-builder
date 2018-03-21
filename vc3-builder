@@ -10658,7 +10658,6 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       $self->dependencies($json_description->{dependencies});
       $self->wrapper($json_description->{wrapper});
       $self->prologue($json_description->{prologue});
-      $self->options($json_description->{options});
       $self->environment_variables($json_description->{'environment-variables'});
       $self->environment_autovars($json_description->{'environment-autovars'});
       $self->phony($json_description->{phony});
@@ -10675,6 +10674,42 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
   
       return $self;
   }
+  
+  sub to_hash {
+      my ($self) = @_;
+  
+      my $ph = {};
+  
+      if($json_description->{versions}) {
+          $self->widgets($json_description->{versions});
+      } else {
+          $self->{widgets} = [];
+      }
+  
+      $ph->{name}             = $self->name;
+      $ph->{phony}            = $self->phony;
+      $ph->{prologue}         = $self->prologue;
+      $ph->{wrapper}          = $self->wrapper;
+      $ph->{dependencies}     = $self->dependencies;
+      $ph->{operating_system} = $self->operating_system;
+      $ph->{'environment-variables'} = $self->environment_variables;
+      $ph->{'versions'}       = [];
+  
+      for my $w (@{$self->widgets}) {
+          push @{$ph->{versions}}, $w->to_hash;
+      }
+  
+      # environment-autovars already included in environment-variables
+  
+      for my $k (keys %{$ph}) {
+          unless(defined $ph->{$k}) {
+              delete $ph->{$k};
+          }
+      }
+  
+      return $ph;
+  }
+  
   
   sub widgets {
       my ($self, $new_widgets_spec) = @_;
@@ -10711,14 +10746,6 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       unless($self->{name}); 
   
       return $self->{name};
-  }
-  
-  sub options {
-      my ($self, $new_options) = @_;
-  
-      $self->{options} = $new_options if($new_options);
-  
-      return $self->{options};
   }
   
   sub dependencies {
@@ -11220,7 +11247,7 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   
       $self->trimmed_database(catfile($dir,$local_database));
   
-      my $makeflow_name = 'dag';
+      my $makeflow_name = $dag_name;
   
       open(my $mflow_f, '>', catfile($dir,$makeflow_name)) 
       || die "Could not open '$dir/$makeflow_name': $!";
@@ -11310,7 +11337,8 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
       my $output = {};
   
       for my $e (values %{$self->elements}) {
-          $output->{$e->widget->package->name} = $e->widget->to_hash;
+          $output->{$e->widget->package->name} = $e->package->to_hash;
+          $ph->{versions} = [ $e->widget->to_hash ];
       }
   
       open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";

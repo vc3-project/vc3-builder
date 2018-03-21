@@ -409,7 +409,7 @@ sub to_makeflow {
 
     $self->trimmed_database(catfile($dir,$local_database));
 
-    my $makeflow_name = 'dag';
+    my $makeflow_name = $dag_name;
 
     open(my $mflow_f, '>', catfile($dir,$makeflow_name)) 
     || die "Could not open '$dir/$makeflow_name': $!";
@@ -499,7 +499,8 @@ sub trimmed_database {
     my $output = {};
 
     for my $e (values %{$self->elements}) {
-        $output->{$e->widget->package->name} = $e->widget->to_hash;
+        $output->{$e->widget->package->name} = $e->package->to_hash;
+        $ph->{versions} = [ $e->widget->to_hash ];
     }
 
     open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";

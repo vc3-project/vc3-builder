@@ -15,7 +15,6 @@ sub new {
     $self->dependencies($json_description->{dependencies});
     $self->wrapper($json_description->{wrapper});
     $self->prologue($json_description->{prologue});
-    $self->options($json_description->{options});
     $self->environment_variables($json_description->{'environment-variables'});
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
@@ -32,6 +31,42 @@ sub new {
 
     return $self;
 }
+
+sub to_hash {
+    my ($self) = @_;
+
+    my $ph = {};
+
+    if($json_description->{versions}) {
+        $self->widgets($json_description->{versions});
+    } else {
+        $self->{widgets} = [];
+    }
+
+    $ph->{name}             = $self->name;
+    $ph->{phony}            = $self->phony;
+    $ph->{prologue}         = $self->prologue;
+    $ph->{wrapper}          = $self->wrapper;
+    $ph->{dependencies}     = $self->dependencies;
+    $ph->{operating_system} = $self->operating_system;
+    $ph->{'environment-variables'} = $self->environment_variables;
+    $ph->{'versions'}       = [];
+
+    for my $w (@{$self->widgets}) {
+        push @{$ph->{versions}}, $w->to_hash;
+    }
+
+    # environment-autovars already included in environment-variables
+
+    for my $k (keys %{$ph}) {
+        unless(defined $ph->{$k}) {
+            delete $ph->{$k};
+        }
+    }
+
+    return $ph;
+}
+
 
 sub widgets {
     my ($self, $new_widgets_spec) = @_;
@@ -68,14 +103,6 @@ sub name {
     unless($self->{name}); 
 
     return $self->{name};
-}
-
-sub options {
-    my ($self, $new_options) = @_;
-
-    $self->{options} = $new_options if($new_options);
-
-    return $self->{options};
 }
 
 sub dependencies {

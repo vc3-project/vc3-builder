@@ -228,16 +228,22 @@ $ cat my-wget-recipe.json
                         "./configure --prefix=${VC3_PREFIX} --with-zlib --with-ssl=openssl --with-libssl-prefix=${VC3_ROOT_OPENSSL} --with-libuuid",
                         "make",
                         "make install"
-                    ]
+                    ],
+                    "dependencies":{
+                        "zlib":[ "v1.2" ],
+                        "openssl":[ "v1.0.2" ],
+                        "uuid":[ "v1.0" ],
+                        "libssh2":[ "v1.8.0" ]
+                    }
                 }
             }
         ],
-        "dependencies":{
-            "zlib":[ "v1.2" ],
-            "openssl":[ "v1.0.2" ],
-            "uuid":[ "v1.0" ],
-            "libssh2":[ "v1.8.0" ]
-        }
+        "environment-variables":[
+               {
+                "name":"PATH",
+                "value":"bin"
+               }
+        ]
     }
 }
 ```
@@ -249,12 +255,17 @@ option. The lines in the `recipe` field are executed one by one inside a shell.
 
 Dependencies list the name of the package and a range of acceptable versions.
 If only one version is provided, it is taken as a minimum acceptable version.
+Dependencies can be specified per version, as in this case, or per package, in
+which case they are applied to all the versions.
 
 During the recipe execution, several environment variables are available. For
 example, VC3_PREFIX, which points to the package installation directory. Each
 package is installed into its own directory. Also, for each of the
 dependencies, a VC3_ROOT_dependency variable points to the dependency
 installation directory.
+
+When `wget` is set as a requirement, the value of `$VC3_ROOT_WGET/bin` is added
+to the `PATH`.
 
 ##### A tarball recipe:
 
@@ -304,6 +315,35 @@ For the `configure` type, there are also the `preface` and `postface` fields.
 They are lists of shell commands (as `recipe`), that execute before and after,
 respectively, of the `configure; make; make install` step.
 
+##### Adding a binary distribution
+
+```json
+ "wget":{
+        "versions":[
+            {
+               "version":"v1.81",
+                "source":{
+                    "type":"binary",
+                    "native":"x86_64",
+                    "files":[
+                        "wget-1.18-1.tar.gz"
+                    ]
+                }
+            },
+            {
+                "version":"v1.19.4",
+                "source":{
+                    "type":"configure",
+ "... etc ..."
+```
+
+We include the `binary` version before the `configure` version as they are
+tried sequentially, and we would prefer not to build `wget` if it is not
+necessary. The tarball provided includes a statically linked version of `wget`,
+and the architecture requirement is specified with the `native` field.
+
+Tarballs of binaries should have the file hierarchy: `dir/{bin,etc}`.
+
 ##### Adding auto-detection:
 
 ```json
@@ -317,17 +357,15 @@ respectively, of the `configure; make; make install` step.
                 }
             },
             {
-                "version":"v1.19.4",
+               "version":"v1.81",
                 "source":{
-                    "type":"configure",
+                    "type":"binary",
  "... etc ..."
 ```
 
-We include the `system` version before the `configure` version as they are
-tried sequentially, and we would prefer not to build `wget` if it is not
-necessary. In this case, we simply provide the name of the executable to test,
-and the builder will try to get the version number out of the first line of the
-output from `executable --version`.
+In this case, we simply provide the name of the executable to test, and the
+builder will try to get the version number out of the first line of the output
+from `executable --version`.
 
 If an system executable does not provide version information in such manner,
 `source` needs to provide an `auto-version` field that provides a recipe that
@@ -352,6 +390,71 @@ variable, and the `auto-version` field would look like:
 Note that quotes and backslashes need to be escaped so that they are not
 interpreted as part of the JSON structure.
 
+##### The complete recipe
+
+```json
+{
+    "wget":{
+        "tags":["data transfer tools"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"wget"
+                }
+            },
+            {
+                "version":"v7.51",
+                "source":{
+                    "type":"binary",
+                    "native":"x86_64",
+                    "files":[
+                        "wget-1.18-1.tar.gz"
+                    ]
+                }
+            },
+            {
+                "version":"v1.19.4",
+                "source":{
+                    "type":"configure",
+                    "files":[ "wget-1.19.4.tar.gz" ],
+                    "options":"--with-zlib --with-ssl=openssl --with-libssl-prefix=${VC3_ROOT_OPENSSL} --with-libuuid",
+                },
+                "dependencies":{
+                    "zlib":[
+                        "v1.2"
+                    ],
+                    "openssl":[
+                        "v1.0.2"
+                    ],
+                    "uuid":[
+                        "v1.0"
+                    ],
+                    "libssh2":[
+                        "v1.8.0"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+}
+```
+
+We made three changes: 
+
+- Added the `tags` field to classify the package. Listing of packages by tags is available with the `--list=section` option.
+- Added `show-in-list` field, which allows the package to be displayed by `--list`.
+- Since adding `${VC3_ROOT_package}/bin` to the `PATH` is a common operation,
+the builder provides the "environment-autovars" field, which automatically
+constructs common patterns for the variables `PATH`, `LD_LIBRARY_PATH`,
+`PKG_CONFIG_PATH`, `LIBRARY_PATH`, `C_INCLUDE_PATH`, `CPLUS_INCLUDE_PATH`, and
+`PERL5LIB`.  Support for `PYTHONPATH` is not provided, as there is not an easy
+way to handle concurrent `python2` and `python3` installations.
 
 
 

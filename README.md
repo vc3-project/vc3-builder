@@ -277,7 +277,7 @@ We can refine the recipe above by using the `tarball` source type, which automat
                 }
             }
         ],
- ... etc ...
+ "... etc ..."
 ```
 
 ##### A configure recipe:
@@ -297,7 +297,7 @@ Further, we can do without the recipe using the `configure` type:
                 }
             }
         ],
- ... etc ...
+ "... etc ..."
 ```
 
 For the `configure` type, there are also the `preface` and `postface` fields.
@@ -320,7 +320,7 @@ respectively, of the `configure; make; make install` step.
                 "version":"v1.19.4",
                 "source":{
                     "type":"configure",
- ... etc ...
+ "... etc ..."
 ```
 
 We include the `system` version before the `configure` version as they are

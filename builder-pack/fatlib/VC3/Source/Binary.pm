@@ -8,6 +8,16 @@ sub new {
 
     $widget->local(1);
 
+    unless($json_description->{prerequisites}) {
+        unless($json_description->{native}) {
+            $json_description->{prerequisites} = [
+                ": check if native is prefix of target",
+                'pref=${VC3_MACHINE_TARGET#' . $json_description->{native} . '}',
+                '[ $pref != ${VC3_MACHINE_TARGET} ] || exit 1'
+            ];
+        }
+    }
+
     unless($json_description->{recipe}) {
         $json_description->{recipe} = [
             'mkdir -p ${VC3_PREFIX}',

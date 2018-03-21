@@ -245,9 +245,7 @@
                 "version":"v3.82",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "make-3.82.tar.gz"
                     ]
@@ -272,9 +270,7 @@
                 "version":"v4.2",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "sed4.2.tar.gz"
                     ]
@@ -292,9 +288,7 @@
                 "version":"v2.6.3",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "grep-2.6.3-2.tar.gz"
                     ]
@@ -312,6 +306,7 @@
                 "version":"v4.1.1",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "gawk-4.1.1.tar.gz"
                     ]
@@ -329,9 +324,7 @@
                 "version":"v2.20.0",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "which-2.20-1.tar.gz"
                     ]
@@ -349,9 +342,7 @@
                 "version":"v7.6.0",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "coreutils-7.6-5.tar.gz"
                     ]
@@ -393,6 +384,7 @@
                 "version":"v1.4.0",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "gzip-1.4-1.tar"
                     ]
@@ -410,6 +402,7 @@
                 "version":"v1.0.6",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "bzip2-bin-1.0.6-1.tar.gz"
                     ]
@@ -427,6 +420,7 @@
                 "version":"v5.0.5",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "xz-5.0.5.tar.gz"
                     ]
@@ -1069,11 +1063,9 @@
                 "version":"v6.2.5",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64/redhat7",
                     "files":[
                         "cctools-6.2.5-x86_64-redhat7.tar.gz"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -1095,11 +1087,9 @@
                 "version":"v6.2.5",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64/redhat6",
                     "files":[
                         "cctools-6.2.5-x86_64-redhat6.tar.gz"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -1234,9 +1224,7 @@
                 "version":"v7.0.0",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
-                    ],
+                    "native":"x86_64/redhat7",
                     "recipe":[
                         "wget http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat7.tar.gz",
                         "mkdir -p ${VC3_PREFIX}",
@@ -1261,9 +1249,7 @@
                 "version":"v7.0.0",
                 "source": {
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
-                    ],
+                    "native":"x86_64/redhat6",
                     "recipe":[
                         "wget http://ccl.cse.nd.edu/software/autobuild/commit/most-recent/cctools-current-x86_64-redhat6.tar.gz",
                         "mkdir -p ${VC3_PREFIX}",
@@ -1349,6 +1335,7 @@
                 "version":"v2.7.1",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "patch-2.7.1-1.tar.gz"
                     ]
@@ -1387,6 +1374,7 @@
                 "version":"v3.10.2",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "cmake-3.10.2-Linux-x86_64.tar.gz"
                     ],
@@ -1585,9 +1573,7 @@
                 "version":"v7.51",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "curl-7.51.0-1.tar.gz"
                     ]
@@ -1644,9 +1630,7 @@
                 "version":"v7.51",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "wget-1.18-1.tar.gz"
                     ]
@@ -1704,6 +1688,7 @@
                 "version":"v2.7.2",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "git-bin-2.7.2-2.tar.gz"
                     ]
@@ -1874,11 +1859,9 @@
                 "version":"v8.6.9",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64/redhat6",
                     "files":[
                         "condor-8.6.9-x86_64_RedHat6-stripped.tar.gz"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat6\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -1893,11 +1876,9 @@
                 "version":"v8.6.9",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64/redhat7",
                     "files":[
                         "condor-8.6.9-x86_64_RedHat7-stripped.tar.gz"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_TARGET} = \"x86_64/redhat7\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -2490,6 +2471,7 @@
                 "version":"v1.1",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "mash-Linux64-v1.1.tar.gz"
                     ],
@@ -2892,6 +2874,7 @@
                 "version":"v2.2.28",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "ncbi-blast-2.2.28+-x64-linux.tar.gz"
                     ],
@@ -2949,6 +2932,7 @@
                 "version":"v2.2.28",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "ncbi-rmblastn-2.2.28-x64-linux.tar.gz"
                     ],
@@ -3388,9 +3372,7 @@
                 "version":"4.4.2",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "findutils-4.4.2-1.tar.gz"
                     ]
@@ -3915,11 +3897,9 @@
                 "version":"v6.0.16",
                 "source":{
                     "type":"binary",
+                    "native":"x86_64",
                     "files":[
                         "cctools-statics-6.0.16-x86_64.tar.gz"
-                    ],
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -3958,9 +3938,7 @@
                 "version":"v7.3.0",
                 "source":{
                     "type":"binary",
-                    "prerequisites":[
-                        "[ ${VC3_MACHINE_ARCH} = \"x86_64\" ] || exit 1"
-                    ],
+                    "native":"x86_64",
                     "files":[
                         "vim-7.3-1.tar.gz"
                     ]

@@ -88,9 +88,7 @@ WRITING RECIPES
 REFERENCE
 ---------
 
-Benjamin Tovar, Nicholas Hazekamp, Nathaniel Kremer-Herman, and Douglas Thain
-
+Benjamin Tovar, Nicholas Hazekamp, Nathaniel Kremer-Herman, and Douglas Thain.
 **Automatic Dependency Management for Scientific Applications on Clusters,**
-
 IEEE International Conference on Cloud Engineering (IC2E), April, 2018. 
 

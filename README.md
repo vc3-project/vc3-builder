@@ -79,6 +79,7 @@ sh-4.2$
 
 However, if we require the specific version:
 
+```
 $ ./vc3-builder --require python:2.7.12
 ..Plan:    python => [2.7.12, ]
 ..Try:     python => v2.7.5
@@ -94,7 +95,39 @@ $ ./vc3-builder --require python:2.7.12
 
 sh-4.2$ which python
 /home/btovar/vc3-root/x86_64/redhat7.4/python/v2.7.12/bin/python
+```
 
+MOUNTING FILESYSTEMS
+--------------------
+
+The builder provides the `--mount` argument to optionally mount directories. It has two forms `--mount /<x>` and `--mount /<x>:/<y>`
+
+### --mount /<x>
+
+If executing in the native host environment, the builder simply ensured that the directory `/<x>` is accessible. If not, it terminates with an error.
+
+If providing the environment with a container, the host environment path `/<x>` is mounted inside the container as `/<x>`.
+
+### --mount /<x>:/<y>
+
+If executing in the native host environment, and `/<x>` and `/<y>` are
+different, the builder reports an error, otherwise it works as `--mount /<x>`.
+
+When executing inside a container, the host environment path `/<x>` is mounted
+inside the container as `/<y>`.
+
+Even when the host operating system fulfills the `--require-os` argument, a
+container may still be used to fulfill a `--mount` requirement:
+
+```
+$ ./vc3-builder --require-os redhat7 --mount /var/scratch/btovar:/madeuppath -- stat -t /madeuppath
+OS trying:         redhat7 os-native
+Mount source '/var/scratch/btovar' and target '/madeuppath' are different.
+OS fail mounts:    redhat7 os-native
+OS trying:         redhat7 singularity
+/madeuppath 4096 8 41ed 196886 0 805 5111810 5 0 0 1520946165 1517595650 1517595650 0 4096
+$
+```
 
 
 As another example, the builder provides support for [cvmfs](https://cernvm.cern.ch/portal/filesystem):

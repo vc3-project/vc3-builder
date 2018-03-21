@@ -4,7 +4,7 @@ VC3 Builder
 NAME
 ----
 
-**vc3-builder** - sets required software dependencies with user priviliges
+**vc3-builder** - Deploy software environments in clusters without administrator priviliges
 
 SYNOPSIS
 --------
@@ -13,6 +13,14 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
+
+The **vc3-builder** is a tool to manage software stacks without administrator
+priviliges. Its primary application comes in deploying software dependencies in
+cloud, grid, and opportunistic computing, where deployment must be performed
+together with a batch job execution. 
+
+**vc3-builder** is a self-contained program that if desired, can be compiled to
+a truly static binary (see below).
 
 EXAMPLES
 --------
@@ -56,7 +64,34 @@ command-and-args              |  defaults to an interactive shell.
 --list=all                    |  List all the packages available, even vc3-internals.
 
 
+COMPILING THE BUILDER AS A STATIC BINARY
+----------------------------------------
+
+```
+git clone https://github.com/vc3-project/vc3-builder.git
+cd vc3-builder
+make vc3-builder-static
+```
+
+The static version will be available at **vc3-builder-static**. 
+
+The steps above set a local [musl-libc](https://www.musl-libc.org) installation that compile **vc3-builder** into a [static perl](http://software.schmorp.de/pkg/App-Staticperl.html) interpreter.
+
+
+
+
+
+
+
 WRITING RECIPES
 ---------------
 
+REFERENCE
+---------
+
+Benjamin Tovar, Nicholas Hazekamp, Nathaniel Kremer-Herman, and Douglas Thain
+
+**Automatic Dependency Management for Scientific Applications on Clusters,**
+
+IEEE International Conference on Cloud Engineering (IC2E), April, 2018. 
 

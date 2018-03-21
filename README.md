@@ -120,6 +120,8 @@ sh-4.2$ which python
 /home/btovar/vc3-root/x86_64/redhat7.4/python/v2.7.12/bin/python
 ```
 
+Use `./vc3-builder --list` to obtain the current list of packages available.
+
 MOUNTING FILESYSTEMS
 --------------------
 
@@ -151,6 +153,11 @@ OS trying:         redhat7 singularity
 /madeuppath 4096 8 41ed 196886 0 805 5111810 5 0 0 1520946165 1517595650 1517595650 0 4096
 $
 ```
+
+PARALLEL BUILD MODE
+-------------------
+
+(in progress)
 
 
 RECIPES
@@ -584,11 +591,6 @@ compared to scheduling it for parallel execution.
 
 
 
-
-PARALLEL BUILD MODE
--------------------
-
-(in progress)
 
 COMPILING THE BUILDER AS A STATIC BINARY
 ----------------------------------------

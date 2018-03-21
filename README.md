@@ -22,6 +22,71 @@ together with a batch job execution.
 **vc3-builder** is a self-contained program that if desired, can be compiled to
 a truly static binary (see below).
 
+From the end-user perspective, **vc3-builder** is invoked as a command line
+tool which states the desired dependencies.  The builder will perform whatever
+work is necessary to deliver those dependencies, then start a shell with the
+software activated. For example, assume the original environment is a RHEL7, but we need to run the bioinformatics tool [NCBI BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi) using RHEL6:
+
+```
+$ cat /etc/redhat-release 
+Red Hat Enterprise Linux Server release 7.4 (Maipo)
+$ ./vc3-builder --install ~/tmp/my-vc3 --require-os redhat6 --require ncbi-blast
+OS trying:         redhat6 os-native
+OS fail prereq:    redhat6 os-native
+OS trying:         redhat6 singularity
+..Plan:    ncbi-blast => [, ]
+..Try:     ncbi-blast => v2.2.28
+..Refining version: ncbi-blast v2.2.28 => [, ]
+..Success: ncbi-blast v2.2.28 => [, ]
+processing for ncbi-blast-v2.2.28
+downloading 'ncbi-blast-2.2.28+-x64-linux.tar.gz' from http://download.virtualclusters.org/builder-files
+preparing 'ncbi-blast' for x86_64/redhat6.9
+details: /opt/vc3-root/x86_64/redhat6.9/ncbi-blast/v2.2.28/ncbi-blast-build-log
+sh-4.1$ cat /etc/redhat-release 
+CentOS release 6.9 (Final)
+sh-4.1$ which blastn
+/opt/vc3-root/x86_64/redhat6.9/ncbi-blast/v2.2.28/bin/blastn
+sh-4.1$ exit
+$ ls -d ~/tmp/my-vc3
+/home/btovar/tmp/my-vc3
+```
+
+In the first stage, the builder verifies the operating system requirement.
+Since the native environment is not RHEL6, it tries to fulfill the requirement
+using a container image. If the native environment would not support
+containers, the builder terminates indicating that the operating system
+requirement cannot be fulfilled.
+
+In the second stage, the builder checks if ncbi-blast is already installed.
+Since it is not, it downloads it and sets it up accordingly. As requested, all
+the installation was done in `/home/btovar/tmp/my-vc3`, a directory that was
+available as `/opt/vc3-root` inside the container.
+
+The builder installs dependencies as needed. Using [libcvmfs](https://cernvm.cern.ch/portal/filesystem) as an example:
+
+```
+./vc3-builder --require libcvmfs --dry-run
+..Plan:    libcvmfs => [, ]
+..Try:     libcvmfs => v2.4.0
+..Refining version: libcvmfs v2.4 => [, ]
+....Plan:    python => [v2.6, ]
+....Try:     python => v2.7.5
+....Refining version: python 2.7.5 => [v2.6.0, ]
+....Success: python v2.7.5 => [v2.6.0, ]
+....Plan:    openssl => [v1.0, ]
+....Try:     openssl => v1.0.2
+....Refining version: openssl v1.0.2 => [v1.0.0, ]
+......Plan:    perl => [v5.10, ]
+......Try:     perl => v5.16.3
+......Refining version: perl 5.16.3 => [v5.10.0, ]
+... etc ...
+```
+
+
+
+
+to run NCBI BLAST on redhat6
+
 EXAMPLES
 --------
 

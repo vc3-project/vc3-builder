@@ -213,7 +213,7 @@ sub get_file {
     my ($self, $file) = @_;
 
     unless(-f $self->file_absolute($file)) {
-        $self->say("Downloading '" . $file . "' from " . $self->bag->repository);
+        $self->say("downloading '" . $file . "' from " . $self->bag->repository);
 
         my $ff = HTTP::Tiny->new();
 

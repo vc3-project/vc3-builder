@@ -63,7 +63,41 @@ Since it is not, it downloads it and sets it up accordingly. As requested, all
 the installation was done in `/home/btovar/tmp/my-vc3`, a directory that was
 available as `/opt/vc3-root` inside the container.
 
-The builder installs dependencies as needed. Using [cvmfs](https://cernvm.cern.ch/portal/filesystem), a filesystem, as an example:
+The builder installs dependencies as needed. For example, simply requiring `python` most likely will provide a python installation already in the system:
+
+```
+$ ./vc3-builder --require python                             
+..Plan:    python => [, ]
+..Try:     python => v2.7.5
+..Refining version: python 2.7.5 => [, ]
+..Success: python v2.7.5 => [, ]
+processing for python-v2.7.5
+sh-4.2$ which python
+/bin/python
+sh-4.2$ 
+```
+
+However, if we require the specific version:
+
+$ ./vc3-builder --require python:2.7.12
+..Plan:    python => [2.7.12, ]
+..Try:     python => v2.7.5
+..Incorrect version: v2.7.5 => [v2.7.12,]
+..Try:     python => v2.7.12
+..Refining version: python v2.7.12 => [v2.7.12, ]
+....Plan:    libffi => [v3.2.1, ]
+....Try:     libffi => v3.2.1
+....Refining version: libffi v3.2.1 => [v3.2.1, ]
+....Success: libffi v3.2.1 => [v3.2.1, ]
+
+... etc ...
+
+sh-4.2$ which python
+/home/btovar/vc3-root/x86_64/redhat7.4/python/v2.7.12/bin/python
+
+
+
+As another example, the builder provides support for [cvmfs](https://cernvm.cern.ch/portal/filesystem):
 
 ```
 $ stat -t /cvmfs/cms.cern.ch
@@ -92,7 +126,48 @@ sh-4.1$ stat -t /cvmfs/cms.cern.ch
 
 In this case, the filesystem cvmfs is not provided natively and the builder tries to fulfill the requirement using the [parrot virtual file system](http://ccl.cse.nd.edu/software/parrot).
 
-The *vc3-builder* includes a repository of recipes
+RECIPES
+-------
+
+The *vc3-builder* includes a repository of recipes. To list the packages available for the `--require` option, use:
+
+```
+./vc3-builder --list
+atlas-local-root-base-environment:v1.0
+augustus:v2.4
+cctools:v6.2.5
+cctools-unstable:v7.0.0
+charm:v6.7.1
+cmake:auto
+cmake:v3.10.2
+... etc ...
+```
+
+For operating systems accepted by the `--require-os` option use:
+
+```
+./vc3-builder --list=os    
+debian9:auto
+debian9:v9.2
+opensuse42:auto
+opensuse42:v42.3
+redhat6:auto
+redhat6:v6.9
+redhat7:auto
+redhat7:v7.4
+ubuntu16:auto
+ubuntu16:v16
+```
+
+When a version appears as **auto**, it means that the builder knows how to
+recognize that the correspoding requirement is already supplied by the host
+system.
+
+
+
+
+## WRITING RECIPES
+
 
 
 OPTIONS
@@ -145,9 +220,6 @@ The steps above set a local [musl-libc](https://www.musl-libc.org) installation 
 
 
 
-
-WRITING RECIPES
----------------
 
 REFERENCE
 ---------

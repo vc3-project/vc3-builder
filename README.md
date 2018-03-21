@@ -21,7 +21,7 @@ together with a batch job execution.
 
 **vc3-builder** is a self-contained program (including the repository of
 dependencies recipes). If desired, it can be compiled to a truly static binary
-([see below](#compiling-the-builder-as-a-sttic-binary)).
+([see below](#compiling-the-builder-as-a-static-binary)).
 
 From the end-user perspective, **vc3-builder** is invoked as a command line
 tool which states the desired dependencies.  The builder will perform whatever

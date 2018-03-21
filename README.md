@@ -163,7 +163,33 @@ $
 PARALLEL BUILD MODE
 -------------------
 
-(in progress)
+If a shared filesystem is available, the builder can be instructed to execute
+builds in parallel.  Only steps that can be executed concurrently, and for
+which their dependencies are already fulfilled are queued for execution.
+
+For parallel build installations, use the `--parallel` option. It receives one
+argument, a directory to create the parallel build sandbox inside the builder's
+home dir:
+
+```
+$ ./vc3-builder --silent --require maker --install /scratch365/b/btovar/my-shared-dir --parallel my-parallel-build
+sh-4.2$ cd my-parallel-build/
+sh-4.2$ ls
+build  builder  dag  recipes
+```
+
+The build can be started using the `./build` command. The `./build` command
+uses the workflow system [makeflow](http://ccl.cse.nd.edu/software/makeflow) as
+a backend, which allows the build to be executed in different batch systems,
+such as `condor`, `slurm`, `sge`, `torque`, `moab`, `amazon` and `workqueue`.
+
+For example, if slurm is available, the build can be executed as:
+
+```
+sh-4.2$ ./build -Tslurm
+```
+
+
 
 
 RECIPES

@@ -567,6 +567,22 @@ In the `singularity` type, the image file provided is downloaded from
 `--repository` option. If the image is not file, but starts with `docker://` or
 `shub://`, it is downloaded from the corresponding image repository.
 
+#### Recipes bits-and-pieces
+
+There are three more fields a version specification accepts:
+
+- `prerequisites`: A list of shell commands which need to succed for the
+version to be included in the build plan. Useful to check if some file is
+present, for example.
+- `phony`: In normal operation, the builder executes the recipe of a source
+only once. If `phony` is set to `1`, the recipe is executed every time the
+package is required.
+- `local`: Only relevant for the [parallel build mode](#parallel-build-mode).
+Indicates that the recipe should be executed locally, and not in a remote
+computational node. It is useful when the recipe takes very little time
+compared to scheduling it for parallel execution.
+
+
 
 
 PARALLEL BUILD MODE

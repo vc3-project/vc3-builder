@@ -63,7 +63,30 @@ Since it is not, it downloads it and sets it up accordingly. As requested, all
 the installation was done in `/home/btovar/tmp/my-vc3`, a directory that was
 available as `/opt/vc3-root` inside the container.
 
-The builder installs dependencies as needed. For example, simply requiring `python` most likely will provide a python installation already in the system:
+As another example, the builder provides support for [cvmfs](https://cernvm.cern.ch/portal/filesystem):
+
+```
+$ stat -t /cvmfs/cms.cern.ch
+stat: cannot stat '/cvmfs/cms.cern.ch': No such file or directory
+$ ./vc3-builder --require cvmfs
+./vc3-builder --require cvmfs
+..Plan:    cvmfs => [, ]
+..Try:     cvmfs => v2.4.0
+..Refining version: cvmfs v2.4.0 => [, ]
+....Plan:    cvmfs-parrot-libcvmfs => [v2.4.0, ]
+
+... etc ...
+
+sh-4.1$ stat -t /cvmfs/cms.cern.ch 
+/cvmfs/cms.cern.ch 4096 9 41ed 0 0 1 256 1 0 1 1409299789 1409299789 1409299789 0 65336
+```
+
+In this case, the filesystem `cvmfs is not provided natively and the builder
+tries to fulfill the requirement using the [parrot virtual file system](http://ccl.cse.nd.edu/software/parrot).
+
+
+The builder installs dependencies as needed. For example, simply requiring
+`python` most likely will provide a python installation already in the system:
 
 ```
 $ ./vc3-builder --require python                             
@@ -129,35 +152,6 @@ OS trying:         redhat7 singularity
 $
 ```
 
-
-As another example, the builder provides support for [cvmfs](https://cernvm.cern.ch/portal/filesystem):
-
-```
-$ stat -t /cvmfs/cms.cern.ch
-stat: cannot stat '/cvmfs/cms.cern.ch': No such file or directory
-$ ./vc3-builder --require cvmfs
-./vc3-builder --require cvmfs
-..Plan:    cvmfs => [, ]
-..Try:     cvmfs => v2.4.0
-..Refining version: cvmfs v2.4.0 => [, ]
-....Plan:    cvmfs-parrot-libcvmfs => [v2.4.0, ]
-....Try:     cvmfs-parrot-libcvmfs => v2.4.0
-....Refining version: cvmfs-parrot-libcvmfs v2.4.0 => [v2.4.0, ]
-......Plan:    parrot-wrapper => [v6.0.0, ]
-......Try:     parrot-wrapper => v6.0.0
-......Refining version: parrot-wrapper v6.0.0 => [v6.0.0, ]
-........Plan:    cctools => [v6.0.0, ]
-........Try:     cctools => v6.2.5
-........Refining version: cctools v6.2.5 => [v6.0.0, ]
-..........Plan:    cctools-binary => [v6.2.5, ]
-
-... etc ...
-
-sh-4.1$ stat -t /cvmfs/cms.cern.ch 
-/cvmfs/cms.cern.ch 4096 9 41ed 0 0 1 256 1 0 1 1409299789 1409299789 1409299789 0 65336
-```
-
-In this case, the filesystem cvmfs is not provided natively and the builder tries to fulfill the requirement using the [parrot virtual file system](http://ccl.cse.nd.edu/software/parrot).
 
 RECIPES
 -------
@@ -474,8 +468,6 @@ environment:
 ```json
 "..."
 "oasis-environment":{
-        "tags":["environments"],
-        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.0",
@@ -501,6 +493,35 @@ need to provide a `source` field.
 
 ##### Environment wrappers 
 
+A wrapper is any program that executes the payload of the builder. In the usual
+case, there is no wrapper, and the builder simply executes its payload using
+`/bin/sh`. In the [introductory examples](#description), we showed the builder
+accessing a filesystem (cvmfs) that was not present in the host system. This
+was done by using the [parrot virtual file
+system](http://ccl.cse.nd.edu/software/parrot) as a wrapper as follows:
+
+```json
+ "parrot-wrapper":{
+        "versions":[
+            {
+                "version":"v6.0.0",
+                "wrapper":[
+                    "parrot_run", "--dynamic-mounts", "{}"
+                ],
+                "dependencies":{
+                    "cctools":[
+                        "v6.0.0"
+                    ]
+                }
+            }
+        ]
+```
+
+The `parrot_run` executable is provided through the `cctools` dependency. The
+wrapper itself is specified as a list of arguments in the `wrapper` field. The
+payload is substituted in place of `{}`. If several wrappers are required, they
+nest inner-to-outer as they appear as arguments to `--require` in the command
+line.
 
 
 ##### Operating system recipes

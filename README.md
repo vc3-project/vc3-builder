@@ -74,7 +74,6 @@ make vc3-builder-static
 ```
 
 The static version will be available at **vc3-builder-static**. 
-
 The steps above set a local [musl-libc](https://www.musl-libc.org) installation that compile **vc3-builder** into a [static perl](http://software.schmorp.de/pkg/App-Staticperl.html) interpreter.
 
 

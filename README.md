@@ -208,6 +208,8 @@ the names of the packages. Each package is a JSON object that, among other
 fields, specifies a list of versions of the package and a recipe to fulfill
 that version.
 
+#### Recipes that provide packages
+
 As an example, we will write the recipes for `wget`. First as a generic recipe,
 and then with different specific support that builder provides.
 
@@ -457,12 +459,65 @@ constructs common patterns for the variables `PATH`, `LD_LIBRARY_PATH`,
 way to handle concurrent `python2` and `python3` installations.
 
 
+#### Recipes that provide environments
+
+### Operating system recipes
+
+Operating systems recipes are similar to package recipes, but they are labeled
+with the `operating-system` field. An operating system requirement is specified
+with the `--require-os` option.
+
+Here we include an example for Red Hat 7:
+
+```json
+"..."
+    "redhat7":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "operating-system":1,
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"os-native",
+                    "native":"x86_64/redhat7"
+                }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-centos7.img"
+                }
+            }
+        ]
+    },
+"..."
+```
+
+For the `os-native` type, the `native` field specifies the target system. It is
+of the form `architecture/distribution`. Use `./vc3-builder --list=os` for a
+list of known distributions.
+
+In the `singularity` type, the image file provided is downloaded from
+`<repository\>/images/singularity`, where repository is specified by the
+`--repository` option. If the image is not file, but starts with `docker://` or
+`shub://`, it is downloaded from the corresponding image repository.
 
 
+### Execution wrappers
+
+(in progress)
 
 
-OPTIONS
--------
+PARALLEL BUILD MODE
+-------------------
+
+(in progress)
+
+
+ALL OPTIONS
+-----------
 
 Option                        | Description                                                      
 ----------------------------- | ------------
@@ -505,11 +560,6 @@ make vc3-builder-static
 
 The static version will be available at **vc3-builder-static**. 
 The steps above set a local [musl-libc](https://www.musl-libc.org) installation that compile **vc3-builder** into a [static perl](http://software.schmorp.de/pkg/App-Staticperl.html) interpreter.
-
-
-
-
-
 
 
 REFERENCE

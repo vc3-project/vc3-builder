@@ -462,7 +462,7 @@ way to handle concurrent `python2` and `python3` installations.
 #### Recipes that provide environments
 
 
-### Environment prologues 
+##### Environment prologues 
 
 It is sometimes required to run a command to complete setting the environment.
 For example, a script containing evinronment variables may need to be sourced
@@ -499,11 +499,11 @@ inside the builder environment. Note that in this particular case there was no
 need to provide a `source` field.
 
 
-### Environment prologues 
+##### Environment wrappers 
 
 
 
-### Operating system recipes
+##### Operating system recipes
 
 Operating systems recipes are similar to package recipes, but they are labeled
 with the `operating-system` field. An operating system requirement is specified

@@ -100,21 +100,21 @@ sh-4.2$ which python
 MOUNTING FILESYSTEMS
 --------------------
 
-The builder provides the `--mount` argument to optionally mount directories. It has two forms `--mount /<x>` and `--mount /<x>:/<y>`
+The builder provides the `--mount` argument to optionally mount directories. It has two forms `--mount /x` and `--mount /x:/y`
 
-### --mount /<x>
+#### --mount /x
 
-If executing in the native host environment, the builder simply ensured that the directory `/<x>` is accessible. If not, it terminates with an error.
+If executing in the native host environment, the builder simply ensured that the directory `/x` is accessible. If not, it terminates with an error.
 
-If providing the environment with a container, the host environment path `/<x>` is mounted inside the container as `/<x>`.
+If providing the environment with a container, the host environment path `/x` is mounted inside the container as `/x`.
 
-### --mount /<x>:/<y>
+#### --mount /x:/y
 
-If executing in the native host environment, and `/<x>` and `/<y>` are
-different, the builder reports an error, otherwise it works as `--mount /<x>`.
+If executing in the native host environment, and `/x` and `/y` are
+different, the builder reports an error, otherwise it works as `--mount /x`.
 
-When executing inside a container, the host environment path `/<x>` is mounted
-inside the container as `/<y>`.
+When executing inside a container, the host environment path `/x` is mounted
+inside the container as `/y`.
 
 Even when the host operating system fulfills the `--require-os` argument, a
 container may still be used to fulfill a `--mount` requirement:

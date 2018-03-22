@@ -157,51 +157,6 @@ EOF
 
 }
 
-sub select_sleep {
-    my ($seconds) = @_;
-
-    select(undef, undef, undef, $seconds);
-}
-
-sub cleanup_signal_handler {
-    my ($signal) = @_;
-
-    if($signal) {
-        warn("Got signal!: $signal");
-
-        if($signal eq 'ALRM') {
-            warn("Timeout!");
-        }
-
-        exit 128;
-    }
-}
-
-sub fix_http_proxy_vars {
-    for my $var (qw(http_proxy HTTP_PROXY)) {
-        my $val = $ENV{$var};
-
-        if($val) {
-            if($val =~ /^:?;?DIRECT$/) {
-                delete $ENV{$var};
-                next;
-            }
-
-            if($val !~ m#^https?://#) { 
-                $ENV{$var} = "http://$val";
-            }
-        }
-    }
-}
-
-sub remove_vc3_vars() {
-    for my $var (keys %ENV) {
-        if($var =~ '^VC3_') {
-            delete $ENV{$var};
-        }
-    }
-}
-
 sub main {
     my @requires     = ();
 
@@ -369,13 +324,6 @@ sub main {
     # split mounts
     my $mount_map = get_mount_map(@mounts);
 
-    # set defaults
-    my @command_and_args = @ARGV;
-    if(!@command_and_args and (not defined($parallel_dir))) {
-        @command_and_args = ($shell,);
-        $interactive_run = 1;
-    }
-
     # set up parallel mode
     if(defined $parallel_dir) {
         push @no_sys, 'ALL';
@@ -383,7 +331,7 @@ sub main {
         $parallel_mode ||= 'local';
         $parallel_max  ||= 10;
 
-        if(@command_and_args) {
+        if(@ARGV) {
             die "Cannot specify command-and-args with --parallel build mode.\n";
         }
     } else {
@@ -411,6 +359,18 @@ sub main {
         $vc3_root = bosco_fix_path($vc3_root);
     } else {
         is_safe_path($vc3_root);
+    }
+
+    # set default payload
+    my @command_and_args;
+
+    if(defined($parallel_dir)) {
+        @command_and_args = ("sh -c 'cd $parallel_dir && ./build -T$parallel_mode -j$parallel_max -J$parallel_max'");
+    } elsif(@ARGV) {
+        @command_and_args = @ARGV;
+    } else {
+        @command_and_args = ($shell,);
+        $interactive_run = 1;
     }
 
     my $bag = VC3::Bag->new(
@@ -475,7 +435,8 @@ sub main {
     }
 
     $bag->execute_plan($sh_on_error, $force_rebuild, $ignore_locks);
-
+    
+    # run the payload
     my $exit_code;
     if($no_run) {
         $exit_code = 0;
@@ -484,7 +445,7 @@ sub main {
         $bag->set_profile($env_to, @command_and_args);
         $exit_code = 0;
     } elsif(defined $parallel_dir) {
-        $exit_code = $bag->execute("sh -c 'cd $parallel_dir && ./build -T$parallel_mode -j$parallel_max -J$parallel_max'");
+        $exit_code = $bag->execute(@command_and_args);
         if($exit_code) {
             warn "Parallel build mode failed.\n";
         }
@@ -720,4 +681,50 @@ sub bosco_fix_path {
 
     return $new_root;
 }
+
+sub select_sleep {
+    my ($seconds) = @_;
+
+    select(undef, undef, undef, $seconds);
+}
+
+sub cleanup_signal_handler {
+    my ($signal) = @_;
+
+    if($signal) {
+        warn("Got signal!: $signal");
+
+        if($signal eq 'ALRM') {
+            warn("Timeout!");
+        }
+
+        exit 128;
+    }
+}
+
+sub fix_http_proxy_vars {
+    for my $var (qw(http_proxy HTTP_PROXY)) {
+        my $val = $ENV{$var};
+
+        if($val) {
+            if($val =~ /^:?;?DIRECT$/) {
+                delete $ENV{$var};
+                next;
+            }
+
+            if($val !~ m#^https?://#) { 
+                $ENV{$var} = "http://$val";
+            }
+        }
+    }
+}
+
+sub remove_vc3_vars() {
+    for my $var (keys %ENV) {
+        if($var =~ '^VC3_') {
+            delete $ENV{$var};
+        }
+    }
+}
+
 

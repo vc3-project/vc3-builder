@@ -10173,7 +10173,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           $catbag_f = *VC3::Builder::DATA;
       } else {
           open($catbag_f, '<:encoding(UTF-8)', $filename) ||
-          die "Could not open '$filename': $!";
+          die "Could not open '$filename': $!\n";
       }
   
       my $contents = do { local($/); <$catbag_f> };
@@ -10248,9 +10248,13 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   makeflow --shared-fs @{[$self->root_dir]} -r 5 $dag_name "\$@"
   
   cat <<EOF
-  To run, from the current directory type:
   
-  ./$builder_name --database $local_database --install @{[$self->root_dir]} @{[map { "--require $_" } @{$self->plan->requirements}]}
+  Parallel build mode complete. To run type:
+  
+  VC3_ROOT=@{[$self->root_dir]}
+  VC3_DB=@{[catfile($build_dir, $local_database)]}
+  
+  $0 --database \\\${VC3_DB} --install \\\${VC3_ROOT} @{[map { "--require $_" } @{$self->plan->requirements}]}
   
   EOF
   EOFF
@@ -10636,7 +10640,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       return if($self->{silent_run});
   
-      print( ('.' x $self->{indent_level}), join(' ', @rest), "\n");
+      print( ('.' x ($self->{indent_level} || 0)), join(' ', @rest), "\n");
   }
   
   1;
@@ -15039,9 +15043,6 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --dot <file>          Write a dependency graph of the requirements to <file>.
 
-  --parallel <dir>      Write specifications for a parallel build to <dir>.
-                        (Implies --prestage.)
-
   --prestage            Download all files to --distfiles <dir> before
                         processing.
 
@@ -15050,6 +15051,17 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
   --list=section        List general packages available, classified by sections.
 
   --list=all            List all the packages available, even vc3-internals.
+
+
+  Parallel batch build mode:
+  --parallel <dir>      Write specifications for a parallel build to <dir>.
+                        (Implies --prestage.)
+
+  --parallel-mode <m>   One of local, condor, slurm, workqueue, sge, pbs, torque,
+                        or amazon. (Default is local.)
+
+  --parallel-max  <n>   Maximum number of parallel concurrent jobs. (Default is 10.)
+
 
   Developers options:
   --debug               On a builder error, print the full back-trace. 
@@ -15134,9 +15146,12 @@ sub main {
 
     my $env_to;
     my $dot_output;
-    my $parallel_dir;       
     my $to_script;
     my $list_option;
+
+    my $parallel_dir;       
+    my $parallel_mode;       
+    my $parallel_max;       
 
     my $bosco_fix;
 
@@ -15216,7 +15231,9 @@ sub main {
         "var=s"    => \@extra_env_vars,
         "revar=s"  => \@re_vars,
 
-        "parallel=s" => \$parallel_dir,
+        "parallel=s"  => \$parallel_dir,
+        "parallel-mode=s" => \$parallel_mode,
+        "parallel-max=i"  => \$parallel_max,
 
         # options for developing, not for runtime:
         "debug-modules-used" => \$debug_modules_used,
@@ -15263,19 +15280,31 @@ sub main {
             alarm $timeout;
         }
     }
-    
-    if(defined $parallel_dir) {
-        push @no_sys, 'ALL';
-    }
 
     # split mounts
     my $mount_map = get_mount_map(@mounts);
 
     # set defaults
     my @command_and_args = @ARGV;
-    if(!@command_and_args) {
+    if(!@command_and_args and (not defined($parallel_dir))) {
         @command_and_args = ($shell,);
         $interactive_run = 1;
+    }
+
+    # set up parallel mode
+    if(defined $parallel_dir) {
+        push @no_sys, 'ALL';
+
+        $parallel_mode ||= 'local';
+        $parallel_max  ||= 10;
+
+        if(@command_and_args) {
+            die "Cannot specify command-and-args with --parallel build mode.\n";
+        }
+    } else {
+        if(defined($parallel_mode) or defined($parallel_max)) {
+            die "Cannot use --parallel-mode or --parallel-max options without specifying --parallel\n";
+        }
     }
 
     push @extra_env_vars, "MAKEFLAGS=-j${make_jobs}";
@@ -15341,10 +15370,11 @@ sub main {
         $bag->list_packages($list_option);
     }
 
-
     if($bag->dry_run) {
         exit 0;
     }
+
+    $bag->check_manual_requirements();
 
     if(defined $parallel_dir) {
         $bag->to_parallel($parallel_dir, $make_jobs);
@@ -15354,8 +15384,6 @@ sub main {
         $ignore_locks = 1;
         $prestage     = 1;
     }
-
-    $bag->check_manual_requirements();
 
     if($prestage) {
         $bag->plan->prestage();
@@ -15370,6 +15398,11 @@ sub main {
         $bag->preserve_profile(1);
         $bag->set_profile($env_to, @command_and_args);
         $exit_code = 0;
+    } elsif(defined $parallel_dir) {
+        $exit_code = $bag->execute("sh -c 'cd $parallel_dir && ./build -T$parallel_mode -j$parallel_max -J$parallel_max'");
+        if($exit_code) {
+            warn "Parallel build mode failed.\n";
+        }
     } else {
         $exit_code = $bag->execute(@command_and_args);
     }

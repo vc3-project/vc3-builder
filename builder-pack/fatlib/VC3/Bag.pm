@@ -750,7 +750,7 @@ sub decode_bag {
         $catbag_f = *VC3::Builder::DATA;
     } else {
         open($catbag_f, '<:encoding(UTF-8)', $filename) ||
-        die "Could not open '$filename': $!";
+        die "Could not open '$filename': $!\n";
     }
 
     my $contents = do { local($/); <$catbag_f> };
@@ -825,9 +825,13 @@ set -e
 makeflow --shared-fs @{[$self->root_dir]} -r 5 $dag_name "\$@"
 
 cat <<EOF
-To run, from the current directory type:
 
-./$builder_name --database $local_database --install @{[$self->root_dir]} @{[map { "--require $_" } @{$self->plan->requirements}]}
+Parallel build mode complete. To run type:
+
+VC3_ROOT=@{[$self->root_dir]}
+VC3_DB=@{[catfile($build_dir, $local_database)]}
+
+$0 --database \\\${VC3_DB} --install \\\${VC3_ROOT} @{[map { "--require $_" } @{$self->plan->requirements}]}
 
 EOF
 EOFF
@@ -1213,7 +1217,7 @@ sub say {
 
     return if($self->{silent_run});
 
-    print( ('.' x $self->{indent_level}), join(' ', @rest), "\n");
+    print( ('.' x ($self->{indent_level} || 0)), join(' ', @rest), "\n");
 }
 
 1;

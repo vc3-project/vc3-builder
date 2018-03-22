@@ -660,7 +660,8 @@ command-and-args              |  defaults to an interactive shell.
 --var=NAME=VALUE              |  Add environment variable NAME with VALUE. May be specified several times.
 --revar=PATTERN               |  All environment variables matching the regular expression PATTERN are preserved. (E.g. --revar "SGE.\*", --revar NAME is equivalent to -var NAME=\$NAME)
 --interactive                 |  Treat command-and-args as an interactive terminal.
---silent                      |  Do not print dependency information.
+--silent                      |  Do not print any progress information.
+--silent=plan                 |  Do not print dependency information.
 --no-run                      |  Set up environment, but do not execute any payload.
 --timeout=SECONDS             |  Terminate after SECONDS have elapased. If 0, then the timeout is not activated (default).
 --env-to=\<file\>             |  Write environment script to \<file\>.{,env,payload}, but do not execute command-and-args. To execute command-and-args, run ./\<file\>.

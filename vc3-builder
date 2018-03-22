@@ -10638,7 +10638,15 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub say {
       my ($self, @rest) = @_;
   
-      return if($self->{silent_run});
+      return if($self->{silent_run} and $self->{silent_run} ne 'plan');
+  
+      print( ('.' x ($self->{indent_level} || 0)), join(' ', @rest), "\n");
+  }
+  
+  sub say_plan {
+      my ($self, @rest) = @_;
+  
+      return if($self->{silent_run} and $self->{silent_run} eq 'plan');
   
       print( ('.' x ($self->{indent_level} || 0)), join(' ', @rest), "\n");
   }
@@ -10884,7 +10892,7 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   sub say {
       my ($self, @rest) = @_;
   
-      return $self->bag->say(@rest);
+      return $self->bag->say_plan(@rest);
   }
   
   sub elements {
@@ -11286,7 +11294,7 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
       print { $mflow_f } "HOME_DIR = $home\n";
       print { $mflow_f } "DIST_DIR = " . $bag->files_dir  . "\n";
       print { $mflow_f } "REPO     = " . $bag->repository . "\n";
-      print { $mflow_f } "OPTIONS  = --silent --make-jobs \$(CORES) --no-run\n\n";
+      print { $mflow_f } "OPTIONS  = --silent=plan --make-jobs \$(CORES) --no-run\n\n";
   
       print { $mflow_f } "RIBBON   = .VC3_DEPENDENCY_BUILD\n\n";
   
@@ -15031,7 +15039,9 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
 
   --interactive         Treat command-and-args as an interactive terminal.
 
-  --silent              Do not print dependency information.
+  --silent              Do not print any progress information.
+  --silent=plan         Do not print dependency information.
+
   --no-run              Set up environment, but do not execute any payload.
 
   --timeout SECONDS     Terminate after SECONDS have elapased. 
@@ -15137,7 +15147,6 @@ sub main {
     my $no_run             = 0;
     my $debug_run          = 0;
     my $interactive_run    = 0;
-    my $silent             = 0;
     my $force_rebuild      = 0;
     my $prestage           = 0;
     my $timeout;
@@ -15148,6 +15157,8 @@ sub main {
     my $dot_output;
     my $to_script;
     my $list_option;
+
+    my $silent_option;
 
     my $parallel_dir;       
     my $parallel_mode;       
@@ -15174,10 +15185,10 @@ sub main {
     my @saved_args = @ARGV;
 
     my $opt_result = GetOptions(
-        "help"        => \$print_help,
+        "help"  => \$print_help,
+        "debug" => \$debug_run,
 
-        "debug"    => \$debug_run,
-        "silent"   => \$silent,
+        "silent:s" => \$silent_option,
 
         "database=s"  => \@databases,
         "require=s"   => \@requires, 
@@ -15269,7 +15280,7 @@ sub main {
     }
 
     if(defined $list_option) {
-        $silent  = 1;
+        $silent_option = 'ALL';
         $dry_run = 1;
     }
 
@@ -15336,7 +15347,7 @@ sub main {
         shell      => $shell,
         dry_run    => $dry_run,
         on_terminal=> $interactive_run,
-        silent     => $silent,
+        silent     => $silent_option,
         databases  => \@databases,
         pkg_opts   => \%pkg_opts,
         sys_manual => \@sys_manual,

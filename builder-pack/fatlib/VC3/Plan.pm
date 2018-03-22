@@ -32,7 +32,7 @@ sub bag {
 sub say {
     my ($self, @rest) = @_;
 
-    return $self->bag->say(@rest);
+    return $self->bag->say_plan(@rest);
 }
 
 sub elements {
@@ -434,7 +434,7 @@ sub to_makeflow {
     print { $mflow_f } "HOME_DIR = $home\n";
     print { $mflow_f } "DIST_DIR = " . $bag->files_dir  . "\n";
     print { $mflow_f } "REPO     = " . $bag->repository . "\n";
-    print { $mflow_f } "OPTIONS  = --silent --make-jobs \$(CORES) --no-run\n\n";
+    print { $mflow_f } "OPTIONS  = --silent=plan --make-jobs \$(CORES) --no-run\n\n";
 
     print { $mflow_f } "RIBBON   = .VC3_DEPENDENCY_BUILD\n\n";
 

@@ -254,10 +254,8 @@ sub add_source {
     my $saved_state = $self->elements();
 
     if($source->isa('VC3::Source::System')) {
-        unless($self->bag->{system}{$source->widget->package->name}) {
-            next if $self->bag->{no_system}{ALL};
-            next if $self->bag->{no_system}{$source->widget->package->name};
-        }
+        return if $self->bag->{no_system}{ALL};
+        return if $self->bag->{no_system}{$source->widget->package->name};
     }
 
     my $exit_status = -1;
@@ -436,7 +434,7 @@ sub to_makeflow {
     print { $mflow_f } "HOME_DIR = $home\n";
     print { $mflow_f } "DIST_DIR = " . $bag->files_dir  . "\n";
     print { $mflow_f } "REPO     = " . $bag->repository . "\n";
-    print { $mflow_f } "OPTIONS  = --make-jobs \$(CORES) --no-run\n\n";
+    print { $mflow_f } "OPTIONS  = --silent --make-jobs \$(CORES) --no-run\n\n";
 
     print { $mflow_f } "RIBBON   = .VC3_DEPENDENCY_BUILD\n\n";
 

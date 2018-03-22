@@ -169,38 +169,26 @@ which their dependencies are already fulfilled are queued for execution.
 
 For parallel build installations, use the `--parallel` option. It receives one
 argument, a directory to create the parallel build sandbox inside the builder's
-home dir:
+home dir. For example, to build the bioinformatics pipeline `maker` in parallel
+mode using SLURM:
 
 ```
-$ ./vc3-builder --silent --require maker --install /scratch365/b/btovar/my-shared-dir --parallel my-parallel-build
-sh-4.2$ cd my-parallel-build/
-sh-4.2$ ls
-build  builder  dag  recipes
-```
+$ ./vc3-builder --require maker --install /scratch365/b/btovar/my-shared-dir --parallel my-parallel-build --parallel-mode slurm
 
-The build can be started using the `./build` command. The `./build` command
-uses the workflow system [makeflow](http://ccl.cse.nd.edu/software/makeflow) as
-a backend, which allows the build to be executed in different batch systems,
-such as `condor`, `slurm`, `sge`, `torque`, `moab`, `amazon` and `workqueue`.
-For debugging purposes, `local` may also be used.
+(... clipped build information...)
 
-For example, if slurm is available, the build can be executed as:
+Parallel build mode complete. To run type:
 
-```
-sh-4.2$ ./build -Tslurm
-...
-sh-4.2$ exit
+VC3_ROOT=/scratch365/b/btovar/my-shared-dir
+VC3_DB=/scratch365/b/btovar/my-shared-dir/my-parallel-build/recipes
+
+./vc3-builder --database ${VC3_DB} --install ${VC3_ROOT} --require maker
 
 ```
 
-When the build is done, specifying the command:
-
-```
-$ ./vc3-builder --silent --require maker --install /scratch365/b/btovar/my-shared-dir
-```
-
-will launch the builder using the previously installed packages at the selected
-directory.
+In addition to SLURM, other batch systems available are `condor`, `slurm`,
+`sge`, `torque`, `moab`, `amazon`, `workqueue` and `local`. If a mode is not
+specified, `local` is used.  `local` may also be used.
 
 
 RECIPES
@@ -677,10 +665,13 @@ command-and-args              |  defaults to an interactive shell.
 --timeout=SECONDS             |  Terminate after SECONDS have elapased. If 0, then the timeout is not activated (default).
 --env-to=\<file\>             |  Write environment script to \<file\>.{,env,payload}, but do not execute command-and-args. To execute command-and-args, run ./\<file\>.
 --dot=\<file\>                |  Write a dependency graph of the requirements to \<file\>.
---parallel=\<dir\>            |  Write specifications for a parallel build to \<dir\>.
 --list                        |  List general packages available.
 --list=section                |  List general packages available, classified by sections.
 --list=all                    |  List all the packages available, even vc3-internals.
+--parallel=\<dir\>            |  Write specifications for a parallel build to \<dir\>.
+--parallel-mode=\<m\>         |  One of local, condor, slurm, workqueue, sge, pbs, torque, or amazon. (Default is local.)
+--parallel-max=\<n\>          |  Maximum number of parallel concurrent jobs. (Default is 10.)
+--debug                       |  On a builder error, print the full back-trace.
 
 
 REFERENCE

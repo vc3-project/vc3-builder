@@ -816,8 +816,8 @@ sub to_parallel {
 
     File::Path::make_path($abs_dir);
 
-    my $build_dir = catfile($abs_dir, 'build');
-    open my $script_f, '>', "$build_dir" || die "Could not open '$build_dir' for writing: $!";
+    my $build_wrapper = catfile($abs_dir, 'build');
+    open my $script_f, '>', "$build_wrapper" || die "Could not open '$build_wrapper' for writing: $!";
     print { $script_f } <<EOFF;
 #! @{[$self->shell_executable]}
 set -e
@@ -829,7 +829,7 @@ cat <<EOF
 Parallel build mode complete. To run type:
 
 VC3_ROOT=@{[$self->root_dir]}
-VC3_DB=@{[catfile($build_dir, $local_database)]}
+VC3_DB=@{[catfile($abs_dir, $local_database)]}
 
 $0 --database \\\${VC3_DB} --install \\\${VC3_ROOT} @{[map { "--require $_" } @{$self->plan->requirements}]}
 
@@ -837,7 +837,7 @@ EOF
 EOFF
 
     close $script_f;
-    chmod 0755, $build_dir;
+    chmod 0755, $build_wrapper;
 
     my $builder_path = catfile($abs_dir, $builder_name);
     copy($self->builder_path, $builder_path);

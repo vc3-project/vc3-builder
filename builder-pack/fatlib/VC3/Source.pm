@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Source;
 use Carp;
 
@@ -14,19 +17,19 @@ use VC3::Source::OSNative;
 
 our $class_of = {};
 
-$class_of->{'generic'}             = VC3::Source::Generic;
-$class_of->{'configure'}           = VC3::Source::Configure;
-$class_of->{'cmake'}               = VC3::Source::CMake;
-$class_of->{'tarball'}             = VC3::Source::Tarball;
-$class_of->{'manual-distribution'} = VC3::Source::ManualDist;
-$class_of->{'binary'}              = VC3::Source::Binary;
-$class_of->{'system'}              = VC3::Source::System;
-$class_of->{'cpan'}                = VC3::Source::Perl;
-$class_of->{'singularity'}         = VC3::Source::Container::Singularity;
-$class_of->{'os-native'}           = VC3::Source::OSNative;
+$class_of->{'generic'}             = 'VC3::Source::Generic';
+$class_of->{'configure'}           = 'VC3::Source::Configure';
+$class_of->{'cmake'}               = 'VC3::Source::CMake';
+$class_of->{'tarball'}             = 'VC3::Source::Tarball';
+$class_of->{'manual-distribution'} = 'VC3::Source::ManualDist';
+$class_of->{'binary'}              = 'VC3::Source::Binary';
+$class_of->{'system'}              = 'VC3::Source::System';
+$class_of->{'cpan'}                = 'VC3::Source::Perl';
+$class_of->{'singularity'}         = 'VC3::Source::Container::Singularity';
+$class_of->{'os-native'}           = 'VC3::Source::OSNative';
 
 sub new {
-    my ($class, $widget, $source_raw) = @_;
+    my ($widget, $source_raw) = @_;
 
     my $type  = $source_raw->{type} || 'generic';
     my $class = $class_of->{$type};

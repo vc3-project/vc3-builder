@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Source::Perl;
 use base 'VC3::Source::Generic';
 use Carp;

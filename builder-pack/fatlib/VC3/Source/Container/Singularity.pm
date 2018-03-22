@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Source::Container::Singularity;
 use base 'VC3::Source::Generic';
 use Carp;
@@ -71,6 +74,7 @@ sub setup_wrapper {
     my $bag = $self->widget->package->bag;
     my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
 
+    my @wrapper;
     push @wrapper, 'singularity';
     push @wrapper, 'exec';
 

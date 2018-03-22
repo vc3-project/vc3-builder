@@ -1,3 +1,6 @@
+use warnings;
+use strict;
+
 package VC3::Package;
 use Carp;
 use File::Temp;
@@ -38,27 +41,21 @@ sub to_hash {
 
     my $ph = {};
 
-    if($json_description->{versions}) {
-        $self->widgets($json_description->{versions});
-    } else {
-        $self->{widgets} = [];
-    }
-
-    $ph->{name}             = $self->name;
     $ph->{phony}            = $self->phony;
     $ph->{prologue}         = $self->prologue;
     $ph->{wrapper}          = $self->wrapper;
-    $ph->{dependencies}     = $self->dependencies;
     $ph->{options}          = $self->options;
     $ph->{operating_system} = $self->operating_system;
-    $ph->{'environment-variables'} = $self->environment_variables;
+
+    # environment-autovars already included in environment-variables
+    # environment-variables already included in widgets
+    # dependencies included in widgets
+    
     $ph->{'versions'}       = [];
 
     for my $w (@{$self->widgets}) {
         push @{$ph->{versions}}, $w->to_hash;
     }
-
-    # environment-autovars already included in environment-variables
 
     for my $k (keys %{$ph}) {
         unless(defined $ph->{$k}) {

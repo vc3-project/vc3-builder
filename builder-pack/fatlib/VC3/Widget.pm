@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Widget;
 use Carp;
 use POSIX ":sys_wait_h";
@@ -187,7 +190,7 @@ sub source {
     my ($self, $new_source) = @_;
 
     if($new_source) {
-        $self->{source} = VC3::Source->new($self, $new_source);
+        $self->{source} = VC3::Source::new($self, $new_source);
     }
 
     return $self->{source};
@@ -581,7 +584,7 @@ sub setup_build_shell {
     # a non-zero status.
     my ($pid, $build_in) = $self->package->bag->shell();
 
-    croak "Could not open $shell for building."
+    croak "Could not execute shell for building."
     unless $build_in;
 
     # redirect all output to our log file.
@@ -615,7 +618,7 @@ sub compute_auto_version {
         $self->package->bag->del_builder_variable('VC3_PREFIX');
     }
 
-    croak "Could not open $shell for auto-version."
+    croak "Could not execute shell for auto-version."
     unless $auto_in;
 
     my $template = catfile($self->package->bag->tmp_dir, $self->package->name . 'XXXXXX');

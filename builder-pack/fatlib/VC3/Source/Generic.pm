@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Source::Generic;
 use Carp;
 use File::Basename;
@@ -27,6 +30,8 @@ sub new {
 
 sub to_hash {
     my ($self) = @_;
+
+    my $sh = {};
 
     $sh->{type}          = $self->type;
     $sh->{recipe}        = $self->recipe;

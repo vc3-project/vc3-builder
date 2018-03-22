@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Source::AutoRecipe;
 use base 'VC3::Source::Tarball';
 use Carp;

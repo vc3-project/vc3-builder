@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Plan::Element;
 
 sub new {

@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Plan;
 use File::Spec::Functions qw/catfile rel2abs/;
 use JSON::Tiny;
@@ -134,11 +137,11 @@ sub parse_requirement {
 
     my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
 
-    if($min eq 'auto') {
+    if($min and $min eq 'auto') {
         undef $min;
     }
 
-    if($max eq 'auto') {
+    if($max and $max eq 'auto') {
         undef $max;
     }
 

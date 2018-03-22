@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 package VC3::Bag; 
 
 use Carp qw/carp croak/;
@@ -69,7 +72,7 @@ sub new {
 sub list_packages() {
     my ($self, $option) = @_;
 
-    my $ps;
+    my @ps;
     if($option eq 'os') {
         @ps = values %{$self->{op_sys}};
     } else {
@@ -1210,7 +1213,7 @@ sub say {
 
     return if($self->{silent_run});
 
-    print( ('.' x (2*$self->{indent_level})), join(' ', @rest), "\n");
+    print( ('.' x $self->{indent_level}), join(' ', @rest), "\n");
 }
 
 1;

@@ -9421,6 +9421,9 @@ $fatpacked{"LockFile/Simple.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<
 LOCKFILE_SIMPLE
 
 $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG';
+  use strict;
+  use warnings;
+  
   package VC3::Bag; 
   
   use Carp qw/carp croak/;
@@ -9492,7 +9495,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub list_packages() {
       my ($self, $option) = @_;
   
-      my $ps;
+      my @ps;
       if($option eq 'os') {
           @ps = values %{$self->{op_sys}};
       } else {
@@ -10633,7 +10636,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       return if($self->{silent_run});
   
-      print( ('.' x (2*$self->{indent_level})), join(' ', @rest), "\n");
+      print( ('.' x $self->{indent_level}), join(' ', @rest), "\n");
   }
   
   1;
@@ -10641,6 +10644,9 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
 VC3_BAG
 
 $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PACKAGE';
+  use warnings;
+  use strict;
+  
   package VC3::Package;
   use Carp;
   use File::Temp;
@@ -10681,27 +10687,21 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
   
       my $ph = {};
   
-      if($json_description->{versions}) {
-          $self->widgets($json_description->{versions});
-      } else {
-          $self->{widgets} = [];
-      }
-  
-      $ph->{name}             = $self->name;
       $ph->{phony}            = $self->phony;
       $ph->{prologue}         = $self->prologue;
       $ph->{wrapper}          = $self->wrapper;
-      $ph->{dependencies}     = $self->dependencies;
       $ph->{options}          = $self->options;
       $ph->{operating_system} = $self->operating_system;
-      $ph->{'environment-variables'} = $self->environment_variables;
+  
+      # environment-autovars already included in environment-variables
+      # environment-variables already included in widgets
+      # dependencies included in widgets
+      
       $ph->{'versions'}       = [];
   
       for my $w (@{$self->widgets}) {
           push @{$ph->{versions}}, $w->to_hash;
       }
-  
-      # environment-autovars already included in environment-variables
   
       for my $k (keys %{$ph}) {
           unless(defined $ph->{$k}) {
@@ -10846,6 +10846,9 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
 VC3_PACKAGE
 
 $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PLAN';
+  use strict;
+  use warnings;
+  
   package VC3::Plan;
   use File::Spec::Functions qw/catfile rel2abs/;
   use JSON::Tiny;
@@ -10982,11 +10985,11 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   
       my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
   
-      if($min eq 'auto') {
+      if($min and $min eq 'auto') {
           undef $min;
       }
   
-      if($max eq 'auto') {
+      if($max and $max eq 'auto') {
           undef $max;
       }
   
@@ -11388,6 +11391,9 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
 VC3_PLAN
 
 $fatpacked{"VC3/Plan/Element.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PLAN_ELEMENT';
+  use strict;
+  use warnings;
+  
   package VC3::Plan::Element;
   
   sub new {
@@ -11474,6 +11480,9 @@ $fatpacked{"VC3/Plan/Element.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<
 VC3_PLAN_ELEMENT
 
 $fatpacked{"VC3/Ribbon.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_RIBBON';
+  use strict;
+  use warnings;
+  
   package VC3::Ribbon;
   
   use File::Basename; 
@@ -11570,6 +11579,9 @@ $fatpacked{"VC3/Ribbon.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
 VC3_RIBBON
 
 $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE';
+  use strict;
+  use warnings;
+  
   package VC3::Source;
   use Carp;
   
@@ -11586,19 +11598,19 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
   our $class_of = {};
   
-  $class_of->{'generic'}             = VC3::Source::Generic;
-  $class_of->{'configure'}           = VC3::Source::Configure;
-  $class_of->{'cmake'}               = VC3::Source::CMake;
-  $class_of->{'tarball'}             = VC3::Source::Tarball;
-  $class_of->{'manual-distribution'} = VC3::Source::ManualDist;
-  $class_of->{'binary'}              = VC3::Source::Binary;
-  $class_of->{'system'}              = VC3::Source::System;
-  $class_of->{'cpan'}                = VC3::Source::Perl;
-  $class_of->{'singularity'}         = VC3::Source::Container::Singularity;
-  $class_of->{'os-native'}           = VC3::Source::OSNative;
+  $class_of->{'generic'}             = 'VC3::Source::Generic';
+  $class_of->{'configure'}           = 'VC3::Source::Configure';
+  $class_of->{'cmake'}               = 'VC3::Source::CMake';
+  $class_of->{'tarball'}             = 'VC3::Source::Tarball';
+  $class_of->{'manual-distribution'} = 'VC3::Source::ManualDist';
+  $class_of->{'binary'}              = 'VC3::Source::Binary';
+  $class_of->{'system'}              = 'VC3::Source::System';
+  $class_of->{'cpan'}                = 'VC3::Source::Perl';
+  $class_of->{'singularity'}         = 'VC3::Source::Container::Singularity';
+  $class_of->{'os-native'}           = 'VC3::Source::OSNative';
   
   sub new {
-      my ($class, $widget, $source_raw) = @_;
+      my ($widget, $source_raw) = @_;
   
       my $type  = $source_raw->{type} || 'generic';
       my $class = $class_of->{$type};
@@ -11615,6 +11627,9 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
 VC3_SOURCE
 
 $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_AUTORECIPE';
+  use strict;
+  use warnings;
+  
   package VC3::Source::AutoRecipe;
   use base 'VC3::Source::Tarball';
   use Carp;
@@ -11700,6 +11715,9 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
 VC3_SOURCE_AUTORECIPE
 
 $fatpacked{"VC3/Source/Binary.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_BINARY';
+  use strict;
+  use warnings;
+  
   package VC3::Source::Binary;
   use base 'VC3::Source::Generic';
   use Carp;
@@ -11737,6 +11755,9 @@ $fatpacked{"VC3/Source/Binary.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
 VC3_SOURCE_BINARY
 
 $fatpacked{"VC3/Source/CMake.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CMAKE';
+  use strict;
+  use warnings;
+  
   package VC3::Source::CMake;
   use base 'VC3::Source::AutoRecipe';
   use Carp;
@@ -11761,6 +11782,9 @@ $fatpacked{"VC3/Source/CMake.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<
 VC3_SOURCE_CMAKE
 
 $fatpacked{"VC3/Source/Configure.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONFIGURE';
+  use strict;
+  use warnings;
+  
   package VC3::Source::Configure;
   use base 'VC3::Source::AutoRecipe';
   use Carp;
@@ -11782,6 +11806,9 @@ $fatpacked{"VC3/Source/Configure.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
 VC3_SOURCE_CONFIGURE
 
 $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_SINGULARITY';
+  use strict;
+  use warnings;
+  
   package VC3::Source::Container::Singularity;
   use base 'VC3::Source::Generic';
   use Carp;
@@ -11855,6 +11882,7 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       my $bag = $self->widget->package->bag;
       my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
   
+      my @wrapper;
       push @wrapper, 'singularity';
       push @wrapper, 'exec';
   
@@ -11941,6 +11969,9 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
 VC3_SOURCE_CONTAINER_SINGULARITY
 
 $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_GENERIC';
+  use strict;
+  use warnings;
+  
   package VC3::Source::Generic;
   use Carp;
   use File::Basename;
@@ -11970,6 +12001,8 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
   
   sub to_hash {
       my ($self) = @_;
+  
+      my $sh = {};
   
       $sh->{type}          = $self->type;
       $sh->{recipe}        = $self->recipe;
@@ -12331,6 +12364,9 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
 VC3_SOURCE_GENERIC
 
 $fatpacked{"VC3/Source/ManualDist.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_MANUALDIST';
+  use strict;
+  use warnings;
+  
   package VC3::Source::ManualDist;
   use base 'VC3::Source::Generic';
   use Carp;
@@ -12368,6 +12404,9 @@ $fatpacked{"VC3/Source/ManualDist.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
 VC3_SOURCE_MANUALDIST
 
 $fatpacked{"VC3/Source/OSNative.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_OSNATIVE';
+  use strict;
+  use warnings;
+  
   package VC3::Source::OSNative;
   use base 'VC3::Source::Generic';
   use Carp;
@@ -12418,6 +12457,9 @@ $fatpacked{"VC3/Source/OSNative.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n
 VC3_SOURCE_OSNATIVE
 
 $fatpacked{"VC3/Source/Perl.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_PERL';
+  use strict;
+  use warnings;
+  
   package VC3::Source::Perl;
   use base 'VC3::Source::Generic';
   use Carp;
@@ -12465,6 +12507,9 @@ $fatpacked{"VC3/Source/Perl.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<
 VC3_SOURCE_PERL
 
 $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_SYSTEM';
+  use strict;
+  use warnings;
+  
   package VC3::Source::System;
   use base 'VC3::Source::Generic';
   use Carp;
@@ -12549,6 +12594,9 @@ $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
 VC3_SOURCE_SYSTEM
 
 $fatpacked{"VC3/Source/Tarball.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_TARBALL';
+  use strict;
+  use warnings;
+  
   package VC3::Source::Tarball;
   use base 'VC3::Source::Generic';
   use Carp;
@@ -12586,6 +12634,9 @@ $fatpacked{"VC3/Source/Tarball.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
 VC3_SOURCE_TARBALL
 
 $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_WIDGET';
+  use strict;
+  use warnings;
+  
   package VC3::Widget;
   use Carp;
   use POSIX ":sys_wait_h";
@@ -12775,7 +12826,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       my ($self, $new_source) = @_;
   
       if($new_source) {
-          $self->{source} = VC3::Source->new($self, $new_source);
+          $self->{source} = VC3::Source::new($self, $new_source);
       }
   
       return $self->{source};
@@ -13169,7 +13220,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       # a non-zero status.
       my ($pid, $build_in) = $self->package->bag->shell();
   
-      croak "Could not open $shell for building."
+      croak "Could not execute shell for building."
       unless $build_in;
   
       # redirect all output to our log file.
@@ -13203,7 +13254,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
           $self->package->bag->del_builder_variable('VC3_PREFIX');
       }
   
-      croak "Could not open $shell for auto-version."
+      croak "Could not execute shell for auto-version."
       unless $auto_in;
   
       my $template = catfile($self->package->bag->tmp_dir, $self->package->name . 'XXXXXX');

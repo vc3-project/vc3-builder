@@ -12,7 +12,7 @@ sub new {
     $widget->local(1);
 
     unless($json_description->{prerequisites}) {
-        unless($json_description->{native}) {
+        if($json_description->{native}) {
             $json_description->{prerequisites} = [
                 ": check if native is prefix of target",
                 'pref=${VC3_MACHINE_TARGET#' . $json_description->{native} . '}',

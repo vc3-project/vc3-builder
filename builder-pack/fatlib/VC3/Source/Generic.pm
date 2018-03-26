@@ -253,7 +253,7 @@ sub get_file {
 sub get_file_from_mirror {
     my ($self, $mirror, $file) = @_;
 
-    $self->say("checking '" . $file . "' from " . $mirror);
+    $self->say("downloading '" . $file . "' from " . $mirror);
 
     my $ff = HTTP::Tiny->new();
 

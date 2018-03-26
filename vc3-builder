@@ -10204,7 +10204,8 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub build_widget {
       my ($self, $widget, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
   
-      $self->say("processing for @{[$widget->package->name]}-" . $widget->version->normal);
+      my $sys_label = $widget->source->type eq 'system' ? ' (from host)' : '';
+      $self->say("processing for @{[$widget->package->name]}-" . $widget->version->normal . $sys_label);
   
   
       my $exit_status = 0;
@@ -12234,7 +12235,7 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
   sub get_file_from_mirror {
       my ($self, $mirror, $file) = @_;
   
-      $self->say("checking '" . $file . "' from " . $mirror);
+      $self->say("downloading '" . $file . "' from " . $mirror);
   
       my $ff = HTTP::Tiny->new();
   

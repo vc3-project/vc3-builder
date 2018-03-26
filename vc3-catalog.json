@@ -739,11 +739,16 @@
                 "local":1,
                 "source":{
                     "type":"generic",
+                    "files":[
+                        "vc3-builder"
+                    ],
+                    "mirrors":[
+                        "https://raw.githubusercontent.com/vc3-project/vc3-builder/master"
+                    ],
                     "recipe":[
+                        "chmod 755 vc3-builder",
                         "mkdir -p ${VC3_PREFIX}/bin",
-                        "cd ${VC3_PREFIX}/bin",
-                        "wget https://raw.githubusercontent.com/vc3-project/vc3-builder/master/vc3-builder",
-                        "chmod 755 vc3-builder"
+                        "cp vc3-builder ${VC3_PREFIX}/bin"
                     ],
                     "dependencies":{
                         "wget":[

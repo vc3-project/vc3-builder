@@ -19,9 +19,11 @@ sub new {
     $self->widget($widget);
     $self->recipe($json_description->{recipe});
     $self->files($json_description->{files});
+    $self->mirrors($json_description->{mirrors});
     $self->msg_manual_requirement($json_description->{'msg-manual-requirement'});
     $self->dependencies($json_description->{dependencies});
     $self->prerequisites($json_description->{prerequisites});
+
 
     $self->type($json_description->{type} || 'generic');
 
@@ -36,6 +38,7 @@ sub to_hash {
     $sh->{type}          = $self->type;
     $sh->{recipe}        = $self->recipe;
     $sh->{files}         = $self->files;
+    $sh->{mirrors}       = $self->mirrors;
     $sh->{dependencies}  = $self->dependencies;
     $sh->{prerequisites} = $self->prerequisites;
     $sh->{'msg-manual-requirement'} = $self->msg_manual_requirement;
@@ -96,6 +99,18 @@ sub files {
     }
 
     return $self->{files};
+}
+
+sub mirrors {
+    my ($self, $new_mirrors) = @_;
+
+    $self->{mirrors} = $new_mirrors if($new_mirrors);
+
+    unless($self->{mirrors}) {
+        $self->{mirrors} = [];
+    }
+
+    return $self->{mirrors};
 }
 
 sub msg_manual_requirement {
@@ -216,12 +231,32 @@ sub say {
 sub get_file {
     my ($self, $file) = @_;
 
+    my @mirrors = @{$self->mirrors};
+
+    unless( grep { $_ eq $self->bag->repository } @mirrors ) {
+        push @mirrors, $self->bag->repository;
+    }
+
+    for my $m (@mirrors) {
+        eval { $self->get_file_from_mirror($m, $file); };
+
+        return unless $@;
+
+        $self->bag->say($@);
+    }
+
+    die "Could not download '$file' from any of the mirrors.\n";
+}
+
+sub get_file_from_mirror {
+    my ($self, $mirror, $file) = @_;
+
     unless(-f $self->file_absolute($file)) {
-        $self->say("downloading '" . $file . "' from " . $self->bag->repository);
+        $self->say("downloading '" . $file . "' from " . $mirror);
 
         my $ff = HTTP::Tiny->new();
 
-        my $url    = $self->bag->repository . '/' . $file;
+        my $url    = $mirror . '/' . $file;
         my $output = catfile($self->bag->files_dir,  $file);
 
         my $retries = 5;

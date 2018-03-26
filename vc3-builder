@@ -12252,8 +12252,6 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
           $last_modification = gmctime(0)
       }
   
-      print "$last_modification\n";
-  
       for my $i (1..$retries) {
   
           my $response = $ff->mirror($url, $output,

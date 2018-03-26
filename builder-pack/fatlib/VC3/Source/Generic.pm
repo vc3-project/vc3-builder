@@ -7,6 +7,8 @@ use File::Basename;
 use File::Copy;
 use File::Path;
 use File::Spec::Functions qw/catfile rel2abs/;
+use File::stat;
+use Time::gmtime;
 use HTTP::Tiny;
 use POSIX ":sys_wait_h";
 use parent;
@@ -251,45 +253,55 @@ sub get_file {
 sub get_file_from_mirror {
     my ($self, $mirror, $file) = @_;
 
-    unless(-f $self->file_absolute($file)) {
-        $self->say("downloading '" . $file . "' from " . $mirror);
+    $self->say("checking '" . $file . "' from " . $mirror);
 
-        my $ff = HTTP::Tiny->new();
+    my $ff = HTTP::Tiny->new();
 
-        my $url    = $mirror . '/' . $file;
-        my $output = catfile($self->bag->files_dir,  $file);
+    my $url    = $mirror . '/' . $file;
+    my $output = catfile($self->bag->files_dir,  $file);
 
-        my $retries = 5;
-        my $sleep_before_retry = 5; # seconds
-        my $response;
+    my $retries = 5;
+    my $sleep_before_retry = 5; # seconds
 
-        for my $i (1..$retries) {
-            $response = $ff->mirror($url, $output);
+    my $last_modification;
+    if(-f $self->file_absolute($file)) {
+        # + 1 because when dates are the same, HTTP::Tiny is downloading the file...
+        $last_modification = gmctime(stat($self->file_absolute($file))->mtime + 1);
+    } else {
+        $last_modification = gmctime(0)
+    }
 
-            return if $response->{success};
+    for my $i (1..$retries) {
 
-            # 304 means file did not change from the last time we downloaded it
-            return if $response->{status} == 304;
+        my $response = $ff->mirror($url, $output,
+            {'headers' => {
+                    'If-Modified-Since' => $last_modification }});
 
-            # retries:
-            # 408 is request timeout
-            # 503 is service unavailable
-            # 504 is a gatewat timeout
-            # 524 is a cloudflare timeout
-            # 599 is an internal exception of HTTP::Tiny, which may be a timeout too.
-
-            if( grep { $response->{status} == $_ } (408,503,504,524,599) ) {
-                print "Could not download '" . $file . "':\n" . "$response->{status}: $response->{reason}\n";
-                print "$response->{content}\n" if $response->{content};
-                print "Retrying @{[$retries - $i]} more time(s)\n"; 
-
-                VC3::Builder::select_sleep($sleep_before_retry);
-
-                next;
-            }
-
-            die "Could not download '" . $file . "':\n" . "$response->{status} $response->{reason}";
+        # 304 means file did not change from the last time we downloaded it
+        if($response->{status} == 304) {
+            $self->say("local copy of '" . $file . "' was up to date.");
         }
+
+        return if $response->{success};
+
+        # retries:
+        # 408 is request timeout
+        # 503 is service unavailable
+        # 504 is a gatewat timeout
+        # 524 is a cloudflare timeout
+        # 599 is an internal exception of HTTP::Tiny, which may be a timeout too.
+
+        if( grep { $response->{status} == $_ } (408,503,504,524,599) ) {
+            print "Could not download '" . $file . "':\n" . "$response->{status}: $response->{reason}\n";
+            print "$response->{content}\n" if $response->{content};
+            print "Retrying @{[$retries - $i]} more time(s)\n"; 
+
+            VC3::Builder::select_sleep($sleep_before_retry);
+
+            next;
+        }
+
+        die "Could not download '" . $file . "':\n" . "$response->{status} $response->{reason}";
     }
 }
 

@@ -11858,11 +11858,11 @@ $fatpacked{"VC3/Source/Configure.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
   
 VC3_SOURCE_CONFIGURE
 
-$fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_SINGULARITY';
+$fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER';
   use strict;
   use warnings;
   
-  package VC3::Source::Container::Singularity;
+  package VC3::Source::Container;
   use base 'VC3::Source::Generic';
   use Carp;
   use File::Copy;
@@ -11875,34 +11875,34 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
           die "Wrapper specified in conflict with '" . $widget->package->name . "'\n";
       }
   
+  
       my $self = $class->SUPER::new($widget, $json_description);
   
-      $self->{prerequisites} ||= [];
-      unshift @{$self->{prerequisites}}, 'which singularity';
-  
-      unless($self->dependencies) {
-          $self->dependencies({});
-      }
-  
-      $self->{dependencies}{'singularity'} ||= [];
+      # anything with a Container source becomes an operating system
+      $self->widget->package->operating_system(1);
   
       my $image = $json_description->{image};
       unless($image) {
           die "No image specified for '" . $widget->package->name . "'\n";
       }
   
+      $json_description->{'images-directory'} ||= 'images';
+  
       if($image =~ m^://^ or file_name_is_absolute($image)) {
           $self->image($image);
       } else {
-          $image = catfile('images', 'singularity', $image);
+          $image = catfile($json_description->{'images-directory'}, $image);
           $self->image(catfile($self->widget->package->bag->files_dir, $image));
           push @{$self->files}, $image;
       }
   
-      # anything with a singularity source becomes an operating system
-      $self->widget->package->operating_system(1);
-  
       return $self;
+  }
+  
+  sub setup_wrapper {
+      my ($self, $builder_args, $mount_map) = @_;
+  
+      die "Container Source did not define a wrapper.\n";
   }
   
   sub to_hash {
@@ -11929,55 +11929,39 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       return $self->{image};
   }
   
-  sub setup_wrapper {
+  sub prepare_recipe_sandbox {
       my ($self, $builder_args, $payload_args, $mount_map) = @_;
+  
+      $self->get_files();
   
       my $bag = $self->widget->package->bag;
       my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
-  
-      my @wrapper;
-      push @wrapper, 'singularity';
-      push @wrapper, 'exec';
   
       my $root_target  = $self->add_mount($mount_map, $bag->root_dir,  '/opt/vc3-root');
       my $home_target  = $self->add_mount($mount_map, $bag->home_dir,  '/opt/vc3-home');
       my $files_target = $self->add_mount($mount_map, $bag->files_dir, '/opt/vc3-distfiles');
   
-      for my $from (keys %{$mount_map}) {
-          push @wrapper, ('-B', $from . ':' . $mount_map->{$from});
-      }
-  
-      if($bag->{packages}{singularity}->options) {
-          push @wrapper, @{$bag->{packages}{'singularity'}->options};
-      }
-  
-      push @wrapper, $self->image;
-  
-      push @wrapper, catfile($root_target, 'tmp', 'vc3-builder');
-      push @wrapper, '--no-os-switch';
-      push @wrapper, $self->remove_mount_args(@{$builder_args});
-      push @wrapper, ('--install',   $root_target);
-      push @wrapper, ('--distfiles', $files_target);
-      push @wrapper, ('--home',      $home_target);
+      my @new_builder_args;
+      push @new_builder_args, catfile($root_target, 'tmp', 'vc3-builder');
+      push @new_builder_args, '--no-os-switch';
+      push @new_builder_args, $self->remove_mount_args(@{$builder_args});
+      push @new_builder_args, ('--install',   $root_target);
+      push @new_builder_args, ('--distfiles', $files_target);
+      push @new_builder_args, ('--home',      $home_target);
   
       if(scalar @{$payload_args} > 0) {
-          push @wrapper, '--';
-          push @wrapper, @{$payload_args};
+          push @new_builder_args, '--';
+          push @new_builder_args, @{$payload_args};
       }
   
-      $self->widget->wrapper(\@wrapper);
-  
-      # hack to clean soon:
+      # hack to clean!
       my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
       copy($0, $builder_path);
       chmod 0755, $builder_path;
-  }
   
-  sub prepare_recipe_sandbox {
-      my ($self, $builder_args, $payload_args, $mount_map) = @_;
+      my $wrapper = $self->setup_wrapper(\@new_builder_args, $mount_map);
   
-      $self->get_files();
-      $self->setup_wrapper($builder_args, $payload_args, $mount_map);
+      $self->widget->wrapper($wrapper);
   }
   
   sub add_mount {
@@ -12015,6 +11999,53 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       }
   
       return @builder_args;
+  }
+  
+  1;
+  
+VC3_SOURCE_CONTAINER
+
+$fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_SINGULARITY';
+  use strict;
+  use warnings;
+  
+  package VC3::Source::Container::Singularity;
+  use base 'VC3::Source::Container';
+  use Carp;
+  use File::Copy;
+  use File::Spec::Functions qw/catfile file_name_is_absolute/;
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      $json_description->{'images-directory'} = 'images/singularity';
+      my $self = $class->SUPER::new($widget, $json_description);
+  
+      $self->{prerequisites} ||= [];
+      unshift @{$self->{prerequisites}}, 'which singularity';
+  
+      $self->{dependencies} ||= {};
+      $self->{dependencies}{'singularity'} ||= [];
+  
+      return $self;
+  }
+  
+  sub setup_wrapper {
+      my ($self, $builder_args, $mount_map) = @_;
+  
+      my @wrapper;
+      push @wrapper, 'singularity';
+      push @wrapper, 'exec';
+  
+      for my $from (keys %{$mount_map}) {
+          push @wrapper, ('-B', $from . ':' . $mount_map->{$from});
+      }
+  
+      push @wrapper, $self->image;
+  
+      push @wrapper, @{$builder_args};
+  
+      return \@wrapper;
   }
   
   1;

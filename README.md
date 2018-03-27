@@ -636,6 +636,8 @@ cd vc3-builder
 ```
 
 Then, write any recipe files you want included in the `recipes` directory.
+Recipe files names may not contain spaces.
+
 Recipes may be organized in directories, that are read recursevely. Files are
 read in lexicographical order, with later recipe definitions overwriting
 previous ones if package names are repeated.

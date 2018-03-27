@@ -236,7 +236,7 @@ The builder can be provided with additional package recipes using the
 latter package recipes overwriting previous ones. 
 
 The --database option accepts directory or file names. If a directory, it is
-searched recursevely for files with the **.json** extension. Files are read in
+searched recursevely for files with the `.json` extension. Files are read in
 lexicographical order.
 
 A recipe catalog is a JSON encoded object, in which the keys of the object are
@@ -623,6 +623,28 @@ package is required.
 Indicates that the recipe should be executed locally, and not in a remote
 computational node. It is useful when the recipe takes very little time
 compared to scheduling it for parallel execution.
+
+
+ADDING RECIPES TO THE vc3-builder EXECUTABLE
+--------------------------------------------
+
+First, clone the `vc3-builder` repository:
+
+```
+git clone https://github.com/vc3-project/vc3-builder.git
+cd vc3-builder
+```
+
+Then, write any recipe files you want included in the `recipes` directory.
+Recipes may be organized in directories, that are read recursevely. Files are
+read in lexicographical order, with later recipe definitions overwriting
+previous ones if package names are repeated.
+
+Then, use `make` to construct the new `vc3-builder` with your recipes included:
+
+```
+make clean vc3-builder
+```
 
 
 

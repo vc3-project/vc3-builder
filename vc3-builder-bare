@@ -53,48 +53,53 @@ END {
 sub usage {
     my ($script_name) = @_;
     return <<EOF;
-$script_name [options] --require package[:min_version[:max_version]] --require ... [-- command-and-args]
+$script_name [options] [-- command-and-args]
 
   command-and-args      defaults to $shell
 
-  where options are:
+  and options are:
 
-  --database <catalog>  defaults to <internal> if available, otherwise 
-                        to ./vc3_catalog.json. May be specified several times,
-                        with latter package recipes overwriting previous ones. 
+  --require  <pkg>[:<m>[:<M>]]
+                        Ensure that the package <pkg> is installed, optionally
+                        specifying a minimum <m> and maximum <M> version. May
+                        be specified several times.
 
+  --require-os <name>   Ensure the operating system is <name>. May use a
+                        container to fulfill the requirement. May be specified
+                        several times, but only the last occurance is honored.
+                        Use --list=os for a list of available operating
+                        systems. 
+
+  --mount /<x>          Ensure that path /<x> is exists inside the execution
+                        environment. If using --require-os with a non-native
+                        operating system, it is equivalent to --mount /<x>:/<x>
+  --mount /<x>:/<y>     Mount path <x> into path <y> inside the execution
+                        environment.  When executing in a native operating
+                        system, <x> and <y> cannot be different paths.
+
+  --database <f-d>      defaults to <internal> if available. <f-d> may be a
+                        file, or a directory.  The unique file, or the files in
+                        the directory should contain a JSON encoded object with
+                        package recipes.  May be specified several times, with
+                        latter package recipes overwriting previous ones. 
+
+
+  Installation locations:
   --install <root>      Install with base <root>. 
                         Default is ${vc3_root}
   --home <home>         Set \${HOME} to <root>/<home> if <home> is a relative
                         path, otherwise to <home> if it is an absolute path.
                         Default is ${vc3_user_home}
-
   --distfiles <dir>     Directory to cache unbuilt packages locally.
                         Default is ${vc3_distfiles}
-  --repository <url>    Site to fetch packages if needed.
+
+  --repository <url>    Fallback site to fetch packages if needed.
                         Default is ${vc3_repository}
 
-  --require-os <name>   Ensure the operating system is <name>. May use a container to 
-                        fulfill the requirement. May be specified several times,
-                        but only the last occurance is honored.
-                        Use --list=os for a list of available operating systems. 
-
-  --mount /<x>          Ensure that path /<x> is exists inside the execution
-                        environment. If using --require-os with a non-native operating
-                        system, it is equivalent to --mount /<x>:/<x>
-  
-  --mount /<x>:/<y>     Mount path <x> into path <y> inside the execution environment.
-                        When executing in a native operating system, <x> and <y>
-                        cannot be different paths.
-
-  --force               Reinstall the packages named with --require and the
-                        packages they depend on.
-
-
   --make-jobs <n>       Concurrent make jobs. Default is 4.
-  --sh-on-error         On building error, run $shell on the partially-built
-                        environment.
 
+
+  Host system software handling:
   --sys package:version=<dir>
                         Assume <dir> to be the installation location of
                         package:version in the system.
@@ -103,56 +108,71 @@ $script_name [options] --require package[:min_version[:max_version]] --require .
                         package is 'ALL', do not use system versions at
                         all. (Ignored if package specified with --sys.)
 
+
+  Environment variables:
   --var NAME=VALUE      Add environment variable NAME with VALUE. 
                         May be specified several times.
-
   --revar PATTERN       All environment variables matching the regular
                         expression PATTERN are preserved.
                         (E.g. --revar "SGE_.*", --revar NAME is equivalent
                         to -var NAME=\$NAME)
 
+
+  Running options:
+  --force               Reinstall the packages named with --require and the
+                        packages they depend on.
+
   --interactive         Treat command-and-args as an interactive terminal.
 
-  --silent              Do not print any progress information.
-  --silent=plan         Do not print dependency information.
-
   --no-run              Set up environment, but do not execute any payload.
-
-  --timeout SECONDS     Terminate after SECONDS have elapased. 
-                        If 0, then the timeout is not activated (default).
-
-  --env-to <file>       Write environment script to
-                        <file>.{,env,payload}, but do not execute command-and-args.
-                        To execute command-and-args, run ./<file>.
-
-  --dot <file>          Write a dependency graph of the requirements to <file>.
 
   --prestage            Download all files to --distfiles <dir> before
                         processing.
 
-  --list                List general packages available.
+  --silent              Do not print any progress information.
+  --silent=plan         Do not print dependency information.
 
-  --list=section        List general packages available, classified by sections.
+  --timeout SECONDS     Terminate after SECONDS have elapased. 
+                        If 0, then the timeout is not activated (default).
 
+
+  Listing software available:
+  --list                List packages available with their versions.
+                        Software that may be detected as already installed
+                        is marked as 'auto' version 
+  --list=section        List packages available, classified by
+                        sections.
   --list=all            List all the packages available, even vc3-internals.
+
+
+  Output modes:
+  --env-to <file>       Write environment script to <file>.{,env,payload}, but
+                        do not execute command-and-args.
+                        To execute command-and-args, run ./<file>.
+
+  --dot <file>          Write a dependency graph of the requirements to <file>.
 
 
   Parallel batch build mode:
   --parallel <dir>      Write specifications for a parallel build to <dir>.
                         (Implies --prestage.)
 
-  --parallel-mode <m>   One of local, condor, slurm, workqueue, sge, pbs, torque,
-                        or amazon. (Default is local.)
+  --parallel-mode <m>   One of local, condor, slurm, workqueue, sge, pbs,
+                        torque, or amazon. (Default is local.)
 
-  --parallel-max  <n>   Maximum number of parallel concurrent jobs. (Default is 10.)
+  --parallel-max  <n>   Maximum number of parallel concurrent jobs.
+                        (Default is 10.)
 
 
   Developers options:
   --debug               On a builder error, print the full back-trace. 
+  --sh-on-error         On building error, run $shell on the partially-built
+                        environment.
+
 
 Examples:
     ${script_name} --require cvmfs 'ls /cvmfs/atlas.cern.ch' 
-    ${script_name} --require maker-example-ecoli-01
+    ${script_name} --require-os redhat7 --require maker-example-ecoli-01
 EOF
 
 }

@@ -9,13 +9,13 @@ MODULES_DIR=$(shell echo $(MODULES) | xargs -n1 | sed -e 's^::^/^g;s/$$/.pm/')
 
 all: vc3-builder
 
-vc3-builder: $(BARE) | fatlib
-	$(FATPACKER) file $^ -bare > $@ 
+vc3-builder: $(BARE) $(shell find ../recipes/ -name '*.json') $(shell find fatlib/VC3/ -name '*.pm') | fatlib
+	@$(FATPACKER) file $^ -bare > $@ 
 	@sed -i $@ -e '2s/^/#\n# This is an automatically generated file. Do not modify! All changes\n# should go into vc3-builder-bare and the modules in VC3.\n#\n/' 
 	@echo >> $@
 	@echo 'package VC3::Builder;' >> $@
 	@echo '__DATA__' >> $@
-	@cat ../vc3-catalog.json >> $@
+	@for r in ../recipes/*.json; do cat $${r} >> $@; done
 	@chmod 755 $@
 	@echo generated $@
 

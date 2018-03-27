@@ -1,6 +1,6 @@
 all: vc3-builder
 
-vc3-builder: vc3-builder-bare vc3-catalog.json VC3 $(shell find VC3/ -name '*.pm')
+vc3-builder:
 	$(MAKE) -C builder-pack vc3-builder
 	mv builder-pack/vc3-builder .
 

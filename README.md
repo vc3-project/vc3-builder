@@ -235,6 +235,10 @@ The builder can be provided with additional package recipes using the
 --database=\<catalog\> option. The option can be specified several times, with
 latter package recipes overwriting previous ones. 
 
+The --database option accepts directory or file names. If a directory, it is
+searched recursevely for files with the **.json** extension. Files are read in
+lexicographical order.
+
 A recipe catalog is a JSON encoded object, in which the keys of the object are
 the names of the packages. Each package is a JSON object that, among other
 fields, specifies a list of versions of the package and a recipe to fulfill

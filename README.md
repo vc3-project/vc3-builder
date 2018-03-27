@@ -635,14 +635,13 @@ git clone https://github.com/vc3-project/vc3-builder.git
 cd vc3-builder
 ```
 
-Then, write any recipe files you want included in the `recipes` directory.
-Recipe files names may not contain spaces.
+Second, write any recipe files you want included in the `recipes` directory.
+Recipe files names may not contain spaces.  Recipes may be organized in
+directories, that are read recursevely. Files are read in lexicographical
+order, with later recipe definitions overwriting previous ones if package names
+are repeated.
 
-Recipes may be organized in directories, that are read recursevely. Files are
-read in lexicographical order, with later recipe definitions overwriting
-previous ones if package names are repeated.
-
-Then, use `make` to construct the new `vc3-builder` with your recipes included:
+Finally, use `make` to construct the new `vc3-builder` with your recipes included:
 
 ```
 make clean vc3-builder

@@ -287,9 +287,14 @@ $ cat my-wget-recipe.json
 ```
 
 The field `versions` inside the package definition is a list of JSON objects,
-with each object providing the recipe for a version. The files listed in
-`files` are automatically downloaded from the site pointed by the --repository
-option. The lines in the `recipe` field are executed one by one inside a shell.
+with each object providing the recipe for a version.
+
+The files listed in `files` are automatically downloaded from the site pointed
+by the --repository option.  The source specification additionaly accepts the
+`mirrors` field, which is a list of alternative download location for `files`.
+Mirrors are tried in order, finally falling back to the --repository option.
+
+The lines in the `recipe` field are executed one by one inside a shell.
 
 Dependencies list the name of the package and a range of acceptable versions.
 If only one version is provided, it is taken as a minimum acceptable version.

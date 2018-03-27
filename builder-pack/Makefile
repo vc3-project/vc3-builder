@@ -7,6 +7,9 @@ FATPACKER=$(CURDIR)/local/bin/fatpack
 MODULES=$(shell ./find_modules_needed)
 MODULES_DIR=$(shell echo $(MODULES) | xargs -n1 | sed -e 's^::^/^g;s/$$/.pm/')
 
+RECIPES_DIR=../recipes
+RECIPES=$(shell find $(RECIPES_DIR) -name "*.json" | sort) 
+
 all: vc3-builder
 
 vc3-builder: $(BARE) $(shell find ../recipes/ -name '*.json') $(shell find fatlib/VC3/ -name '*.pm') | fatlib
@@ -15,7 +18,9 @@ vc3-builder: $(BARE) $(shell find ../recipes/ -name '*.json') $(shell find fatli
 	@echo >> $@
 	@echo 'package VC3::Builder;' >> $@
 	@echo '__DATA__' >> $@
-	@for r in ../recipes/*.json; do cat $${r} >> $@; done
+	@echo '[' >> $@
+	@sep=''; for r in $(RECIPES); do echo $${sep} >> $@; cat $${r} >> $@; sep=','; done
+	@echo ']' >> $@
 	@chmod 755 $@
 	@echo generated $@
 

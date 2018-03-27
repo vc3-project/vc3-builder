@@ -10150,51 +10150,93 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       my $packages = {};
       my $op_sys   = {};
   
-      for my $filename (@{$databases}) {
-          $self->decode_bag($filename, $pkg_opts, $packages, $op_sys);
+      for my $filespec (@{$databases}) {
+          if(-d $filespec) {
+              $self->decode_bag_dir($filespec, 1, $pkg_opts, $packages, $op_sys);
+          } elsif(-f $filespec) {
+              $self->decode_bag_file($filespec, $pkg_opts, $packages, $op_sys);
+          } elsif($filespec eq '<internal>') {
+              $self->decode_bag_internal($pkg_opts, $packages, $op_sys);
+          }
       }
   
       return ($packages, $op_sys);
   }
   
-  sub decode_bag {
+  sub decode_bag_dir {
+      my ($self, $dir, $depth, $pkg_opts, $packages, $op_sys) = @_;
+  
+      if($depth > 32) {
+          die "Maximum directory depth allowed reached.\n";
+      }
+  
+      my @listing = sort { $a cmp $b } glob catfile($dir, '*');
+  
+      for my $filespec (@listing) {
+          if(-d $filespec) {
+              $self->decode_bag_dir($filespec, $depth+1, $pkg_opts, $packages, $op_sys);
+          } elsif($filespec =~ m/\.json$/) {
+              $self->decode_bag_file($filespec, $pkg_opts, $packages, $op_sys);
+          }
+      }
+  }
+  
+  sub decode_bag_file {
       my ($self, $filename, $pkg_opts, $packages, $op_sys) = @_;
+  
+      open(my $catbag_f, '<:encoding(UTF-8)', $filename) ||
+      die "Could not open '$filename': $!\n";
+  
+      return $self->decode_bag_fh($catbag_f, $pkg_opts, $packages, $op_sys);
+  }
+  
+  sub decode_bag_internal {
+      my ($self, $pkg_opts, $packages, $op_sys) = @_;
   
       {
           no warnings;
-          if($filename eq '<internal>' && tell(VC3::Builder::DATA) == -1) {
-              $filename = './vc3-catalog.json';
-              return $packages unless -f $filename; 
+          if(tell(VC3::Builder::DATA) == -1) {
+              return $packages;
           }
       }
   
-      my $catbag_f;
-      if($filename eq '<internal>') {
-          $catbag_f = *VC3::Builder::DATA;
-      } else {
-          open($catbag_f, '<:encoding(UTF-8)', $filename) ||
-          die "Could not open '$filename': $!\n";
+      my $catbag_f = *VC3::Builder::DATA;
+  
+      return $self->decode_bag_fh($catbag_f, $pkg_opts, $packages, $op_sys);
+  }
+  
+  
+  sub decode_bag_fh {
+      my ($self, $fh, $pkg_opts, $packages, $op_sys) = @_;
+  
+      my $contents = do { local($/); <$fh> };
+      close($fh);
+  
+      my $bag_raw; 
+      eval { $bag_raw = JSON::Tiny::decode_json($contents); };
+      if($@) {
+          die "There was an error while decoding JSON file:\n$@\n";
       }
   
-      my $contents = do { local($/); <$catbag_f> };
-      close($catbag_f);
+      if(ref($bag_raw) ne 'ARRAY') {
+          $bag_raw = [ $bag_raw ];
+      }
   
-      my $bag_raw = JSON::Tiny::decode_json($contents);
+      for my $obj (@{$bag_raw}) {
+          for my $package_name (keys %{$obj}) {
   
+              if(exists $pkg_opts->{$package_name}) {
+                  $obj->{$package_name}{options} = $pkg_opts->{$package_name};
+                  delete $pkg_opts->{$package_name};
+              }
   
-      for my $package_name (keys %{$bag_raw}) {
+              my $pkg = VC3::Package->new($self, $package_name, $obj->{$package_name}, $pkg_opts);
   
-          if(exists $pkg_opts->{$package_name}) {
-              $bag_raw->{$package_name}{options} = $pkg_opts->{$package_name};
-              delete $pkg_opts->{$package_name};
-          }
-  
-          my $pkg = VC3::Package->new($self, $package_name, $bag_raw->{$package_name}, $pkg_opts);
-  
-          if($pkg->operating_system) {
-              $op_sys->{$package_name}   = $pkg;
-          } else {
-              $packages->{$package_name} = $pkg;
+              if($pkg->operating_system) {
+                  $op_sys->{$package_name}   = $pkg;
+              } else {
+                  $packages->{$package_name} = $pkg;
+              }
           }
       }
   
@@ -15725,6 +15767,8 @@ sub remove_vc3_vars() {
 
 package VC3::Builder;
 __DATA__
+[
+
 {
     "noop":{
         "versions":[
@@ -19810,3 +19854,4 @@ __DATA__
 
 }
 
+]

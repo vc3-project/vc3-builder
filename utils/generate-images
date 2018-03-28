@@ -1,13 +1,14 @@
 #! /usr/bin/env perl
 
-# base singularity generate images for vc3 builder
+# generate base singularity and docker images for vc3 builder
 
 use strict;
 use warnings;
 use Carp;
 use Getopt::Long;
 use File::Copy;
-use File::Path;
+use File::Path qw/make_path/;
+use File::Spec::Functions qw/catfile/;
 
 use v5.10;
 
@@ -162,6 +163,7 @@ sub main {
 	my $build;
 	my $recp;
 	my $all;
+	my @types;
 	my $output_dir = 'images';
 
 	GetOptions(
@@ -172,6 +174,8 @@ sub main {
 		"arch=s", => \$arch_opt,
 		"all",    => \$all,
 		"output_dir=s", => \$output_dir,
+		"docker"      => sub { push @types, 'docker'; },
+		"singularity" => sub { push @types, 'singularity'; } 
 	) or die "@{[ show_help() ]}\n";
 
 	if($help) {
@@ -194,20 +198,37 @@ sub main {
 		die "individual builds cannot be specified with --all=<dir>.\n"; 
 	}
 
-	unless( -d $output_dir && -w $output_dir ) {
-		mkdir $output_dir, 0755 || croak "Problem creating '$output_dir': $@";
+	unless(@types) {
+		@types = ('singularity', 'docker');
 	}
 
-	if($all) {
-		generate_all_images($arch, $output_dir, $recp);
-	} else {
-		my ($dist, $version, $output_name) = @{ARGV};
-		generate_image($arch, $dist, $version, $output_dir, $output_name, $recp);
+	make_path($output_dir, { mode => 0755 });
+	unless( -d $output_dir && -w $output_dir ) {
+		die "Problem creating '$output_dir': $@";
+	}
+
+	for my $type (@types) {
+		if($all) {
+			generate_all_images($type, $arch, $output_dir, $recp);
+		} else {
+			my ($dist, $version, $output_name) = @{ARGV};
+			generate_image($type, $arch, $dist, $version, $output_dir, $output_name, $recp);
+		}
+	}
+}
+
+sub generate_all_images {
+	my ($type, $arch, $output_dir, $recp) = @_;
+
+	for my $dist (keys %versions_of) {
+		for my $version (@{$versions_of{$dist}}) {
+			generate_image($type, $arch, $dist, $version, $output_dir, output_name($type, $arch, $dist, $version), $recp);
+		}
 	}
 }
 
 sub generate_image {
-	my ($arch, $dist, $version, $output_dir, $output_name, $recp) = @_;
+	my ($type, $arch, $dist, $version, $output_dir, $output_name, $recp) = @_;
 
 	unless($dist and $version) {
 		show_help();
@@ -223,83 +244,55 @@ sub generate_image {
 	}
 
 	unless($output_name) {
-		$output_name = output_name($arch, $dist, $version);
+		$output_name = output_name($type, $arch, $dist, $version);
 		warn "No output prefix given, using $output_name\n";
 	}
 
-	my $sin_name = "$output_dir/$output_name.sin";
-	my $img_name = "$output_dir/$output_name.img";
+	if($type eq 'singularity') {
+		return generate_singularity_image($arch, $dist, $version, $output_dir, $output_name, $recp);
+	} elsif($type eq 'docker') {
+		return generate_docker_image($arch, $dist, $version, $output_dir, $output_name, $recp);
+	} else {
+		die "I don't know how to build images of type '$type'.\n";
+	}
+}
+
+sub generate_singularity_image {
+	my ($arch, $dist, $version, $output_dir, $output_name, $recp) = @_;
+
+	make_path(catfile($output_dir, 'singularity'), { mode => 0755 });
+
+	my $sin_name = catfile($output_dir, 'singularity', "$output_name.sin");
+	my $img_name = catfile($output_dir, 'singularity', "$output_name.img");
 
 	say "Creating Singularity file: $sin_name";
 	open my $sin_fh, '>', $sin_name || croak "Problem with '$sin_name': $@";
-	print { $sin_fh } sinfile_for($dist, $version, $img_name, $sin_name);
+	print { $sin_fh } singularity_file_for($dist, $version, $img_name, $sin_name);
 	close $sin_fh;
 
 	unless($recp) {
-		say "Build image $img_name from: $sin_name";
+		my $exit_status;
 
-		-e "$img_name"     && qx(sudo rm -rf "$img_name");
-		-d "$img_name.sbx" && qx(sudo rm -rf "$img_name.sbx");
+		say "Building image $img_name from: $sin_name";
 
-		qx(sudo singularity build --sandbox "$img_name.sbx" "$sin_name")
-		|| die "Could not build image with $sin_name\n";
+		-e "$img_name"     && system(qq(sudo rm -rf "$img_name"));
+		-d "$img_name.sbx" && system(qq(sudo rm -rf "$img_name.sbx"));
 
-		qx(sudo singularity build "$img_name" "$img_name.sbx")
-		|| die "Could not build from $img_name.sbx\n";
-
-		qx(sudo rm -rf $img_name.sbx);
-	}
-}
-
-sub generate_all_images {
-	my ($arch, $output_dir, $recp) = @_;
-
-	for my $dist (keys %versions_of) {
-		for my $version (@{$versions_of{$dist}}) {
-			generate_image($arch, $dist, $version, $output_dir, output_name($arch, $dist, $version), $recp);
+		$exit_status = system(qq(sudo singularity build --sandbox "$img_name.sbx" "$sin_name"));
+		unless($exit_status == 0) {
+			die "Could not build image with $sin_name\n";
 		}
-	}
-}
 
-sub show_help {
-	say "Use:";
-	say "$0 [options] [distribution version outputprefix]";
-	say "\n Example:\n$0 --arch x86_64 centos 7 Singularity.vc3.x86_64-centos7";
-	say "\nproduces Singularity.vc3.x86_64-centos7.{sin,img}";
-	say "\noptions:";
-	say "\t--help            Show this message.";
-	say "\t--all             Build all known platforms.";
-	say "\t--outputdir=<dir> Build platforms into dir (default ./images).";
-	say "\t--build           Build from previously generated reciped only.";
-	say "\t--arch=<arch>     Othen than x86_64 (the default), nothing has been tested.";
-	say "\t--list            List known platforms.";
-	say "\t--recp            Generate recipes only, not images.";
-
-	return '';
-}
-
-sub output_name {
-	my ($arch, $dist, $version) = @_;
-
-	return "Singularity.vc3.$arch-$dist$version";
-}
-
-
-sub list_known_platforms {
-	my @platforms = ();
-
-	for my $dist (keys %versions_of) {
-		for my $v (@{$versions_of{$dist}}) {
-			push @platforms, "${dist} ${v}";
+		$exit_status = system(qq(sudo singularity build "$img_name" "$img_name.sbx"));
+		unless($exit_status == 0) {
+			die "Could not build from $img_name.sbx\n";
 		}
+
+		system(qq(sudo rm -rf $img_name.sbx));
 	}
-
-	@platforms = sort { $a cmp $b } @platforms;
-
-	return @platforms;
 }
 
-sub sinfile_for {
+sub singularity_file_for {
     my ($dist, $version, $img_name, $sin_name) = @_;
     my @packages;
 	
@@ -316,7 +309,7 @@ sub sinfile_for {
 	my $sinfile = <<EOF;
 # Singularity image VC3 for $dist$version
 # Build as: singularity build $img_name $sin_name
-# Run as:   singularity shell $img_name -- /bin/sh
+# Run as:   singularity shell $img_name
 #
 
 Bootstrap: docker
@@ -337,6 +330,131 @@ EOF
 	}
 
 	return $sinfile;
+}
+
+
+sub generate_docker_image {
+	my ($arch, $dist, $version, $output_dir, $output_name, $recp) = @_;
+
+	make_path(catfile($output_dir, 'docker'), { mode => 0755 });
+
+	my $doc_name = catfile($output_dir, 'docker', "$output_name.dockerfile");
+	my $img_name = catfile($output_dir, 'docker', "$output_name.img");
+	my $tag      = "vc3project/builder-$dist$version";
+
+	say "Creating Docker file: $doc_name";
+	open my $doc_fh, '>', $doc_name || croak "Problem with '$doc_name': $@";
+	print { $doc_fh } dockerfile_for($dist, $version, $img_name, $doc_name);
+	close $doc_fh;
+
+	unless($recp) {
+		my $exit_status;
+
+		say "Building image from $doc_name to $tag";
+
+		my $context = catfile($output_dir, 'docker', 'context');
+		-d $context && system(qq(sudo rm -rf $context));
+
+		make_path($context, { mode => 0755 });
+		copy $doc_name, "$context/Dockerfile";
+
+		-e "$img_name"     && system(qq(sudo rm -rf "$img_name"));
+		system(qq(sudo docker rmi "$tag"));
+
+		$exit_status = system(qq(sudo docker build  --tag="$tag" --no-cache=true --force-rm $context));
+		unless($exit_status == 0) {
+			die "Could not build image with $doc_name\n";
+		}
+
+		say "Saving image from $tag to $img_name";
+		$exit_status = system(qq(sudo docker save --output "$img_name" "$tag"));
+		unless($exit_status == 0) {
+			die "Could not save to $img_name\n";
+		}
+
+		chmod $img_name, 0755;
+	}
+}
+
+sub dockerfile_for {
+    my ($dist, $version, $img_name, $doc_name) = @_;
+    my @packages;
+	
+	@packages = map { $package_for{$dist}{$version}{$_} || $package_for{$dist}{default}{$_} || die "Undefined dependency $_" } @dependencies;
+
+	if($extras_for{$dist} and $extras_for{$dist}{$version}) {
+		@packages = (@packages, @{$extras_for{$dist}{$version}});
+	}
+
+	if($extras_for{$dist} and $extras_for{$dist}{default}) {
+		@packages = (@packages, @{$extras_for{$dist}{default}});
+	}
+
+	my @runs;
+	push @runs, "$command_for{$dist} @packages";
+
+	if($postinstall_for{$dist}) {
+		my $posts = $postinstall_for{$dist}{$version} || $postinstall_for{$dist}{default};
+		if($posts) { 
+			push @runs, @{$posts};
+		}
+	}
+
+	my $docfile = <<EOF;
+# Docker image VC3 for $dist$version
+# Build as: docker build --tag="vc3/$dist$version" --no-cache=true --force-rm .
+#           docker save --output $img_name "vc3/$dist$version" 
+# Run as:   docker run   -i -t --rm --tag="vc3/$dist$version" /bin/sh
+#
+
+FROM $dist:$version
+WORKDIR /
+RUN @{[join(' && ', @runs)]}
+
+EOF
+
+	return $docfile;
+}
+
+
+sub show_help {
+	say "Use:";
+	say "$0 [options] [distribution version outputprefix]";
+	say "\n Example:\n$0 --arch x86_64 centos 7 Singularity.vc3.x86_64-centos7";
+	say "\nproduces Singularity.vc3.x86_64-centos7.{sin,img}";
+	say "\noptions:";
+	say "\t--help            Show this message.";
+	say "\t--all             Build all known platforms.";
+	say "\t--outputdir=<dir> Build platforms into dir (default ./images).";
+	say "\t--build           Build from previously generated reciped only.";
+	say "\t--arch=<arch>     Othen than x86_64 (the default), nothing has been tested.";
+	say "\t--list            List known platforms.";
+	say "\t--recp            Generate recipes only, not images.";
+	say "\t--docker          Generate docker images.";
+	say "\t--singularity     Generate singularity images.";
+
+	return '';
+}
+
+sub output_name {
+	my ($type, $arch, $dist, $version) = @_;
+
+	return ucfirst($type) . ".vc3.$arch-$dist$version";
+}
+
+
+sub list_known_platforms {
+	my @platforms = ();
+
+	for my $dist (keys %versions_of) {
+		for my $v (@{$versions_of{$dist}}) {
+			push @platforms, "${dist} ${v}";
+		}
+	}
+
+	@platforms = sort { $a cmp $b } @platforms;
+
+	return @platforms;
 }
 
 # vim: set noexpandtab tabstop=4:

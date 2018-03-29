@@ -1,0 +1,26 @@
+#! /bin/sh
+
+set -e
+
+if [ -z "$HOST_USER_UID" ] || [ -z "$HOST_USER_GID" ]
+then
+    echo "Please run the docker image adding the arguments: -e HOST_USER_UID=<uid> -e HOST_USER_GID=<gid>" >&2
+    exit 1
+fi
+
+if ! getent group ${HOST_USER_GID} > /dev/null 2>&1
+then
+    if ! groupadd -g ${HOST_USER_GID} vc3-user
+    then
+        echo "Could not add group 'vc3-user' with gid ${HOST_USER_GID}"
+        exit 1
+    fi
+fi
+
+if ! getent passwd ${HOST_USER_UID} > /dev/null 2>&1
+then
+    /usr/sbin/useradd --create-home -d /home/vc3-user --uid ${HOST_USER_UID} --gid ${HOST_USER_GID} --no-user-group --shell /bin/sh vc3-user
+fi
+
+exec /sbin/drop-priviliges ${HOST_USER_UID} ${HOST_USER_GID} "$@"
+

@@ -44,6 +44,9 @@ my %extras_for;
 # distribution -> command to install name of package in distribution
 my %command_for;
 
+# list of shell commands to execute pre installation.
+my %preinstall_for;
+
 # list of shell commands to execute post installation.
 my %postinstall_for;
 
@@ -51,13 +54,13 @@ $versions_of{centos} = [ qw{ 7 6 } ];
 $command_for{centos} = 'yum install -y';
 
 $versions_of{ubuntu} = [ qw{ 16.04  } ];
-$command_for{ubuntu} = 'apt-get update && apt-get install -y';
+$command_for{ubuntu} = 'apt-get install -y';
 
 $versions_of{debian} = [ qw{ 9.2 } ];
 $command_for{debian} = $command_for{ubuntu};
 
 $versions_of{opensuse} = [ qw{ 42.3 } ];
-$command_for{opensuse} = 'zypper --non-interactive update && zypper --non-interactive patch && zypper --non-interactive install';
+$command_for{opensuse} = 'zypper --non-interactive install';
 
 
 # e.g., $package_for{distro}{version}{dependency} == 'package'
@@ -88,13 +91,17 @@ which                    => 'which',
 
 $extras_for{centos}{default} = ['perl-core', 'libc-devel'];
 
+$postinstall_for{centos}{default} = [
+	'yum -y clean all'
+];
+
 ########## UBUNTU ########## 
 $package_for{ubuntu}{default} = {
 cmake                    => 'cmake',
 bzip2                    => 'bzip2',
 cc                       => 'gcc',
-curl                     => 'curl',
 cplusplus                => 'g++',
+curl                     => 'curl',
 find                     => 'findutils',
 fortran                  => 'gfortran',
 git                      => 'git',
@@ -112,15 +119,22 @@ which                    => 'debianutils',
 
 $extras_for{ubuntu}{default} = ['tzdata', 'locales'];
 
+$preinstall_for{ubuntu}{default} = [
+	"apt-get update"
+];
+		
 $postinstall_for{ubuntu}{default} = [
 	'echo en_US.UTF-8 UTF-8 >> /etc/locale.gen',
-	'/usr/sbin/locale-gen'
+	'/usr/sbin/locale-gen',
+	'apt-get clean'
 ];
 
 ########## DEBIAN ##########
 $package_for{debian}{default}     = { %{$package_for{ubuntu}{default}} };
 
 $extras_for{debian}{default}      = [ @{$extras_for{ubuntu}{default}} ];
+
+$preinstall_for{debian}{default}  = [ @{$preinstall_for{ubuntu}{default}} ];
 
 $postinstall_for{debian}{default} = [ @{$postinstall_for{ubuntu}{default}} ];
 
@@ -147,6 +161,14 @@ which                    => 'which',
 };
 
 $extras_for{opensuse}{default} = ['timezone'];
+
+for my $v (@{$versions_of{opensuse}}) {
+	$preinstall_for{opensuse}{$v} = [
+		'zypper --gpg-auto-import-keys --non-interactive update',
+		'zypper --gpg-auto-import-keys --non-interactive patch',
+		'zypper clean -a'
+	];
+}
 
 unless (caller) {
     main();
@@ -217,6 +239,45 @@ sub main {
 	}
 }
 
+sub show_help {
+	say "Use:";
+	say "$0 [options] [distribution version outputprefix]";
+	say "\n Example:\n$0 --arch x86_64 centos 7 Singularity.vc3.x86_64-centos7";
+	say "\nproduces Singularity.vc3.x86_64-centos7.{sin,img}";
+	say "\noptions:";
+	say "\t--help            Show this message.";
+	say "\t--all             Build all known platforms.";
+	say "\t--outputdir=<dir> Build platforms into dir (default ./images).";
+	say "\t--build           Build from previously generated reciped only.";
+	say "\t--arch=<arch>     Othen than x86_64 (the default), nothing has been tested.";
+	say "\t--list            List known platforms.";
+	say "\t--recp            Generate recipes only, not images.";
+	say "\t--docker          Generate docker images.";
+	say "\t--singularity     Generate singularity images.";
+
+	return '';
+}
+
+sub list_known_platforms {
+	my @platforms = ();
+
+	for my $dist (keys %versions_of) {
+		for my $v (@{$versions_of{$dist}}) {
+			push @platforms, "${dist} ${v}";
+		}
+	}
+
+	@platforms = sort { $a cmp $b } @platforms;
+
+	return @platforms;
+}
+
+sub output_name {
+	my ($type, $arch, $dist, $version) = @_;
+
+	return ucfirst($type) . ".vc3.$arch-$dist$version";
+}
+
 sub generate_all_images {
 	my ($type, $arch, $output_dir, $recp) = @_;
 
@@ -278,9 +339,11 @@ sub generate_singularity_image {
 		-e "$img_name"     && system(qq(sudo rm -rf "$img_name"));
 		-d "$img_name.sbx" && system(qq(sudo rm -rf "$img_name.sbx"));
 
-		$exit_status = system(qq(sudo singularity build --sandbox "$img_name.sbx" "$sin_name"));
+		my $output = qx(sudo singularity build --sandbox "$img_name.sbx" "$sin_name");
+		$exit_status = $?;
+
 		unless($exit_status == 0) {
-			die "Could not build image with $sin_name\n";
+			die "Could not build image with $sin_name. Output:\n$output\n";
 		}
 
 		$exit_status = system(qq(sudo singularity build "$img_name" "$img_name.sbx"));
@@ -292,8 +355,8 @@ sub generate_singularity_image {
 	}
 }
 
-sub singularity_file_for {
-    my ($dist, $version, $img_name, $sin_name) = @_;
+sub spec_preamble_file_for {
+    my ($dist, $version) = @_;
     my @packages;
 	
 	@packages = map { $package_for{$dist}{$version}{$_} || $package_for{$dist}{default}{$_} || die "Undefined dependency $_" } @dependencies;
@@ -306,6 +369,31 @@ sub singularity_file_for {
 		@packages = (@packages, @{$extras_for{$dist}{default}});
 	}
 
+	my @steps;
+	if($preinstall_for{$dist}) {
+		my $pres = $preinstall_for{$dist}{$version} || $preinstall_for{$dist}{default};
+		if($pres) { 
+			push @steps, @{$pres};
+		}
+	}
+
+	push @steps, "$command_for{$dist} @packages";
+
+	if($postinstall_for{$dist}) {
+		my $posts = $postinstall_for{$dist}{$version} || $postinstall_for{$dist}{default};
+		if($posts) { 
+			push @steps, @{$posts};
+		}
+	}
+
+	return @steps;
+}
+
+sub singularity_file_for {
+	my ($dist, $version, $img_name, $sin_name) = @_;
+
+	my @steps = spec_preamble_file_for($dist, $version);
+
 	my $sinfile = <<EOF;
 # Singularity image VC3 for $dist$version
 # Build as: singularity build $img_name $sin_name
@@ -316,18 +404,9 @@ Bootstrap: docker
 From: $dist:$version
 
 %post
-	$command_for{$dist} @packages
+	@{[join("\n\t", @steps)]}
 
 EOF
-
-	if($postinstall_for{$dist}) {
-		my $posts = $postinstall_for{$dist}{$version} || $postinstall_for{$dist}{default};
-		if($posts) { 
-			$sinfile = join("\n\t", $sinfile, @{$posts});
-		}
-
-		$sinfile .= "\n";
-	}
 
 	return $sinfile;
 }
@@ -356,14 +435,18 @@ sub generate_docker_image {
 		-d $context && system(qq(sudo rm -rf $context));
 
 		make_path($context, { mode => 0755 });
-		copy $doc_name, "$context/Dockerfile";
+		copy $doc_name,       "$context/Dockerfile";
+		copy 'drop-priviliges.c',   "$context/";
+		copy 'run-with-user', "$context/";
 
 		-e "$img_name"     && system(qq(sudo rm -rf "$img_name"));
-		system(qq(sudo docker rmi "$tag"));
+		qx(sudo docker rmi "$tag");
 
-		$exit_status = system(qq(sudo docker build  --tag="$tag" --no-cache=true --force-rm $context));
+		my $output = qx(sudo docker build  --tag="$tag" --no-cache=true --force-rm $context);
+		$exit_status = $?;
+
 		unless($exit_status == 0) {
-			die "Could not build image with $doc_name\n";
+			die "Could not build image with $doc_name. Output:\n$output\n";
 		}
 
 		say "Saving image from $tag to $img_name";
@@ -372,33 +455,16 @@ sub generate_docker_image {
 			die "Could not save to $img_name\n";
 		}
 
-		chmod $img_name, 0755;
+		chmod 0755, $img_name;
 	}
 }
 
 sub dockerfile_for {
     my ($dist, $version, $img_name, $doc_name) = @_;
-    my @packages;
-	
-	@packages = map { $package_for{$dist}{$version}{$_} || $package_for{$dist}{default}{$_} || die "Undefined dependency $_" } @dependencies;
 
-	if($extras_for{$dist} and $extras_for{$dist}{$version}) {
-		@packages = (@packages, @{$extras_for{$dist}{$version}});
-	}
+	my @steps = spec_preamble_file_for($dist, $version);
 
-	if($extras_for{$dist} and $extras_for{$dist}{default}) {
-		@packages = (@packages, @{$extras_for{$dist}{default}});
-	}
-
-	my @runs;
-	push @runs, "$command_for{$dist} @packages";
-
-	if($postinstall_for{$dist}) {
-		my $posts = $postinstall_for{$dist}{$version} || $postinstall_for{$dist}{default};
-		if($posts) { 
-			push @runs, @{$posts};
-		}
-	}
+	push @steps, ('gcc /tmp/drop-priviliges.c -o /sbin/drop-priviliges', 'rm /tmp/drop-priviliges.c');
 
 	my $docfile = <<EOF;
 # Docker image VC3 for $dist$version
@@ -409,52 +475,15 @@ sub dockerfile_for {
 
 FROM $dist:$version
 WORKDIR /
-RUN @{[join(' && ', @runs)]}
+COPY drop-priviliges.c /tmp/
+COPY run-with-user /sbin/
+RUN @{[join(' && ', @steps)]}
+SHELL ["/bin/sh", "/sbin/run-with-user", "/bin/sh", "-c"]
+ENTRYPOINT ["/bin/sh", "/sbin/run-with-user", "/bin/sh", "-c"]
 
 EOF
 
 	return $docfile;
-}
-
-
-sub show_help {
-	say "Use:";
-	say "$0 [options] [distribution version outputprefix]";
-	say "\n Example:\n$0 --arch x86_64 centos 7 Singularity.vc3.x86_64-centos7";
-	say "\nproduces Singularity.vc3.x86_64-centos7.{sin,img}";
-	say "\noptions:";
-	say "\t--help            Show this message.";
-	say "\t--all             Build all known platforms.";
-	say "\t--outputdir=<dir> Build platforms into dir (default ./images).";
-	say "\t--build           Build from previously generated reciped only.";
-	say "\t--arch=<arch>     Othen than x86_64 (the default), nothing has been tested.";
-	say "\t--list            List known platforms.";
-	say "\t--recp            Generate recipes only, not images.";
-	say "\t--docker          Generate docker images.";
-	say "\t--singularity     Generate singularity images.";
-
-	return '';
-}
-
-sub output_name {
-	my ($type, $arch, $dist, $version) = @_;
-
-	return ucfirst($type) . ".vc3.$arch-$dist$version";
-}
-
-
-sub list_known_platforms {
-	my @platforms = ();
-
-	for my $dist (keys %versions_of) {
-		for my $v (@{$versions_of{$dist}}) {
-			push @platforms, "${dist} ${v}";
-		}
-	}
-
-	@platforms = sort { $a cmp $b } @platforms;
-
-	return @platforms;
 }
 
 # vim: set noexpandtab tabstop=4:

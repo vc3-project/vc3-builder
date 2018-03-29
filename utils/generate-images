@@ -455,7 +455,7 @@ sub generate_docker_image {
 			die "Could not save to $img_name\n";
 		}
 
-		chmod 0755, $img_name;
+		qx("sudo chmod 0755 $img_name");
 	}
 }
 

@@ -712,10 +712,10 @@ sub cleanup_signal_handler {
     my ($signal) = @_;
 
     if($signal) {
-        warn("Got signal!: $signal");
+        warn("Got signal!: $signal\n");
 
         if($signal eq 'ALRM') {
-            warn("Timeout!");
+            warn("Timeout!\n");
         }
 
         exit 128;

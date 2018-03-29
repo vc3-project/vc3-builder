@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 package VC3::Source::Container;
-use base 'VC3::Source::Generic';
+use base 'VC3::Source::System';
 use Carp;
 use File::Copy;
 use File::Spec::Functions qw/catfile file_name_is_absolute/;

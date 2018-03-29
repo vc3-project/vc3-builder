@@ -13,16 +13,13 @@ sub new {
     my $exe = $json_description->{executable};
 
     if($exe) {
+        $json_description->{prerequisites} ||= [];
+        unshift @{$json_description->{prerequisites}}, "which $exe";
+
         unless($json_description->{recipe}) {
             $json_description->{recipe} = [
                 "bin=\$(dirname \$(which $exe))",
                 "echo VC3_ROOT_SYSTEM: \${bin%%bin}"
-            ];
-        }
-
-        unless($json_description->{prerequisites}) {
-            $json_description->{prerequisites} = [
-                "which $exe",
             ];
         }
 

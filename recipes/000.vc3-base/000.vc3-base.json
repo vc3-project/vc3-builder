@@ -3962,14 +3962,25 @@
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/([0-9]+(\\.[0-9]+){2}).*/\\1/')"
-                    ],
                     "executable":"singularity"
                 }
             }
         ]
     },
+
+    "docker":{
+        "tags":["containers"],
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"docker"
+                }
+            }
+        ]
+    },
+
 
     "redhat6":{
         "tags":["operating systems"],
@@ -3988,6 +3999,13 @@
                 "source":{
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-centos6.img"
+                }
+            },
+            {
+                "version":"6.9",
+                "source":{
+                    "type":"docker",
+                    "image":"docker://vc3project/builder-centos6"
                 }
             }
         ]
@@ -4011,6 +4029,13 @@
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-centos7.img"
                 }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"docker",
+                    "image":"docker://vc3project/builder-centos7"
+                }
             }
         ]
     },
@@ -4032,6 +4057,13 @@
                 "source":{
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-ubuntu16.04.img"
+                }
+            },
+            {
+                "version":"16.04",
+                "source":{
+                    "type":"docker",
+                    "image":"docker://vc3project/builder-ubuntu16.04"
                 }
             }
         ]
@@ -4055,6 +4087,13 @@
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-debian9.2.img"
                 }
+            },
+            {
+                "version":"9.2",
+                "source":{
+                    "type":"docker",
+                    "image":"docker://vc3project/builder-debian9.2"
+                }
             }
         ]
     },
@@ -4077,9 +4116,16 @@
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-opensuse42.3.img"
                 }
+            },
+            {
+                "version":"42.3",
+                "source":{
+                    "type":"docker",
+                    "imagei":"Docker.vc3.x86_64-centos6.img",
+                    "image":"docker://vc3project/builder-opensuse42.3"
+                }
             }
         ]
     }
-
 }
 

@@ -13,11 +13,11 @@ sub new {
     $json_description->{'images-directory'} = 'images/singularity';
     my $self = $class->SUPER::new($widget, $json_description);
 
-    $self->{prerequisites} ||= [];
-    unshift @{$self->{prerequisites}}, 'which singularity';
-
     $self->{dependencies} ||= {};
     $self->{dependencies}{'singularity'} ||= [];
+
+    $self->{prerequisites} ||= [];
+    unshift @{$self->{prerequisites}}, 'which singularity';
 
     return $self;
 }

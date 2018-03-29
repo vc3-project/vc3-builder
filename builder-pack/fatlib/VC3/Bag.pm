@@ -214,7 +214,13 @@ sub set_builder_variables {
 
     $self->shell_executable($shell);
 
-    $self->user_name(getlogin() || $ENV{'USER'} || 'vc3-user');
+    # the var $> has the effective uid of the current user
+    $self->user_uid($>);
+
+    # the var $) has the effective groups of the current user
+    $self->user_gid($));
+
+    $self->user_name($ENV{'USER'} || getpwuid($self->user_uid) || 'vc3-user');
 
     my $executable = $RealScript;
     if($executable eq '-e') {
@@ -229,6 +235,7 @@ sub set_builder_variables {
         File::Path::make_path($self->files_dir);
         File::Path::make_path(catfile($self->files_dir, 'manual-distribution'));
         File::Path::make_path(catfile($self->files_dir, 'images', 'singularity'));
+        File::Path::make_path(catfile($self->files_dir, 'images', 'docker'));
         File::Path::make_path($self->home_dir);
         File::Path::make_path($self->tmp_dir);
     };
@@ -350,6 +357,33 @@ sub user_name {
     $self->{user_name} = $name if($name);
 
     return $self->{user_name};
+}
+
+sub user_uid {
+    my ($self, $uid) = @_;
+
+    $self->{user_uid} = $uid if($uid);
+
+    return $self->{user_uid};
+}
+
+sub user_gid {
+    my ($self, $gids) = @_;
+
+    if($gids) {
+        my @all = split(' ', $gids);
+        $self->{user_gid} = $all[0];
+    }
+
+    return $self->{user_gid};
+}
+
+sub on_terminal {
+    my ($self, $ont) = @_;
+
+    $self->{on_terminal} = $ont if($ont);
+
+    return $self->{on_terminal};
 }
 
 

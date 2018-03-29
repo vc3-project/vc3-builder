@@ -13,7 +13,7 @@ vc3-builder-static: vc3-builder
 builder-pack/static/vc3-builder-static: vc3-builder-bare
 	$(MAKE) -C builder-pack/static vc3-builder-static
 
-.PHONY: clean static
+.PHONY: vc3-builder clean static
 
 clean:
 	-$(MAKE) -C builder-pack clean

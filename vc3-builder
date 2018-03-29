@@ -9637,7 +9637,13 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       $self->shell_executable($shell);
   
-      $self->user_name(getlogin() || $ENV{'USER'} || 'vc3-user');
+      # the var $> has the effective uid of the current user
+      $self->user_uid($>);
+  
+      # the var $) has the effective groups of the current user
+      $self->user_gid($));
+  
+      $self->user_name($ENV{'USER'} || getpwuid($self->user_uid) || 'vc3-user');
   
       my $executable = $RealScript;
       if($executable eq '-e') {
@@ -9652,6 +9658,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
           File::Path::make_path($self->files_dir);
           File::Path::make_path(catfile($self->files_dir, 'manual-distribution'));
           File::Path::make_path(catfile($self->files_dir, 'images', 'singularity'));
+          File::Path::make_path(catfile($self->files_dir, 'images', 'docker'));
           File::Path::make_path($self->home_dir);
           File::Path::make_path($self->tmp_dir);
       };
@@ -9773,6 +9780,33 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       $self->{user_name} = $name if($name);
   
       return $self->{user_name};
+  }
+  
+  sub user_uid {
+      my ($self, $uid) = @_;
+  
+      $self->{user_uid} = $uid if($uid);
+  
+      return $self->{user_uid};
+  }
+  
+  sub user_gid {
+      my ($self, $gids) = @_;
+  
+      if($gids) {
+          my @all = split(' ', $gids);
+          $self->{user_gid} = $all[0];
+      }
+  
+      return $self->{user_gid};
+  }
+  
+  sub on_terminal {
+      my ($self, $ont) = @_;
+  
+      $self->{on_terminal} = $ont if($ont);
+  
+      return $self->{on_terminal};
   }
   
   
@@ -11647,6 +11681,7 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   use VC3::Source::System;
   use VC3::Source::Perl;
   use VC3::Source::Container::Singularity;
+  use VC3::Source::Container::Docker;
   use VC3::Source::OSNative;
   
   our $class_of = {};
@@ -11660,6 +11695,7 @@ $fatpacked{"VC3/Source.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   $class_of->{'system'}              = 'VC3::Source::System';
   $class_of->{'cpan'}                = 'VC3::Source::Perl';
   $class_of->{'singularity'}         = 'VC3::Source::Container::Singularity';
+  $class_of->{'docker'}              = 'VC3::Source::Container::Docker';
   $class_of->{'os-native'}           = 'VC3::Source::OSNative';
   
   sub new {
@@ -11863,7 +11899,7 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
   use warnings;
   
   package VC3::Source::Container;
-  use base 'VC3::Source::Generic';
+  use base 'VC3::Source::System';
   use Carp;
   use File::Copy;
   use File::Spec::Functions qw/catfile file_name_is_absolute/;
@@ -12005,6 +12041,84 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
   
 VC3_SOURCE_CONTAINER
 
+$fatpacked{"VC3/Source/Container/Docker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_DOCKER';
+  use strict;
+  use warnings;
+  
+  package VC3::Source::Container::Docker;
+  use base 'VC3::Source::Container';
+  use Carp;
+  use File::Copy;
+  use File::Spec::Functions qw/catfile file_name_is_absolute/;
+  
+  sub new {
+      my ($class, $widget, $json_description) = @_;
+  
+      $json_description->{'images-directory'} = 'images/docker';
+      my $self = $class->SUPER::new($widget, $json_description);
+  
+      $self->{prerequisites} ||= [];
+      unshift @{$self->{prerequisites}}, 'id -Gn 2> /dev/null | grep docker';
+  
+      $self->{dependencies} ||= {};
+      $self->{dependencies}{'docker'} ||= [];
+  
+      return $self;
+  }
+  
+  sub setup_wrapper {
+      my ($self, $builder_args, $mount_map) = @_;
+  
+      my $bag = $self->widget->package->bag;
+  
+      my @wrapper;
+      push @wrapper, 'docker';
+      push @wrapper, 'run';
+  
+      push @wrapper, '--rm=true';
+  
+      # it would be nice to have this one, but we can't because we need to create
+      # the user...
+      #push @wrapper, '--read-only';
+  
+      # for things that need ptrace:
+      push @wrapper, ('--security-opt', 'seccomp=unconfined');
+  
+      if($bag->{on_terminal}) {
+          push @wrapper, ('-i', '-t');
+      }
+  
+      for my $from (keys %{$mount_map}) {
+          push @wrapper, ('--volume', $from . ':' . $mount_map->{$from});
+      }
+  
+      push @wrapper, ('--tmpfs', '/tmp');
+  
+      push @wrapper, ('--workdir', $mount_map->{$bag->home_dir()});
+  
+      push @wrapper, ('-e', 'HOST_USER_UID=' . $bag->user_uid());
+      push @wrapper, ('-e', 'HOST_USER_GID=' . $bag->user_gid());
+  
+      my $image = $self->image;
+      if($image =~ m#^docker://#) {
+          $image =~ s#^docker://##;
+      } elsif(-f $image) {
+          system("docker load -i $image");
+      } else {
+          die "I don't know how to process '$image'\n";
+      }
+  
+      push @wrapper, $image;
+  
+      push @wrapper, @{$builder_args};
+  
+      return \@wrapper;
+  }
+  
+  1;
+  
+VC3_SOURCE_CONTAINER_DOCKER
+
 $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_SOURCE_CONTAINER_SINGULARITY';
   use strict;
   use warnings;
@@ -12021,11 +12135,11 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       $json_description->{'images-directory'} = 'images/singularity';
       my $self = $class->SUPER::new($widget, $json_description);
   
-      $self->{prerequisites} ||= [];
-      unshift @{$self->{prerequisites}}, 'which singularity';
-  
       $self->{dependencies} ||= {};
       $self->{dependencies}{'singularity'} ||= [];
+  
+      $self->{prerequisites} ||= [];
+      unshift @{$self->{prerequisites}}, 'which singularity';
   
       return $self;
   }
@@ -12653,16 +12767,13 @@ $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
       my $exe = $json_description->{executable};
   
       if($exe) {
+          $json_description->{prerequisites} ||= [];
+          unshift @{$json_description->{prerequisites}}, "which $exe";
+  
           unless($json_description->{recipe}) {
               $json_description->{recipe} = [
                   "bin=\$(dirname \$(which $exe))",
                   "echo VC3_ROOT_SYSTEM: \${bin%%bin}"
-              ];
-          }
-  
-          unless($json_description->{prerequisites}) {
-              $json_description->{prerequisites} = [
-                  "which $exe",
               ];
           }
   
@@ -15759,10 +15870,10 @@ sub cleanup_signal_handler {
     my ($signal) = @_;
 
     if($signal) {
-        warn("Got signal!: $signal");
+        warn("Got signal!: $signal\n");
 
         if($signal eq 'ALRM') {
-            warn("Timeout!");
+            warn("Timeout!\n");
         }
 
         exit 128;
@@ -19764,14 +19875,25 @@ __DATA__
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/([0-9]+(\\.[0-9]+){2}).*/\\1/')"
-                    ],
                     "executable":"singularity"
                 }
             }
         ]
     },
+
+    "docker":{
+        "tags":["containers"],
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"docker"
+                }
+            }
+        ]
+    },
+
 
     "redhat6":{
         "tags":["operating systems"],
@@ -19790,6 +19912,13 @@ __DATA__
                 "source":{
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-centos6.img"
+                }
+            },
+            {
+                "version":"6.9",
+                "source":{
+                    "type":"docker",
+                    "image":"docker://vc3project/builder-centos6"
                 }
             }
         ]
@@ -19813,6 +19942,13 @@ __DATA__
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-centos7.img"
                 }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"docker",
+                    "image":"docker://vc3project/builder-centos7"
+                }
             }
         ]
     },
@@ -19834,6 +19970,13 @@ __DATA__
                 "source":{
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-ubuntu16.04.img"
+                }
+            },
+            {
+                "version":"16.04",
+                "source":{
+                    "type":"docker",
+                    "image":"docker://vc3project/builder-ubuntu16.04"
                 }
             }
         ]
@@ -19857,6 +20000,13 @@ __DATA__
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-debian9.2.img"
                 }
+            },
+            {
+                "version":"9.2",
+                "source":{
+                    "type":"docker",
+                    "image":"docker://vc3project/builder-debian9.2"
+                }
             }
         ]
     },
@@ -19879,10 +20029,17 @@ __DATA__
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-opensuse42.3.img"
                 }
+            },
+            {
+                "version":"42.3",
+                "source":{
+                    "type":"docker",
+                    "imagei":"Docker.vc3.x86_64-centos6.img",
+                    "image":"docker://vc3project/builder-opensuse42.3"
+                }
             }
         ]
     }
-
 }
 
 ]

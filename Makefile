@@ -2,7 +2,7 @@ all: vc3-builder
 
 vc3-builder:
 	$(MAKE) -C builder-pack vc3-builder
-	mv builder-pack/vc3-builder .
+	cp builder-pack/vc3-builder .
 
 static: vc3-builder-static
 

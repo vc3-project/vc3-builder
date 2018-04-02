@@ -599,6 +599,14 @@ Here we include an example for Red Hat 7:
                     "type":"singularity",
                     "image":"Singularity.vc3.x86_64-centos7.img"
                 }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"docker",
+                    "drop-priviliges":1,
+                    "image":"docker://virtualclusters/os:centos7"
+                }
             }
         ]
     },
@@ -613,6 +621,19 @@ In the `singularity` type, the image file provided is downloaded from
 `<repository\>/images/singularity`, where repository is specified by the
 `--repository` option. If the image is not file, but starts with `docker://` or
 `shub://`, it is downloaded from the corresponding image repository.
+
+For the `docker` type, if the image specification does not begin with
+`docker://`, it is considered as a file to be downloaded from
+`<repository\>/images/singularity`, otherwise it is considered as tag to be
+downloaded from the docker repository configured at the host (usually
+`docker.io`).
+
+In addition for the `docker` type, when `drop-priviliges:1` is used, the `uid`
+and `gid` of the user running the builder are used for the user running the
+image, creating users and groups if necessary. This is necessary, for example,
+to allow the `--mount` option to work in distributed filesystem. Otherwise,
+files in the distributed filesystem would be accessed using the default docker
+user `root`, which most likely would yield a permissions error.
 
 #### Recipes bits-and-pieces
 

@@ -19939,7 +19939,7 @@ __DATA__
                 "source":{
                     "type":"docker",
                     "drop-priviliges":1,
-                    "image":"docker://vc3project/builder-centos6"
+                    "image":"docker://virtualclusters/os:centos6"
                 }
             }
         ]
@@ -19969,7 +19969,7 @@ __DATA__
                 "source":{
                     "type":"docker",
                     "drop-priviliges":1,
-                    "image":"docker://vc3project/builder-centos7"
+                    "image":"docker://virtualclusters/os:centos7"
                 }
             }
         ]
@@ -19999,7 +19999,7 @@ __DATA__
                 "source":{
                     "type":"docker",
                     "drop-priviliges":1,
-                    "image":"docker://vc3project/builder-ubuntu16.04"
+                    "image":"docker://virtualclusters/os:ubuntu16.04"
                 }
             }
         ]
@@ -20029,7 +20029,7 @@ __DATA__
                 "source":{
                     "type":"docker",
                     "drop-priviliges":1,
-                    "image":"docker://vc3project/builder-debian9.2"
+                    "image":"docker://virtualclusters/os:debian9.2"
                 }
             }
         ]

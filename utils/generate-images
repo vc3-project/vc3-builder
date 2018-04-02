@@ -419,7 +419,7 @@ sub generate_docker_image {
 
 	my $doc_name = catfile($output_dir, 'docker', "$output_name.dockerfile");
 	my $img_name = catfile($output_dir, 'docker', "$output_name.img");
-	my $tag      = "vc3project/builder-$dist$version";
+	my $tag      = "virtualclusters/os:$dist$version";
 
 	say "Creating Docker file: $doc_name";
 	open my $doc_fh, '>', $doc_name || croak "Problem with '$doc_name': $@";
@@ -449,13 +449,16 @@ sub generate_docker_image {
 			die "Could not build image with $doc_name. Output:\n$output\n";
 		}
 
+		# retagging for upload:
+		qx(docker tag "$tag" "docker.io/$tag");
+
 		say "Saving image from $tag to $img_name";
 		$exit_status = system(qq(sudo docker save --output "$img_name" "$tag"));
 		unless($exit_status == 0) {
 			die "Could not save to $img_name\n";
 		}
 
-		qx("sudo chmod 0755 $img_name");
+		qx(sudo chmod 755 $img_name);
 	}
 }
 
@@ -464,13 +467,13 @@ sub dockerfile_for {
 
 	my @steps = spec_preamble_file_for($dist, $version);
 
-	push @steps, ('gcc /tmp/drop-priviliges.c -o /sbin/drop-priviliges', 'rm /tmp/drop-priviliges.c');
+	push @steps, ('chmod 755 /sbin/run-with-user', 'gcc /tmp/drop-priviliges.c -o /sbin/drop-priviliges', 'rm /tmp/drop-priviliges.c');
 
 	my $docfile = <<EOF;
 # Docker image VC3 for $dist$version
-# Build as: docker build --tag="vc3/$dist$version" --no-cache=true --force-rm .
+# Build as: docker build --tag="virtualclusters/os:$dist$version" --no-cache=true --force-rm .
 #           docker save --output $img_name "vc3/$dist$version" 
-# Run as:   docker run   -i -t --rm --tag="vc3/$dist$version" /bin/sh
+# Run as:   docker run   -i -t --rm --tag="virtualclusters/os:$dist$version" /bin/sh
 #
 
 FROM $dist:$version
@@ -478,8 +481,6 @@ WORKDIR /
 COPY drop-priviliges.c /tmp/
 COPY run-with-user /sbin/
 RUN @{[join(' && ', @steps)]}
-SHELL ["/bin/sh", "/sbin/run-with-user", "/bin/sh", "-c"]
-ENTRYPOINT ["/bin/sh", "/sbin/run-with-user", "/bin/sh", "-c"]
 
 EOF
 

@@ -362,7 +362,9 @@ sub user_name {
 sub user_uid {
     my ($self, $uid) = @_;
 
-    $self->{user_uid} = $uid if($uid);
+    if(defined $uid) {
+        $self->{user_uid} = $uid;
+    }
 
     return $self->{user_uid};
 }
@@ -370,7 +372,7 @@ sub user_uid {
 sub user_gid {
     my ($self, $gids) = @_;
 
-    if($gids) {
+    if(defined $gids) {
         my @all = split(' ', $gids);
         $self->{user_gid} = $all[0];
     }

@@ -9785,7 +9785,9 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub user_uid {
       my ($self, $uid) = @_;
   
-      $self->{user_uid} = $uid if($uid);
+      if(defined $uid) {
+          $self->{user_uid} = $uid;
+      }
   
       return $self->{user_uid};
   }
@@ -9793,7 +9795,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub user_gid {
       my ($self, $gids) = @_;
   
-      if($gids) {
+      if(defined $gids) {
           my @all = split(' ', $gids);
           $self->{user_gid} = $all[0];
       }
@@ -12063,7 +12065,19 @@ $fatpacked{"VC3/Source/Container/Docker.pm"} = '#line '.(1+__LINE__).' "'.__FILE
       $self->{dependencies} ||= {};
       $self->{dependencies}{'docker'} ||= [];
   
+      $self->drop_priviliges($json_description->{'drop-priviliges'});
+  
       return $self;
+  }
+  
+  sub drop_priviliges {
+      my ($self, $new_drop_priviliges) = @_;
+  
+      if(defined $new_drop_priviliges) {
+          $self->{drop_priviliges} = $new_drop_priviliges;
+      }
+  
+      return $self->{drop_priviliges};
   }
   
   sub setup_wrapper {
@@ -12096,8 +12110,9 @@ $fatpacked{"VC3/Source/Container/Docker.pm"} = '#line '.(1+__LINE__).' "'.__FILE
   
       push @wrapper, ('--workdir', $mount_map->{$bag->home_dir()});
   
-      push @wrapper, ('-e', 'HOST_USER_UID=' . $bag->user_uid());
-      push @wrapper, ('-e', 'HOST_USER_GID=' . $bag->user_gid());
+      if($self->drop_priviliges) {
+          push @wrapper, ('--entrypoint', '/sbin/run-with-user');
+      }
   
       my $image = $self->image;
       if($image =~ m#^docker://#) {
@@ -12109,6 +12124,11 @@ $fatpacked{"VC3/Source/Container/Docker.pm"} = '#line '.(1+__LINE__).' "'.__FILE
       }
   
       push @wrapper, $image;
+  
+      # pass first arguments to run-with-user, if needed
+      if($self->drop_priviliges) {
+          push @wrapper, ($bag->user_uid, $bag->user_gid);
+      }
   
       push @wrapper, @{$builder_args};
   
@@ -19918,6 +19938,7 @@ __DATA__
                 "version":"6.9",
                 "source":{
                     "type":"docker",
+                    "drop-priviliges":1,
                     "image":"docker://vc3project/builder-centos6"
                 }
             }
@@ -19947,6 +19968,7 @@ __DATA__
                 "version":"7.4",
                 "source":{
                     "type":"docker",
+                    "drop-priviliges":1,
                     "image":"docker://vc3project/builder-centos7"
                 }
             }
@@ -19976,6 +19998,7 @@ __DATA__
                 "version":"16.04",
                 "source":{
                     "type":"docker",
+                    "drop-priviliges":1,
                     "image":"docker://vc3project/builder-ubuntu16.04"
                 }
             }
@@ -20005,6 +20028,7 @@ __DATA__
                 "version":"9.2",
                 "source":{
                     "type":"docker",
+                    "drop-priviliges":1,
                     "image":"docker://vc3project/builder-debian9.2"
                 }
             }
@@ -20034,8 +20058,8 @@ __DATA__
                 "version":"42.3",
                 "source":{
                     "type":"docker",
-                    "imagei":"Docker.vc3.x86_64-centos6.img",
-                    "image":"docker://vc3project/builder-opensuse42.3"
+                    "drop-priviliges":1,
+                    "image":"docker://virtualclusters/os:opensuse42.3"
                 }
             }
         ]

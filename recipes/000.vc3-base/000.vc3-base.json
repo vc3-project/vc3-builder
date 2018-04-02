@@ -4005,6 +4005,7 @@
                 "version":"6.9",
                 "source":{
                     "type":"docker",
+                    "drop-priviliges":1,
                     "image":"docker://vc3project/builder-centos6"
                 }
             }
@@ -4034,6 +4035,7 @@
                 "version":"7.4",
                 "source":{
                     "type":"docker",
+                    "drop-priviliges":1,
                     "image":"docker://vc3project/builder-centos7"
                 }
             }
@@ -4063,6 +4065,7 @@
                 "version":"16.04",
                 "source":{
                     "type":"docker",
+                    "drop-priviliges":1,
                     "image":"docker://vc3project/builder-ubuntu16.04"
                 }
             }
@@ -4092,6 +4095,7 @@
                 "version":"9.2",
                 "source":{
                     "type":"docker",
+                    "drop-priviliges":1,
                     "image":"docker://vc3project/builder-debian9.2"
                 }
             }
@@ -4121,8 +4125,8 @@
                 "version":"42.3",
                 "source":{
                     "type":"docker",
-                    "imagei":"Docker.vc3.x86_64-centos6.img",
-                    "image":"docker://vc3project/builder-opensuse42.3"
+                    "drop-priviliges":1,
+                    "image":"docker://virtualclusters/os:opensuse42.3"
                 }
             }
         ]

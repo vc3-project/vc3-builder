@@ -2,9 +2,12 @@
 
 set -e
 
+HOST_USER_UID=$1; shift
+HOST_USER_GID=$1; shift
+
 if [ -z "$HOST_USER_UID" ] || [ -z "$HOST_USER_GID" ]
 then
-    echo "Please run the docker image adding the arguments: -e HOST_USER_UID=<uid> -e HOST_USER_GID=<gid>" >&2
+    echo "Usage: $0 UID GID command-and-args" >&2
     exit 1
 fi
 
@@ -20,6 +23,11 @@ fi
 if ! getent passwd ${HOST_USER_UID} > /dev/null 2>&1
 then
     /usr/sbin/useradd --create-home -d /home/vc3-user --uid ${HOST_USER_UID} --gid ${HOST_USER_GID} --no-user-group --shell /bin/sh vc3-user
+fi
+
+if [ -z $1 ]
+then
+    set /bin/sh
 fi
 
 exec /sbin/drop-priviliges ${HOST_USER_UID} ${HOST_USER_GID} "$@"

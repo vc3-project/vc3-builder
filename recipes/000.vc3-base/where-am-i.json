@@ -1,0 +1,107 @@
+{
+    "redhat-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "[ -f /etc/redhat-release ] || exit 1"
+                    ],
+                    "recipe":[
+                        "INPUT=/etc/redhat-release",
+                        "version=$(cat ${INPUT} | sed -r -e 's/.*release ([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: redhat ${version}"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "os-file-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "[ -f /etc/os-release ] || exit 1"
+                    ],
+                    "recipe":[
+                        "INPUT=/etc/os-release",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^ID=/{s/^ID=\"(.*)\"/\\1/p;q}')",
+                        "version=$(cat ${INPUT} | sed -n -r '/^VERSION_ID=/{s/^VERSION_ID=\"([0-9]+(\\.[0-9]+){0,2}).*\"/\\1/p;q}')",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "debian-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "[ -f /etc/debian_version ] || exit 1"
+                    ],
+                    "recipe":[
+                        "INPUT=/etc/debian_version",
+                        "version=$(cat ${INPUT} | sed -r -e 's/.*([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: debian ${version}"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "lsb-exe-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "which lsb_release"
+                    ],
+                    "recipe":[
+                        "distro=$(lsb_release -is | tr '[A-Z]' '[a-z]' | sed 's/ //g')",
+                        "version=$(lsb_release -rs | sed -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "[ -n \"${distro}\"  ] || exit 1",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "lsb-file-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "[ -f /etc/lsb-release ] || exit 1"
+                    ],
+                    "recipe":[
+                        "INPUT=/etc/lsb-release",
+                        "[ -f ${INPUT} ] || exit 1",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=(.*)/\\1/p;q}') | tr '[A-Z] '[a-z]' | sed 's/ //g'",
+                        "version=$(cat ${INPUT} | sed -n -r '/^DISTRIB_RELEASE=/{s/^DISTRIB_RELEASE=\"([^\"]+)\"/\\1/p;q}')",
+                        "[ -n \"${distro}\" ] || exit 1",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
+                    ]
+                }
+            }
+        ]
+    }
+}
+

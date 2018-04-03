@@ -618,7 +618,7 @@ sub compute_auto_version {
         $self->package->bag->del_builder_variable('VC3_PREFIX');
     }
 
-    croak "Could not execute shell for auto-version."
+    die "Could not execute shell for auto-version.\n"
     unless $auto_in;
 
     my $template = catfile($self->package->bag->tmp_dir, $self->package->name . 'XXXXXX');
@@ -645,7 +645,7 @@ sub compute_auto_version {
     eval { close $auto_in; $status = $? };
 
     if($@) {
-        carp $@;
+        warn "$@\n";
     }
 
     open(my $f, '<', $fname) || die 'Did not produce auto-version file';
@@ -661,13 +661,85 @@ sub compute_auto_version {
     }
     close $f;
     if(!$version) {
-        die "Did not produce version information:\n" . join("\n", @lines);
+        die $self->package->name . " did not produce version information:\n" . join("\n", @lines);
     }
 
     return $version;
 }
 
 
+sub compute_os_distribution {
+    my ($self) = @_;
+
+    unless($self->source) {
+        die "I don't know how to find the distribution from '" . $self->package->name . "'\n";
+    }
+
+    my ($pid, $auto_in) = $self->package->bag->shell();
+
+    die "Could not execute shell for operating-system-distro.\n"
+    unless $auto_in;
+
+    my $template = catfile($self->package->bag->tmp_dir, $self->package->name . 'XXXXXX');
+    my $fh = File::Temp->new(template => $template, unlink => 1);
+    close($fh);
+    
+    my $fname = $fh->filename;
+
+    # redirect all output to our log file.
+    print { $auto_in } 'exec 1> ' . $fname . "\n";
+    print { $auto_in } "exec 2>&1\n";
+    print { $auto_in } "set -ex\n";
+
+    for my $step (@{$self->source->recipe}) {
+        print { $auto_in } "$step\n";
+    }
+    print { $auto_in } "exit 0\n";
+
+    my $status = -1;
+    eval { close $auto_in; $status = $? };
+
+    if($@) {
+        warn "$@\n";
+    }
+
+    open(my $f, '<', $fname) || die 'Did not produce a distribution file';
+    my @lines;
+    my $distro;
+    while( my $line = <$f>) {
+        push @lines, $line;
+        if($line =~ m/^VC3_MACHINE_DISTRIBUTION:\s*(?<distro>.*)/) {
+            $distro = $+{distro};
+            chomp($distro);
+            last;
+        }
+    }
+    close $f;
+    if(!$distro) {
+        warn $self->package->name . " did not produce distribution information:\n" . join("\n", @lines);
+        return;
+    }
+
+    return $self->distro_canonical_name($distro);
+}
+
+sub distro_canonical_name {
+    my ($self, $distro) = @_;
+
+    my ($name, $version) = split(' ', $distro);
+
+    if($name =~ m/(redhat|rhel|centos)/) {
+        $name = 'redhat';
+    } elsif($name =~ m/debian/) {
+        $name = 'debian';
+    } elsif($name =~ m/ubuntu/) {
+        $name = 'ubuntu';
+    } elsif($name =~ m/opensuse/) {
+        $name = 'opensuse';
+    }
+
+    return "$name$version";
+}
 
 
 1;

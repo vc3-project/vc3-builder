@@ -18,7 +18,7 @@ sub new {
     my $self = $class->SUPER::new($widget, $json_description);
 
     # anything with a Container source becomes an operating system
-    $self->widget->package->operating_system(1);
+    $self->widget->package->type('operating-system');
 
     my $image = $json_description->{image};
     unless($image) {

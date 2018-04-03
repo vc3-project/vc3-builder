@@ -3985,7 +3985,7 @@
     "redhat6":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -4015,7 +4015,7 @@
     "redhat7":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -4045,7 +4045,7 @@
     "ubuntu16":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -4075,7 +4075,7 @@
     "debian9":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -4105,7 +4105,7 @@
     "opensuse42":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",

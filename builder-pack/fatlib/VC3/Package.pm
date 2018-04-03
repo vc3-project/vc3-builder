@@ -22,7 +22,9 @@ sub new {
     $self->environment_variables($json_description->{'environment-variables'});
     $self->environment_autovars($json_description->{'environment-autovars'});
     $self->phony($json_description->{phony});
-    $self->operating_system($json_description->{'operating-system'});
+
+    $json_description->{'type'} ||= 'package';
+    $self->type($json_description->{'type'});
 
     $self->show_in_list($json_description->{'show-in-list'});
     $self->tags($json_description->{'tags'});
@@ -41,11 +43,11 @@ sub to_hash {
 
     my $ph = {};
 
-    $ph->{phony}            = $self->phony;
-    $ph->{prologue}         = $self->prologue;
-    $ph->{wrapper}          = $self->wrapper;
-    $ph->{options}          = $self->options;
-    $ph->{operating_system} = $self->operating_system;
+    $ph->{phony}     = $self->phony;
+    $ph->{prologue}  = $self->prologue;
+    $ph->{wrapper}   = $self->wrapper;
+    $ph->{options}   = $self->options;
+    $ph->{type}      = $self->type;
 
     # environment-autovars already included in environment-variables
     # environment-variables already included in widgets
@@ -187,12 +189,12 @@ sub tags {
     return $self->{tags};
 }
 
-sub operating_system {
-    my ($self, $new_os) = @_;
+sub type {
+    my ($self, $new_type) = @_;
 
-    $self->{operating_system} = $new_os if($new_os);
+    $self->{type} = $new_type if($new_type);
 
-    return $self->{operating_system};
+    return $self->{type}
 }
 
 1;

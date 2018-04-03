@@ -46,10 +46,15 @@ sub new {
     # clean generated shell profile by default
     $self->preserve_profile(0);
 
+    # root, home, shell, etc.
     $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
 
     # read the catalog of available packages
-    ($self->{'packages'}, $self->{'op_sys'}) = $self->decode_bags($args{databases}, $args{'pkg_opts'});
+    $self->{recipes} = $self->decode_bags($args{databases}, $args{'pkg_opts'});
+
+    # arch, distro, etc.
+    $self->set_machine_vars();
+
 
     if(%{$args{'pkg_opts'}}) {
         warn 'The options for these packages were unused: ', join(',', keys %{$args{'pkg_opts'}}) . "\n";
@@ -74,9 +79,9 @@ sub list_packages() {
 
     my @ps;
     if($option eq 'os') {
-        @ps = values %{$self->{op_sys}};
+        @ps = values %{$self->{recipes}{op_sys}};
     } else {
-        @ps = values %{$self->{packages}};
+        @ps = values %{$self->{recipes}{package}};
     }
 
     if($option ne 'all') {
@@ -202,8 +207,6 @@ sub set_builder_variables {
     my ($self, $root, $home, $shell, $distfiles, $repository) = @_;
 
     $self->{environment_variables} = [];
-
-    $self->set_machine_vars();
 
     $self->root_dir($root);
     $self->home_dir($home);
@@ -498,7 +501,7 @@ sub add_manual_packages {
             die "Malformed manual specification: '$spec'\n";
         }
 
-        my $pkg = $self->{packages}{$name};
+        my $pkg = $self->{recipes}{package}{$name};
         unless($pkg) {
             die "Could not find specification to overwrite for '$name'\n";
         }
@@ -616,7 +619,10 @@ sub set_machine_vars {
 
     ($self->{osname}, undef, undef, undef, $self->{architecture}) = POSIX::uname();
 
+    $self->{distribution} = $self->find_distribution();
+
     $self->{target} = catfile($self->architecture, $self->distribution);
+
 
     my $ldd_version_raw = qx(ldd --version);
     $ldd_version_raw =~ /
@@ -662,85 +668,37 @@ sub glibc_version {
     return $self->{glibc_version};
 }
 
+sub distribution {
+    my ($self) = @_;
+    return $self->{distribution};
+}
+
 # reads /etc/readhat-release and transforms something like:
 # 'Red Hat Enterprise Linux Server release 6.5 (Santiago)'
 # into 'redhat6'.
 # or /etc/debian_version into 'debian9
 # etc.
-sub distribution {
+sub find_distribution {
     my ($self) = @_;
+    my $distribution;
 
-    if (-f '/etc/lsb-release') {
-
-        open (my $file_fh, '<', '/etc/lsb-release');
-
-        my ($name, $version);
-        for my $line (<$file_fh>) {
-
-            if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
-                my ($key, $value) = ($+{key}, $+{value});
-
-                if($key eq 'DISTRIB_ID') {
-                    $name = lc($value);
-                } elsif($key eq 'DISTRIB_RELEASE') {
-                    if($value =~ m/(?<version>^[0-9]+(\.[0-9]+){0,2})/) {
-                        $version = $+{version};
-                    }
-                }
+    for my $p (values %{$self->{recipes}{op_sys_distro}}) {
+        for my $w (@{$p->widgets}) {
+            my $exit_status = -1;
+            eval { $exit_status = $w->source->check_prerequisites() };
+            if($exit_status) {
+                next;
             }
-        }
 
-        if($name and $version) {
-            return "${name}${version}";
-        }
-    }
-
-    if (-f '/etc/redhat-release') {
-
-        open (my $file_fh, '<', '/etc/redhat-release');
-        my $version_line = <$file_fh>;
-
-        $version_line =~ /\brelease\b\s+(?<version>[0-9]+(\.[0-9]+){0,2})\b/;
-        my $version = $+{version};
-
-        if($version) {
-            return "redhat${version}"
-        }
-    } 
-    
-    if (-f '/etc/debian_version') {
-
-        open (my $file_fh, '<', '/etc/debian_version');
-        my $version_line = <$file_fh>;
-
-        $version_line =~ /^(?<version>[0-9]+(\.[0-9]+){0,2})/;
-        my $version = $+{version};
-
-        if($version) {
-            return "debian${version}"
-        }
-    }
-
-    if (-f '/etc/os-release') {
-
-        open (my $file_fh, '<', '/etc/os-release');
-
-        my $version;
-        for my $line (<$file_fh>) {
-
-            if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
-                my ($key, $value) = ($+{key}, $+{value});
-
-                if($key eq 'VERSION') {
-                    if($value =~ m/^"(?<version>[0-9]+(\.[0-9]+){0,2})/) {
-                        $version = $+{version};
-                    }
-                }
+            eval { $distribution = $w->compute_os_distribution(); };
+            if($@) {
+                warn $p->name . ": $@\n";
+                next;
             }
-        }
 
-        if($version) {
-            return "opensuse${version}";
+            if($distribution) {
+                return $distribution;
+            }
         }
     }
 
@@ -751,7 +709,7 @@ sub distribution {
 sub widgets_of {
     my ($self, $name) = @_;
 
-    my $pkg = $self->{packages}{$name}
+    my $pkg = $self->{recipes}{package}{$name}
     || die "I do not know anything about '$name' . \n";
 
     return $pkg->widgets;
@@ -760,24 +718,26 @@ sub widgets_of {
 sub decode_bags {
     my ($self, $databases, $pkg_opts) = @_;
 
-    my $packages = {};
-    my $op_sys   = {};
+    my $recipes  = {};
+    $recipes->{package} = {};
+    $recipes->{op_sys}  = {};
+    $recipes->{op_sys_distro} = {};
 
     for my $filespec (@{$databases}) {
         if(-d $filespec) {
-            $self->decode_bag_dir($filespec, 1, $pkg_opts, $packages, $op_sys);
+            $self->decode_bag_dir($filespec, 1, $pkg_opts, $recipes);
         } elsif(-f $filespec) {
-            $self->decode_bag_file($filespec, $pkg_opts, $packages, $op_sys);
+            $self->decode_bag_file($filespec, $pkg_opts, $recipes);
         } elsif($filespec eq '<internal>') {
-            $self->decode_bag_internal($pkg_opts, $packages, $op_sys);
+            $self->decode_bag_internal($pkg_opts, $recipes);
         }
     }
 
-    return ($packages, $op_sys);
+    return $recipes;
 }
 
 sub decode_bag_dir {
-    my ($self, $dir, $depth, $pkg_opts, $packages, $op_sys) = @_;
+    my ($self, $dir, $depth, $pkg_opts, $recipes) = @_;
 
     if($depth > 32) {
         die "Maximum directory depth allowed reached.\n";
@@ -787,40 +747,40 @@ sub decode_bag_dir {
 
     for my $filespec (@listing) {
         if(-d $filespec) {
-            $self->decode_bag_dir($filespec, $depth+1, $pkg_opts, $packages, $op_sys);
+            $self->decode_bag_dir($filespec, $depth+1, $pkg_opts, $recipes);
         } elsif($filespec =~ m/\.json$/) {
-            $self->decode_bag_file($filespec, $pkg_opts, $packages, $op_sys);
+            $self->decode_bag_file($filespec, $pkg_opts, $recipes);
         }
     }
 }
 
 sub decode_bag_file {
-    my ($self, $filename, $pkg_opts, $packages, $op_sys) = @_;
+    my ($self, $filename, $pkg_opts, $recipes) = @_;
 
     open(my $catbag_f, '<:encoding(UTF-8)', $filename) ||
     die "Could not open '$filename': $!\n";
 
-    return $self->decode_bag_fh($catbag_f, $pkg_opts, $packages, $op_sys);
+    return $self->decode_bag_fh($catbag_f, $pkg_opts, $recipes);
 }
 
 sub decode_bag_internal {
-    my ($self, $pkg_opts, $packages, $op_sys) = @_;
+    my ($self, $pkg_opts, $recipes) = @_;
 
     {
         no warnings;
         if(tell(VC3::Builder::DATA) == -1) {
-            return $packages;
+            return $recipes;
         }
     }
 
     my $catbag_f = *VC3::Builder::DATA;
 
-    return $self->decode_bag_fh($catbag_f, $pkg_opts, $packages, $op_sys);
+    return $self->decode_bag_fh($catbag_f, $pkg_opts, $recipes);
 }
 
 
 sub decode_bag_fh {
-    my ($self, $fh, $pkg_opts, $packages, $op_sys) = @_;
+    my ($self, $fh, $pkg_opts, $recipes) = @_;
 
     my $contents = do { local($/); <$fh> };
     close($fh);
@@ -845,15 +805,19 @@ sub decode_bag_fh {
 
             my $pkg = VC3::Package->new($self, $package_name, $obj->{$package_name}, $pkg_opts);
 
-            if($pkg->operating_system) {
-                $op_sys->{$package_name}   = $pkg;
+            if($pkg->type eq 'package') {
+                $recipes->{package}{$package_name} = $pkg;
+            } elsif($pkg->type eq 'operating-system') {
+                $recipes->{op_sys}{$package_name} = $pkg;
+            } elsif($pkg->type eq 'operating-system-distribution') {
+                $recipes->{op_sys_distro}{$package_name} = $pkg;
             } else {
-                $packages->{$package_name} = $pkg;
+                die "I don't know about a package type '" . $pkg->type . "'\n";
             }
         }
     }
 
-    return ($packages, $op_sys);
+    return $recipes;
 } 
 
 sub build_widget {

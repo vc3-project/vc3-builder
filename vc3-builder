@@ -9469,10 +9469,15 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       # clean generated shell profile by default
       $self->preserve_profile(0);
   
+      # root, home, shell, etc.
       $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
   
       # read the catalog of available packages
-      ($self->{'packages'}, $self->{'op_sys'}) = $self->decode_bags($args{databases}, $args{'pkg_opts'});
+      $self->{recipes} = $self->decode_bags($args{databases}, $args{'pkg_opts'});
+  
+      # arch, distro, etc.
+      $self->set_machine_vars();
+  
   
       if(%{$args{'pkg_opts'}}) {
           warn 'The options for these packages were unused: ', join(',', keys %{$args{'pkg_opts'}}) . "\n";
@@ -9497,9 +9502,9 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       my @ps;
       if($option eq 'os') {
-          @ps = values %{$self->{op_sys}};
+          @ps = values %{$self->{recipes}{op_sys}};
       } else {
-          @ps = values %{$self->{packages}};
+          @ps = values %{$self->{recipes}{package}};
       }
   
       if($option ne 'all') {
@@ -9625,8 +9630,6 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       my ($self, $root, $home, $shell, $distfiles, $repository) = @_;
   
       $self->{environment_variables} = [];
-  
-      $self->set_machine_vars();
   
       $self->root_dir($root);
       $self->home_dir($home);
@@ -9921,7 +9924,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
               die "Malformed manual specification: '$spec'\n";
           }
   
-          my $pkg = $self->{packages}{$name};
+          my $pkg = $self->{recipes}{package}{$name};
           unless($pkg) {
               die "Could not find specification to overwrite for '$name'\n";
           }
@@ -10039,7 +10042,10 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       ($self->{osname}, undef, undef, undef, $self->{architecture}) = POSIX::uname();
   
+      $self->{distribution} = $self->find_distribution();
+  
       $self->{target} = catfile($self->architecture, $self->distribution);
+  
   
       my $ldd_version_raw = qx(ldd --version);
       $ldd_version_raw =~ /
@@ -10085,85 +10091,37 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       return $self->{glibc_version};
   }
   
+  sub distribution {
+      my ($self) = @_;
+      return $self->{distribution};
+  }
+  
   # reads /etc/readhat-release and transforms something like:
   # 'Red Hat Enterprise Linux Server release 6.5 (Santiago)'
   # into 'redhat6'.
   # or /etc/debian_version into 'debian9
   # etc.
-  sub distribution {
+  sub find_distribution {
       my ($self) = @_;
+      my $distribution;
   
-      if (-f '/etc/lsb-release') {
-  
-          open (my $file_fh, '<', '/etc/lsb-release');
-  
-          my ($name, $version);
-          for my $line (<$file_fh>) {
-  
-              if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
-                  my ($key, $value) = ($+{key}, $+{value});
-  
-                  if($key eq 'DISTRIB_ID') {
-                      $name = lc($value);
-                  } elsif($key eq 'DISTRIB_RELEASE') {
-                      if($value =~ m/(?<version>^[0-9]+(\.[0-9]+){0,2})/) {
-                          $version = $+{version};
-                      }
-                  }
+      for my $p (values %{$self->{recipes}{op_sys_distro}}) {
+          for my $w (@{$p->widgets}) {
+              my $exit_status = -1;
+              eval { $exit_status = $w->source->check_prerequisites() };
+              if($exit_status) {
+                  next;
               }
-          }
   
-          if($name and $version) {
-              return "${name}${version}";
-          }
-      }
-  
-      if (-f '/etc/redhat-release') {
-  
-          open (my $file_fh, '<', '/etc/redhat-release');
-          my $version_line = <$file_fh>;
-  
-          $version_line =~ /\brelease\b\s+(?<version>[0-9]+(\.[0-9]+){0,2})\b/;
-          my $version = $+{version};
-  
-          if($version) {
-              return "redhat${version}"
-          }
-      } 
-      
-      if (-f '/etc/debian_version') {
-  
-          open (my $file_fh, '<', '/etc/debian_version');
-          my $version_line = <$file_fh>;
-  
-          $version_line =~ /^(?<version>[0-9]+(\.[0-9]+){0,2})/;
-          my $version = $+{version};
-  
-          if($version) {
-              return "debian${version}"
-          }
-      }
-  
-      if (-f '/etc/os-release') {
-  
-          open (my $file_fh, '<', '/etc/os-release');
-  
-          my $version;
-          for my $line (<$file_fh>) {
-  
-              if($line =~ m/(?<key>[[:alnum:]_]+)=(?<value>.*)/) {
-                  my ($key, $value) = ($+{key}, $+{value});
-  
-                  if($key eq 'VERSION') {
-                      if($value =~ m/^"(?<version>[0-9]+(\.[0-9]+){0,2})/) {
-                          $version = $+{version};
-                      }
-                  }
+              eval { $distribution = $w->compute_os_distribution(); };
+              if($@) {
+                  warn $p->name . ": $@\n";
+                  next;
               }
-          }
   
-          if($version) {
-              return "opensuse${version}";
+              if($distribution) {
+                  return $distribution;
+              }
           }
       }
   
@@ -10174,7 +10132,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub widgets_of {
       my ($self, $name) = @_;
   
-      my $pkg = $self->{packages}{$name}
+      my $pkg = $self->{recipes}{package}{$name}
       || die "I do not know anything about '$name' . \n";
   
       return $pkg->widgets;
@@ -10183,24 +10141,26 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub decode_bags {
       my ($self, $databases, $pkg_opts) = @_;
   
-      my $packages = {};
-      my $op_sys   = {};
+      my $recipes  = {};
+      $recipes->{package} = {};
+      $recipes->{op_sys}  = {};
+      $recipes->{op_sys_distro} = {};
   
       for my $filespec (@{$databases}) {
           if(-d $filespec) {
-              $self->decode_bag_dir($filespec, 1, $pkg_opts, $packages, $op_sys);
+              $self->decode_bag_dir($filespec, 1, $pkg_opts, $recipes);
           } elsif(-f $filespec) {
-              $self->decode_bag_file($filespec, $pkg_opts, $packages, $op_sys);
+              $self->decode_bag_file($filespec, $pkg_opts, $recipes);
           } elsif($filespec eq '<internal>') {
-              $self->decode_bag_internal($pkg_opts, $packages, $op_sys);
+              $self->decode_bag_internal($pkg_opts, $recipes);
           }
       }
   
-      return ($packages, $op_sys);
+      return $recipes;
   }
   
   sub decode_bag_dir {
-      my ($self, $dir, $depth, $pkg_opts, $packages, $op_sys) = @_;
+      my ($self, $dir, $depth, $pkg_opts, $recipes) = @_;
   
       if($depth > 32) {
           die "Maximum directory depth allowed reached.\n";
@@ -10210,40 +10170,40 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       for my $filespec (@listing) {
           if(-d $filespec) {
-              $self->decode_bag_dir($filespec, $depth+1, $pkg_opts, $packages, $op_sys);
+              $self->decode_bag_dir($filespec, $depth+1, $pkg_opts, $recipes);
           } elsif($filespec =~ m/\.json$/) {
-              $self->decode_bag_file($filespec, $pkg_opts, $packages, $op_sys);
+              $self->decode_bag_file($filespec, $pkg_opts, $recipes);
           }
       }
   }
   
   sub decode_bag_file {
-      my ($self, $filename, $pkg_opts, $packages, $op_sys) = @_;
+      my ($self, $filename, $pkg_opts, $recipes) = @_;
   
       open(my $catbag_f, '<:encoding(UTF-8)', $filename) ||
       die "Could not open '$filename': $!\n";
   
-      return $self->decode_bag_fh($catbag_f, $pkg_opts, $packages, $op_sys);
+      return $self->decode_bag_fh($catbag_f, $pkg_opts, $recipes);
   }
   
   sub decode_bag_internal {
-      my ($self, $pkg_opts, $packages, $op_sys) = @_;
+      my ($self, $pkg_opts, $recipes) = @_;
   
       {
           no warnings;
           if(tell(VC3::Builder::DATA) == -1) {
-              return $packages;
+              return $recipes;
           }
       }
   
       my $catbag_f = *VC3::Builder::DATA;
   
-      return $self->decode_bag_fh($catbag_f, $pkg_opts, $packages, $op_sys);
+      return $self->decode_bag_fh($catbag_f, $pkg_opts, $recipes);
   }
   
   
   sub decode_bag_fh {
-      my ($self, $fh, $pkg_opts, $packages, $op_sys) = @_;
+      my ($self, $fh, $pkg_opts, $recipes) = @_;
   
       my $contents = do { local($/); <$fh> };
       close($fh);
@@ -10268,15 +10228,19 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
               my $pkg = VC3::Package->new($self, $package_name, $obj->{$package_name}, $pkg_opts);
   
-              if($pkg->operating_system) {
-                  $op_sys->{$package_name}   = $pkg;
+              if($pkg->type eq 'package') {
+                  $recipes->{package}{$package_name} = $pkg;
+              } elsif($pkg->type eq 'operating-system') {
+                  $recipes->{op_sys}{$package_name} = $pkg;
+              } elsif($pkg->type eq 'operating-system-distribution') {
+                  $recipes->{op_sys_distro}{$package_name} = $pkg;
               } else {
-                  $packages->{$package_name} = $pkg;
+                  die "I don't know about a package type '" . $pkg->type . "'\n";
               }
           }
       }
   
-      return ($packages, $op_sys);
+      return $recipes;
   } 
   
   sub build_widget {
@@ -10759,7 +10723,9 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       $self->environment_variables($json_description->{'environment-variables'});
       $self->environment_autovars($json_description->{'environment-autovars'});
       $self->phony($json_description->{phony});
-      $self->operating_system($json_description->{'operating-system'});
+  
+      $json_description->{'type'} ||= 'package';
+      $self->type($json_description->{'type'});
   
       $self->show_in_list($json_description->{'show-in-list'});
       $self->tags($json_description->{'tags'});
@@ -10778,11 +10744,11 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
   
       my $ph = {};
   
-      $ph->{phony}            = $self->phony;
-      $ph->{prologue}         = $self->prologue;
-      $ph->{wrapper}          = $self->wrapper;
-      $ph->{options}          = $self->options;
-      $ph->{operating_system} = $self->operating_system;
+      $ph->{phony}     = $self->phony;
+      $ph->{prologue}  = $self->prologue;
+      $ph->{wrapper}   = $self->wrapper;
+      $ph->{options}   = $self->options;
+      $ph->{type}      = $self->type;
   
       # environment-autovars already included in environment-variables
       # environment-variables already included in widgets
@@ -10924,12 +10890,12 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       return $self->{tags};
   }
   
-  sub operating_system {
-      my ($self, $new_os) = @_;
+  sub type {
+      my ($self, $new_type) = @_;
   
-      $self->{operating_system} = $new_os if($new_os);
+      $self->{type} = $new_type if($new_type);
   
-      return $self->{operating_system};
+      return $self->{type}
   }
   
   1;
@@ -11917,7 +11883,7 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
       my $self = $class->SUPER::new($widget, $json_description);
   
       # anything with a Container source becomes an operating system
-      $self->widget->package->operating_system(1);
+      $self->widget->package->type('operating-system');
   
       my $image = $json_description->{image};
       unless($image) {
@@ -13516,7 +13482,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
           $self->package->bag->del_builder_variable('VC3_PREFIX');
       }
   
-      croak "Could not execute shell for auto-version."
+      die "Could not execute shell for auto-version.\n"
       unless $auto_in;
   
       my $template = catfile($self->package->bag->tmp_dir, $self->package->name . 'XXXXXX');
@@ -13543,7 +13509,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       eval { close $auto_in; $status = $? };
   
       if($@) {
-          carp $@;
+          warn "$@\n";
       }
   
       open(my $f, '<', $fname) || die 'Did not produce auto-version file';
@@ -13559,13 +13525,85 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       }
       close $f;
       if(!$version) {
-          die "Did not produce version information:\n" . join("\n", @lines);
+          die $self->package->name . " did not produce version information:\n" . join("\n", @lines);
       }
   
       return $version;
   }
   
   
+  sub compute_os_distribution {
+      my ($self) = @_;
+  
+      unless($self->source) {
+          die "I don't know how to find the distribution from '" . $self->package->name . "'\n";
+      }
+  
+      my ($pid, $auto_in) = $self->package->bag->shell();
+  
+      die "Could not execute shell for operating-system-distro.\n"
+      unless $auto_in;
+  
+      my $template = catfile($self->package->bag->tmp_dir, $self->package->name . 'XXXXXX');
+      my $fh = File::Temp->new(template => $template, unlink => 1);
+      close($fh);
+      
+      my $fname = $fh->filename;
+  
+      # redirect all output to our log file.
+      print { $auto_in } 'exec 1> ' . $fname . "\n";
+      print { $auto_in } "exec 2>&1\n";
+      print { $auto_in } "set -ex\n";
+  
+      for my $step (@{$self->source->recipe}) {
+          print { $auto_in } "$step\n";
+      }
+      print { $auto_in } "exit 0\n";
+  
+      my $status = -1;
+      eval { close $auto_in; $status = $? };
+  
+      if($@) {
+          warn "$@\n";
+      }
+  
+      open(my $f, '<', $fname) || die 'Did not produce a distribution file';
+      my @lines;
+      my $distro;
+      while( my $line = <$f>) {
+          push @lines, $line;
+          if($line =~ m/^VC3_MACHINE_DISTRIBUTION:\s*(?<distro>.*)/) {
+              $distro = $+{distro};
+              chomp($distro);
+              last;
+          }
+      }
+      close $f;
+      if(!$distro) {
+          warn $self->package->name . " did not produce distribution information:\n" . join("\n", @lines);
+          return;
+      }
+  
+      return $self->distro_canonical_name($distro);
+  }
+  
+  sub distro_canonical_name {
+      my ($self, $distro) = @_;
+  
+      my ($name, $version) = split(' ', $distro);
+  
+      if($name =~ m/(redhat|rhel|centos)/) {
+          $name = 'redhat';
+      } elsif($name =~ m/debian/) {
+          $name = 'debian';
+      } elsif($name =~ m/ubuntu/) {
+          $name = 'ubuntu';
+      } elsif($name =~ m/opensuse/) {
+          $name = 'opensuse';
+      }
+  
+      return "$name$version";
+  }
   
   
   1;
@@ -15721,7 +15759,7 @@ sub switch_os {
     }
     splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
 
-    my $pkg = $bag->{op_sys}{$os};
+    my $pkg = $bag->{recipes}{op_sys}{$os};
     unless($pkg) {
         die "I don't know anything about operating system '$os'.\n";
     }
@@ -19918,7 +19956,7 @@ __DATA__
     "redhat6":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -19948,7 +19986,7 @@ __DATA__
     "redhat7":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -19978,7 +20016,7 @@ __DATA__
     "ubuntu16":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -20008,7 +20046,7 @@ __DATA__
     "debian9":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -20038,7 +20076,7 @@ __DATA__
     "opensuse42":{
         "tags":["operating systems"],
         "show-in-list":1,
-        "operating-system":1,
+        "type":"operating-system",
         "versions":[
             {
                 "version":"auto",
@@ -20060,6 +20098,114 @@ __DATA__
                     "type":"docker",
                     "drop-priviliges":1,
                     "image":"docker://virtualclusters/os:opensuse42.3"
+                }
+            }
+        ]
+    }
+}
+
+,
+{
+    "redhat-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "[ -f /etc/redhat-release ] || exit 1"
+                    ],
+                    "recipe":[
+                        "INPUT=/etc/redhat-release",
+                        "version=$(cat ${INPUT} | sed -r -e 's/.*release ([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: redhat ${version}"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "os-file-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "[ -f /etc/os-release ] || exit 1"
+                    ],
+                    "recipe":[
+                        "INPUT=/etc/os-release",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^ID=/{s/^ID=\"(.*)\"/\\1/p;q}')",
+                        "version=$(cat ${INPUT} | sed -n -r '/^VERSION_ID=/{s/^VERSION_ID=\"([0-9]+(\\.[0-9]+){0,2}).*\"/\\1/p;q}')",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "debian-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "[ -f /etc/debian_version ] || exit 1"
+                    ],
+                    "recipe":[
+                        "INPUT=/etc/debian_version",
+                        "version=$(cat ${INPUT} | sed -r -e 's/.*([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: debian ${version}"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "lsb-exe-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "which lsb_release"
+                    ],
+                    "recipe":[
+                        "distro=$(lsb_release -is | tr '[A-Z]' '[a-z]' | sed 's/ //g')",
+                        "version=$(lsb_release -rs | sed -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "[ -n \"${distro}\"  ] || exit 1",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "lsb-file-distribution":{
+        "type":"operating-system-distribution",
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "source":{
+                    "prerequisites":[
+                        "[ -f /etc/lsb-release ] || exit 1"
+                    ],
+                    "recipe":[
+                        "INPUT=/etc/lsb-release",
+                        "[ -f ${INPUT} ] || exit 1",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=(.*)/\\1/p;q}') | tr '[A-Z] '[a-z]' | sed 's/ //g'",
+                        "version=$(cat ${INPUT} | sed -n -r '/^DISTRIB_RELEASE=/{s/^DISTRIB_RELEASE=\"([^\"]+)\"/\\1/p;q}')",
+                        "[ -n \"${distro}\" ] || exit 1",
+                        "[ -n \"${version}\" ] || exit 1",
+                        "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
+                    ]
                 }
             }
         ]

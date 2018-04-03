@@ -8,6 +8,7 @@ use warnings;
 eval {use Cwd; use lib getcwd . "/builder-pack/fatlib";};
 
 use VC3::Bag;
+use VC3::Plan;
 use VC3::Source;
 
 package VC3::Builder;
@@ -543,14 +544,26 @@ sub switch_os {
     }
     splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
 
-    my $pkg = $bag->{recipes}{op_sys}{$os};
+    my ($name, $min, $max) = VC3::Plan->parse_requirement($os);
+
+    my $pkg = $bag->{recipes}{op_sys}{$name};
     unless($pkg) {
-        die "I don't know anything about operating system '$os'.\n";
+        die "I don't know anything about operating system '$name'.\n";
     }
 
     # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
-        $bag->say('OS trying:         ' . $os . ' ' . $w->source->type);
+        $bag->say('OS trying:         ' . $w->source->type . ' ' . $name . ':' . $w->version);
+
+        if($min and $min > $w->version) {
+            $bag->say('OS fail min:       ' . $w->source->type . ' ' . $name . ':' . $w->version);
+            next;
+        }
+
+        if($max and $max < $w->version) {
+            $bag->say('OS fail max:       ' . $w->source->type . ' ' . $name . ':' . $w->version);
+            next;
+        }
 
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };

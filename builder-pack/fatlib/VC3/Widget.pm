@@ -50,9 +50,6 @@ sub new {
 
 
     if($self->available) {
-        # set root dir
-        $self->root_dir();
-
         my $majminbug = $self->version->normal;
         $majminbug =~ s/^v([0-9]+\.[0-9]+\.[0-9]+)/$1/;
 

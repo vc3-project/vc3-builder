@@ -137,12 +137,30 @@ sub parse_requirement {
 
     my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
 
-    if($min and $min eq 'auto') {
-        undef $min;
+    if($min) {
+        if($min eq 'auto') {
+            undef $min;
+        } else {
+            my ($M, $m, $b) = ($min =~ m/^v?([0-9]+)\.?([0-9]+)?\.?([0-9]+)?/);
+            
+            $m = '0' unless defined($m);
+            $b = '0' unless defined($b);
+
+            $min = "v$M.$m.$b";
+        }
     }
 
-    if($max and $max eq 'auto') {
-        undef $max;
+    if($max) {
+        if($max eq 'auto') {
+            undef $max;
+        } else {
+            my ($M, $m, $b) = ($max =~ m/^v?([0-9]+)\.?([0-9]+)?\.?([0-9]+)?/);
+            
+            $m = '999999' unless defined($m);
+            $b = '999999' unless defined($b);
+
+            $max = "v$M.$m.$b";
+        }
     }
 
     if(!$min && $max) {

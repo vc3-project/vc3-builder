@@ -682,6 +682,10 @@ sub find_distribution {
     my ($self) = @_;
     my $distribution;
 
+    my @wheres = values %{$self->{recipes}{op_sys_distro}};
+
+    @wheres = sort { $a->name cmp $b->name } @wheres;
+
     for my $p (values %{$self->{recipes}{op_sys_distro}}) {
         for my $w (@{$p->widgets}) {
             my $exit_status = -1;

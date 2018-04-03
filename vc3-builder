@@ -10105,6 +10105,10 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       my ($self) = @_;
       my $distribution;
   
+      my @wheres = values %{$self->{recipes}{op_sys_distro}};
+  
+      @wheres = sort { $a->name cmp $b->name } @wheres;
+  
       for my $p (values %{$self->{recipes}{op_sys_distro}}) {
           for my $w (@{$p->widgets}) {
               my $exit_status = -1;
@@ -11042,12 +11046,30 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   
       my ($name, $min, $max) = ($+{name}, $+{min}, $+{max});
   
-      if($min and $min eq 'auto') {
-          undef $min;
+      if($min) {
+          if($min eq 'auto') {
+              undef $min;
+          } else {
+              my ($M, $m, $b) = ($min =~ m/^v?([0-9]+)\.?([0-9]+)?\.?([0-9]+)?/);
+              
+              $m = '0' unless defined($m);
+              $b = '0' unless defined($b);
+  
+              $min = "v$M.$m.$b";
+          }
       }
   
-      if($max and $max eq 'auto') {
-          undef $max;
+      if($max) {
+          if($max eq 'auto') {
+              undef $max;
+          } else {
+              my ($M, $m, $b) = ($max =~ m/^v?([0-9]+)\.?([0-9]+)?\.?([0-9]+)?/);
+              
+              $m = '999999' unless defined($m);
+              $b = '999999' unless defined($b);
+  
+              $max = "v$M.$m.$b";
+          }
       }
   
       if(!$min && $max) {
@@ -12660,26 +12682,9 @@ $fatpacked{"VC3/Source/OSNative.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n
           ];
       }
   
-      unless($json_description->{'auto-version'}) {
-          $json_description->{'auto-version'} = [
-              'echo VC3_VERSION_SYSTEM: $(echo ${VC3_MACHINE_OS} | sed -r -e "s:[^0-9]+([0-9.]+)$:\\1:")'
-          ];
-      }
-  
       my $self = $class->SUPER::new($widget, $json_description);
   
-      $self->auto_version($json_description->{'auto-version'});
-  
       return $self;
-  }
-  
-  
-  sub auto_version {
-      my ($self, $new_auto_version) = @_;
-  
-      $self->{auto_version} = $new_auto_version if($new_auto_version);
-  
-      return $self->{auto_version};
   }
   
   
@@ -12914,9 +12919,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
   
       if($self->available) {
-          # set root dir
-          $self->root_dir();
-  
           my $majminbug = $self->version->normal;
           $majminbug =~ s/^v([0-9]+\.[0-9]+\.[0-9]+)/$1/;
   
@@ -15224,6 +15226,7 @@ use warnings;
 eval {use Cwd; use lib getcwd . "/builder-pack/fatlib";};
 
 use VC3::Bag;
+use VC3::Plan;
 use VC3::Source;
 
 package VC3::Builder;
@@ -15759,14 +15762,26 @@ sub switch_os {
     }
     splice @{$builder_args}, -1, 1 if $builder_args->[-1] eq '--';
 
-    my $pkg = $bag->{recipes}{op_sys}{$os};
+    my ($name, $min, $max) = VC3::Plan->parse_requirement($os);
+
+    my $pkg = $bag->{recipes}{op_sys}{$name};
     unless($pkg) {
-        die "I don't know anything about operating system '$os'.\n";
+        die "I don't know anything about operating system '$name'.\n";
     }
 
     # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
-        $bag->say('OS trying:         ' . $os . ' ' . $w->source->type);
+        $bag->say('OS trying:         ' . $w->source->type . ' ' . $name . ':' . $w->version);
+
+        if($min and $min > $w->version) {
+            $bag->say('OS fail min:       ' . $w->source->type . ' ' . $name . ':' . $w->version);
+            next;
+        }
+
+        if($max and $max < $w->version) {
+            $bag->say('OS fail max:       ' . $w->source->type . ' ' . $name . ':' . $w->version);
+            next;
+        }
 
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
@@ -19950,19 +19965,36 @@ __DATA__
                 }
             }
         ]
-    },
+    }
+}
 
-
-    "redhat6":{
+,
+{
+    "redhat":{
         "tags":["operating systems"],
         "show-in-list":1,
         "type":"operating-system",
         "versions":[
             {
-                "version":"auto",
+                "version":"7",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/redhat6"
+                    "native":"x86_64/redhat7"
+                }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-centos7.img"
+                }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"docker",
+                    "drop-priviliges":1,
+                    "image":"docker://virtualclusters/os:centos7"
                 }
             },
             {
@@ -19983,43 +20015,13 @@ __DATA__
         ]
     },
 
-    "redhat7":{
+    "ubuntu":{
         "tags":["operating systems"],
         "show-in-list":1,
         "type":"operating-system",
         "versions":[
             {
-                "version":"auto",
-                "source":{
-                    "type":"os-native",
-                    "native":"x86_64/redhat7"
-                }
-            },
-            {
-                "version":"7.4",
-                "source":{
-                    "type":"singularity",
-                    "image":"Singularity.vc3.x86_64-centos7.img"
-                }
-            },
-            {
-                "version":"7.4",
-                "source":{
-                    "type":"docker",
-                    "drop-priviliges":1,
-                    "image":"docker://virtualclusters/os:centos7"
-                }
-            }
-        ]
-    },
-
-    "ubuntu16":{
-        "tags":["operating systems"],
-        "show-in-list":1,
-        "type":"operating-system",
-        "versions":[
-            {
-                "version":"auto",
+                "version":"16",
                 "source":{
                     "type":"os-native",
                     "native":"x86_64/ubuntu16"
@@ -20043,13 +20045,13 @@ __DATA__
         ]
     },
 
-    "debian9":{
+    "debian":{
         "tags":["operating systems"],
         "show-in-list":1,
         "type":"operating-system",
         "versions":[
             {
-                "version":"auto",
+                "version":"9",
                 "source":{
                     "type":"os-native",
                     "native":"x86_64/debian9"
@@ -20073,13 +20075,13 @@ __DATA__
         ]
     },
 
-    "opensuse42":{
+    "opensuse":{
         "tags":["operating systems"],
         "show-in-list":1,
         "type":"operating-system",
         "versions":[
             {
-                "version":"auto",
+                "version":"42",
                 "source":{
                     "type":"os-native",
                     "native":"x86_64/opensuse42"
@@ -20137,8 +20139,9 @@ __DATA__
                     ],
                     "recipe":[
                         "INPUT=/etc/os-release",
-                        "distro=$(cat ${INPUT} | sed -n -r '/^ID=/{s/^ID=\"(.*)\"/\\1/p;q}')",
-                        "version=$(cat ${INPUT} | sed -n -r '/^VERSION_ID=/{s/^VERSION_ID=\"([0-9]+(\\.[0-9]+){0,2}).*\"/\\1/p;q}')",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^ID=/{s/^ID=\"?(.*)\"?/\\1/p;q}')",
+                        "version=$(cat ${INPUT} | sed -n -r '/^VERSION_ID=/{s/^VERSION_ID=\"?([0-9]+(\\.[0-9]+){0,2}).*\"?/\\1/p;q}')",
+                        "[ -n \"${distro}\" ]  || exit 1",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
                     ]
@@ -20200,8 +20203,8 @@ __DATA__
                     "recipe":[
                         "INPUT=/etc/lsb-release",
                         "[ -f ${INPUT} ] || exit 1",
-                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=(.*)/\\1/p;q}') | tr '[A-Z] '[a-z]' | sed 's/ //g'",
-                        "version=$(cat ${INPUT} | sed -n -r '/^DISTRIB_RELEASE=/{s/^DISTRIB_RELEASE=\"([^\"]+)\"/\\1/p;q}')",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=\"?(.*)\"?/\\1/p;q}' | tr '[A-Z]' '[a-z]' | sed 's/ //g')",
+                        "version=$(cat ${INPUT} | sed -n -r '/^DISTRIB_RELEASE=/{s/^DISTRIB_RELEASE=\"?([0-9]+(\\.[0-9]+){0,2}).*\"?/\\1/p;q}')",
                         "[ -n \"${distro}\" ] || exit 1",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"

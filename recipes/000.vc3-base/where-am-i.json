@@ -30,8 +30,9 @@
                     ],
                     "recipe":[
                         "INPUT=/etc/os-release",
-                        "distro=$(cat ${INPUT} | sed -n -r '/^ID=/{s/^ID=\"(.*)\"/\\1/p;q}')",
-                        "version=$(cat ${INPUT} | sed -n -r '/^VERSION_ID=/{s/^VERSION_ID=\"([0-9]+(\\.[0-9]+){0,2}).*\"/\\1/p;q}')",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^ID=/{s/^ID=\"?(.*)\"?/\\1/p;q}')",
+                        "version=$(cat ${INPUT} | sed -n -r '/^VERSION_ID=/{s/^VERSION_ID=\"?([0-9]+(\\.[0-9]+){0,2}).*\"?/\\1/p;q}')",
+                        "[ -n \"${distro}\" ]  || exit 1",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
                     ]
@@ -93,8 +94,8 @@
                     "recipe":[
                         "INPUT=/etc/lsb-release",
                         "[ -f ${INPUT} ] || exit 1",
-                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=(.*)/\\1/p;q}') | tr '[A-Z] '[a-z]' | sed 's/ //g'",
-                        "version=$(cat ${INPUT} | sed -n -r '/^DISTRIB_RELEASE=/{s/^DISTRIB_RELEASE=\"([^\"]+)\"/\\1/p;q}')",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=\"?(.*)\"?/\\1/p;q}' | tr '[A-Z]' '[a-z]' | sed 's/ //g')",
+                        "version=$(cat ${INPUT} | sed -n -r '/^DISTRIB_RELEASE=/{s/^DISTRIB_RELEASE=\"?([0-9]+(\\.[0-9]+){0,2}).*\"?/\\1/p;q}')",
                         "[ -n \"${distro}\" ] || exit 1",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"

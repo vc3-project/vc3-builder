@@ -581,13 +581,13 @@ Here we include an example for Red Hat 7:
 
 ```json
 "..."
-    "redhat7":{
+    "redhat":{
         "tags":["operating systems"],
         "show-in-list":1,
         "operating-system":1,
         "versions":[
             {
-                "version":"auto",
+                "version":"7",
                 "source":{
                     "type":"os-native",
                     "native":"x86_64/redhat7"
@@ -601,11 +601,11 @@ Here we include an example for Red Hat 7:
                 }
             },
             {
-                "version":"7.4",
+                "version":"6.9",
                 "source":{
                     "type":"docker",
                     "drop-priviliges":1,
-                    "image":"docker://virtualclusters/os:centos7"
+                    "image":"docker://virtualclusters/os:centos6"
                 }
             }
         ]

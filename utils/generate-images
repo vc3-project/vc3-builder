@@ -26,9 +26,12 @@ gtar
 lsb_release
 m4
 openssl
+patch
 perl
+pkg_config
 python
 strace
+unzip
 vim
 wget
 which
@@ -83,9 +86,12 @@ gtar                     => 'tar',
 lsb_release              => 'lsb-release',
 m4                       => 'm4',
 openssl                  => 'openssl',
+patch                    => 'patch',
 perl                     => 'perl-devel',
+pkg_config               => 'pkg-config',
 python                   => 'python-devel',
 strace                   => 'strace',
+unzip                    => 'unzip',
 vim                      => 'vim',
 wget                     => 'wget',
 which                    => 'which',
@@ -112,9 +118,12 @@ gtar                     => 'tar',
 lsb_release              => 'lsb-release',
 m4                       => 'm4',
 openssl                  => 'openssl',
+patch                    => 'patch',
 perl                     => 'libperl-dev',
+pkg_config               => 'pkg-config',
 python                   => 'python-dev',
 strace                   => 'strace',
+unzip                    => 'unzip',
 vim                      => 'vim',
 wget                     => 'wget',
 which                    => 'debianutils',
@@ -156,9 +165,12 @@ gtar                     => 'tar',
 lsb_release              => 'lsb-release',
 m4                       => 'm4',
 openssl                  => 'openssl',
+patch                    => 'patch',
 perl                     => 'perl',
+pkg_config               => 'pkg-config',
 python                   => 'python-devel',
 strace                   => 'strace',
+unzip                    => 'unzip',
 vim                      => 'vim',
 wget                     => 'wget',
 which                    => 'which',

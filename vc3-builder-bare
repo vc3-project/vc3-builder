@@ -428,6 +428,8 @@ sub main {
         }
     }
 
+    unshift @requires, 'vc3-builder-hands';
+
     $bag->set_plan_for(@requires);
 
     if(defined $dot_output) {

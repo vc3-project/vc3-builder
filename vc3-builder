@@ -15784,6 +15784,8 @@ sub main {
         }
     }
 
+    unshift @requires, 'vc3-builder-hands';
+
     $bag->set_plan_for(@requires);
 
     if(defined $dot_output) {
@@ -16148,15 +16150,18 @@ __DATA__
                     "recipe":[
                         "echo 'hello builder'"
                     ],
-                    "dependencies-disabled":{
+                    "dependencies":{
+                        "tar":[
+                            "v1.0"
+                        ],
+                        "gzip":[
+                            "v1.0"
+                        ],
                         "make":[
                             "v3.82.0"
                         ],
                         "sed":[
                             "v4.2.0"
-                        ],
-                        "awk":[
-                            "v4.1.1"
                         ],
                         "pkg-config":[
                             "v0.23.0"
@@ -16377,7 +16382,7 @@ __DATA__
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "make-3.82.tar.gz"
+                        "make-x86_64-3.82.tar.gz"
                     ]
                 }
             }
@@ -16402,7 +16407,7 @@ __DATA__
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "sed4.2.tar.gz"
+                        "sed-x86_64-4.2.tar.gz"
                     ]
                 }
             }
@@ -16415,12 +16420,17 @@ __DATA__
     "grep":{
         "versions":[
             {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"grep"
+                },
                 "version":"v2.6.3",
                 "source":{
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "grep-2.6.3-2.tar.gz"
+                        "grep-x86_64-2.6.3-2.tar.gz"
                     ]
                 }
             }
@@ -16430,15 +16440,20 @@ __DATA__
         ]
     },
 
-    "awk":{
+    "gawk":{
         "versions":[
             {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"gawk"
+                },
                 "version":"v4.1.1",
                 "source":{
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "gawk-4.1.1.tar.gz"
+                        "gawk-x86_64-4.1.1.tar.gz"
                     ]
                 }
             }
@@ -16451,12 +16466,17 @@ __DATA__
     "which":{
         "versions":[
             {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"which"
+                },
                 "version":"v2.20.0",
                 "source":{
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "which-2.20-1.tar.gz"
+                        "which-x86_64-2.20-1.tar.gz"
                     ]
                 }
             }
@@ -16474,7 +16494,7 @@ __DATA__
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "coreutils-7.6-5.tar.gz"
+                        "coreutils-x86_64-7.6-5.tar.gz"
                     ]
                 }
             }
@@ -16486,6 +16506,13 @@ __DATA__
 
     "tar":{
         "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"tar"
+                }
+            },
             {
                 "version":"v1.23.0",
                 "local":1,
@@ -16511,12 +16538,24 @@ __DATA__
     "gzip":{
         "versions":[
             {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"gzip"
+                }
+            },
+            {
                 "version":"v1.4.0",
                 "source":{
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "gzip-1.4-1.tar"
+                        "gzip-x86_64-1.4-1.tar"
+                    ]
+                },
+                "dependencies":{
+                    "tar":[
+                        "v1.0"
                     ]
                 }
             }
@@ -16528,6 +16567,13 @@ __DATA__
 
     "bzip2":{
         "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"bzip2"
+                }
+            },
             {
                 "version":"v1.0.6",
                 "source":{
@@ -16547,12 +16593,19 @@ __DATA__
     "xz":{
         "versions":[
             {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"xz"
+                }
+            },
+            {
                 "version":"v5.0.5",
                 "source":{
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "xz-5.0.5.tar.gz"
+                        "xz-x86_64-5.0.5.tar.gz"
                     ]
                 }
             }
@@ -16564,6 +16617,23 @@ __DATA__
 
     "pkg-config":{
         "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"pkg-config"
+                }
+            },
+            {
+                "version":"v0.23",
+                "source":{
+                    "type":"binary",
+                    "native":"x86_64",
+                    "files":[
+                        "pkg-config-0.23-1.tar.gz"
+                    ]
+                }
+            },
             {
                 "version":"v0.23",
                 "local":1,
@@ -17467,12 +17537,12 @@ __DATA__
                 }
             },
             {
-                "version":"v2.7.1",
+                "version":"v2.7.5",
                 "source":{
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "patch-2.7.1-1.tar.gz"
+                        "patch-x86_64-2.7.5.tar.gz"
                     ]
                 }
             },
@@ -17705,16 +17775,6 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
-                "version":"v7.51",
-                "source":{
-                    "type":"binary",
-                    "native":"x86_64",
-                    "files":[
-                        "curl-7.51.0-1.tar.gz"
-                    ]
-                }
-            },
-            {
                 "version":"v7.53.1",
                 "source":{
                     "type":"tarball",
@@ -17825,7 +17885,7 @@ __DATA__
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "git-bin-2.7.2-2.tar.gz"
+                        "git-x86_64-2.7.2-2.tar.gz"
                     ]
                 }
             },
@@ -19509,12 +19569,12 @@ __DATA__
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "findutils-4.4.2-1.tar.gz"
+                        "findutils-x86_64-4.4.2-1.tar.gz"
                     ]
                 }
             },
             {
-                "version":"v4.1.20",
+                "version":"v4.6.0",
                 "source":{
                     "type":"configure",
                     "files":[
@@ -20070,12 +20130,19 @@ __DATA__
     "vim":{
         "versions":[
             {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"vim"
+                }
+            },
+            {
                 "version":"v7.3.0",
                 "source":{
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "vim-7.3-1.tar.gz"
+                        "vim-x86_64-7.3-1.tar.gz"
                     ]
                 }
             }

@@ -30,6 +30,7 @@ patch
 perl
 pkg_config
 python
+python_setuptools
 strace
 unzip
 vim
@@ -90,6 +91,7 @@ patch                    => 'patch',
 perl                     => 'perl-devel',
 pkg_config               => 'pkg-config',
 python                   => 'python-devel',
+python_setuptools        => 'python-setuptools',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
@@ -122,6 +124,7 @@ patch                    => 'patch',
 perl                     => 'libperl-dev',
 pkg_config               => 'pkg-config',
 python                   => 'python-dev',
+python_setuptools        => 'python-setuptools',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
@@ -169,6 +172,7 @@ patch                    => 'patch',
 perl                     => 'perl',
 pkg_config               => 'pkg-config',
 python                   => 'python-devel',
+python_setuptools        => 'python-setuptools',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',

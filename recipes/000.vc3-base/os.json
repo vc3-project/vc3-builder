@@ -12,6 +12,13 @@
                 }
             },
             {
+                "version":"6",
+                "source":{
+                    "type":"os-native",
+                    "native":"x86_64/redhat6"
+                }
+            },
+            {
                 "version":"7.4",
                 "source":{
                     "type":"singularity",

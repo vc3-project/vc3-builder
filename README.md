@@ -31,6 +31,13 @@ curl -O https://raw.githubusercontent.com/vc3-project/vc3-builder/master/vc3-bui
 chmod 755 vc3-builder
 ```
 
+or
+
+```
+git clone https://github.com/vc3-project/vc3-builder.git
+cp vc3-builder/vc3-builder SOME-DESIRED-LOCATION
+```
+
 EXAMPLES
 -----------
 

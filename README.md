@@ -19,9 +19,20 @@ priviliges. Its primary application comes in deploying software dependencies in
 cloud, grid, and opportunistic computing, where deployment must be performed
 together with a batch job execution. 
 
+INSTALLATION
+------------
+
 **vc3-builder** is a self-contained program (including the repository of
 dependencies recipes). If desired, it can be compiled to a truly static binary
 ([see below](#compiling-the-builder-as-a-static-binary)).
+
+```sh
+curl -O https://raw.githubusercontent.com/vc3-project/vc3-builder/master/vc3-builder
+chmod 755 vc3-builder
+```
+
+EXAMPLES
+-----------
 
 From the end-user perspective, **vc3-builder** is invoked as a command line
 tool which states the desired dependencies.  The builder will perform whatever

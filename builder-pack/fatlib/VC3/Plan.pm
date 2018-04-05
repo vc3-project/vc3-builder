@@ -531,7 +531,7 @@ sub trimmed_database {
         $output->{$e->widget->package->name} = $ph;
     }
 
-    open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
+    open my $f_h, '>', $filename || die "Could not open $filename for writing: $!\n";
 
     my $json = JSON::Tiny::encode_json($output);
 
@@ -543,7 +543,7 @@ sub trimmed_database {
 sub to_script {
     my ($self, $filename) = @_;
 
-    open my $f_h, '>', $filename || die "Could not open $filename for writting: $!\n";
+    open my $f_h, '>', $filename || die "Could not open $filename for writing: $!\n";
 
     for my $w (@{$self->order}) {
         $self->bag->activate_widget_vars($w);

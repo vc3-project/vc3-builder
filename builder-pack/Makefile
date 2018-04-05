@@ -14,7 +14,9 @@ all: vc3-builder
 
 vc3-builder: $(BARE) $(shell find ../recipes/ -name '*.json') $(shell find fatlib/VC3/ -name '*.pm') | fatlib
 	@$(FATPACKER) file $^ -bare > $@ 
-	@sed -i $@ -e '2s/^/#\n# This is an automatically generated file. Do not modify! All changes\n# should go into vc3-builder-bare and the modules in VC3.\n#\n/' 
+	@sed -i $@ -e '2s/^/#\n# This is an automatically generated file. Do not modify! All changes\n# should go into vc3-builder-bare and the modules in VC3.\n#\n# Copyright (C) 2016- The University of Notre Dame\n# This software is distributed under the GNU General Public License.\n# See the file COPYING for details.\n# \n/' 
+
+
 	@echo >> $@
 	@echo 'package VC3::Builder;' >> $@
 	@echo '__DATA__' >> $@

@@ -52,7 +52,7 @@
                     ],
                     "recipe":[
                         "INPUT=/etc/debian_version",
-                        "version=$(cat ${INPUT} | sed -r -e 's/.*([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "version=$(cat ${INPUT} | sed -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: debian ${version}"
                     ]

@@ -1,3 +1,10 @@
+#
+# Copyright (C) 2016- The University of Notre Dame
+# This software is distributed under the GNU General Public License.
+# See the file COPYING for details.
+#
+
+use v5.09;
 use strict;
 use warnings;
 
@@ -686,7 +693,8 @@ sub find_distribution {
 
     @wheres = sort { $a->name cmp $b->name } @wheres;
 
-    for my $p (values %{$self->{recipes}{op_sys_distro}}) {
+    for my $p (@wheres) {
+        warn $p->name;
         for my $w (@{$p->widgets}) {
             my $exit_status = -1;
             eval { $exit_status = $w->source->check_prerequisites() };

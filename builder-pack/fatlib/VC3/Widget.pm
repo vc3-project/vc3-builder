@@ -648,9 +648,6 @@ sub compute_auto_version {
     my $status = -1;
     eval { close $auto_in; $status = $? };
 
-    if($@) {
-        warn "$@\n";
-    }
 
     open(my $f, '<', $fname) || die 'Did not produce auto-version file';
     my @lines;
@@ -665,7 +662,7 @@ sub compute_auto_version {
     }
     close $f;
     if(!$version) {
-        die $self->package->name . " did not produce version information:\n" . join("\n", @lines);
+        die $self->package->name . " did not produce version information.\n";
     }
 
     return $version;
@@ -720,7 +717,6 @@ sub compute_os_distribution {
     }
     close $f;
     if(!$distro) {
-        warn $self->package->name . " did not produce distribution information:\n" . join("\n", @lines);
         return;
     }
 
@@ -730,7 +726,7 @@ sub compute_os_distribution {
 sub distro_canonical_name {
     my ($self, $distro) = @_;
 
-    my ($name, $version) = split(' ', $distro);
+    my ($name, $version) = ($distro =~ m/(.+) (.+)/);
 
     if($name =~ m/(redhat|rhel|centos)/) {
         $name = 'redhat';
@@ -744,7 +740,6 @@ sub distro_canonical_name {
 
     return "$name$version";
 }
-
 
 1;
 

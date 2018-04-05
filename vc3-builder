@@ -10121,7 +10121,6 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       @wheres = sort { $a->name cmp $b->name } @wheres;
   
       for my $p (@wheres) {
-          warn $p->name;
           for my $w (@{$p->widgets}) {
               my $exit_status = -1;
               eval { $exit_status = $w->source->check_prerequisites() };
@@ -10131,7 +10130,6 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
               eval { $distribution = $w->compute_os_distribution(); };
               if($@) {
-                  warn $p->name . ": $@\n";
                   next;
               }
   
@@ -13655,9 +13653,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       my $status = -1;
       eval { close $auto_in; $status = $? };
   
-      if($@) {
-          warn "$@\n";
-      }
   
       open(my $f, '<', $fname) || die 'Did not produce auto-version file';
       my @lines;
@@ -13672,7 +13667,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       }
       close $f;
       if(!$version) {
-          die $self->package->name . " did not produce version information:\n" . join("\n", @lines);
+          die $self->package->name . " did not produce version information.\n";
       }
   
       return $version;
@@ -13727,7 +13722,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       }
       close $f;
       if(!$distro) {
-          warn $self->package->name . " did not produce distribution information:\n" . join("\n", @lines);
           return;
       }
   
@@ -13737,7 +13731,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   sub distro_canonical_name {
       my ($self, $distro) = @_;
   
-      my ($name, $version) = split(' ', $distro);
+      my ($name, $version) = ($distro =~ m/(.+) (.+)/);
   
       if($name =~ m/(redhat|rhel|centos)/) {
           $name = 'redhat';
@@ -13751,7 +13745,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
       return "$name$version";
   }
-  
   
   1;
   
@@ -20270,7 +20263,7 @@ __DATA__
                     ],
                     "recipe":[
                         "INPUT=/etc/redhat-release",
-                        "version=$(cat ${INPUT} | sed -r -e 's/.*release ([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "version=$(cat ${INPUT} | sed -n -r -e 's/.*release ([0-9]+(\\.[0-9]+){0,2}).*/\\1/p')",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: redhat ${version}"
                     ]
@@ -20312,7 +20305,7 @@ __DATA__
                     ],
                     "recipe":[
                         "INPUT=/etc/debian_version",
-                        "version=$(cat ${INPUT} | sed -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "version=$(cat ${INPUT} | sed -n -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/p')",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: debian ${version}"
                     ]
@@ -20331,8 +20324,8 @@ __DATA__
                         "which lsb_release"
                     ],
                     "recipe":[
-                        "distro=$(lsb_release -is | tr '[A-Z]' '[a-z]' | sed 's/ //g')",
-                        "version=$(lsb_release -rs | sed -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "distro=$(lsb_release -is | tr '[A-Z]' '[a-z]')",
+                        "version=$(lsb_release -rs | sed -n -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/p')",
                         "[ -n \"${distro}\"  ] || exit 1",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
@@ -20354,7 +20347,7 @@ __DATA__
                     "recipe":[
                         "INPUT=/etc/lsb-release",
                         "[ -f ${INPUT} ] || exit 1",
-                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=\"?(.*)\"?/\\1/p;q}' | tr '[A-Z]' '[a-z]' | sed 's/ //g')",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=\"?(.*)\"?/\\1/p;q}' | tr '[A-Z]' '[a-z]')",
                         "version=$(cat ${INPUT} | sed -n -r '/^DISTRIB_RELEASE=/{s/^DISTRIB_RELEASE=\"?([0-9]+(\\.[0-9]+){0,2}).*\"?/\\1/p;q}')",
                         "[ -n \"${distro}\" ] || exit 1",
                         "[ -n \"${version}\" ] || exit 1",

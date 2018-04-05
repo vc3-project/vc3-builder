@@ -10,7 +10,7 @@
                     ],
                     "recipe":[
                         "INPUT=/etc/redhat-release",
-                        "version=$(cat ${INPUT} | sed -r -e 's/.*release ([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "version=$(cat ${INPUT} | sed -n -r -e 's/.*release ([0-9]+(\\.[0-9]+){0,2}).*/\\1/p')",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: redhat ${version}"
                     ]
@@ -52,7 +52,7 @@
                     ],
                     "recipe":[
                         "INPUT=/etc/debian_version",
-                        "version=$(cat ${INPUT} | sed -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "version=$(cat ${INPUT} | sed -n -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/p')",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: debian ${version}"
                     ]
@@ -71,8 +71,8 @@
                         "which lsb_release"
                     ],
                     "recipe":[
-                        "distro=$(lsb_release -is | tr '[A-Z]' '[a-z]' | sed 's/ //g')",
-                        "version=$(lsb_release -rs | sed -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/')",
+                        "distro=$(lsb_release -is | tr '[A-Z]' '[a-z]')",
+                        "version=$(lsb_release -rs | sed -n -r -e 's/([0-9]+(\\.[0-9]+){0,2}).*/\\1/p')",
                         "[ -n \"${distro}\"  ] || exit 1",
                         "[ -n \"${version}\" ] || exit 1",
                         "echo VC3_MACHINE_DISTRIBUTION: ${distro} ${version}"
@@ -94,7 +94,7 @@
                     "recipe":[
                         "INPUT=/etc/lsb-release",
                         "[ -f ${INPUT} ] || exit 1",
-                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=\"?(.*)\"?/\\1/p;q}' | tr '[A-Z]' '[a-z]' | sed 's/ //g')",
+                        "distro=$(cat ${INPUT} | sed -n -r '/^DISTRIB_ID=/{s/^DISTRIB_ID=\"?(.*)\"?/\\1/p;q}' | tr '[A-Z]' '[a-z]')",
                         "version=$(cat ${INPUT} | sed -n -r '/^DISTRIB_RELEASE=/{s/^DISTRIB_RELEASE=\"?([0-9]+(\\.[0-9]+){0,2}).*\"?/\\1/p;q}')",
                         "[ -n \"${distro}\" ] || exit 1",
                         "[ -n \"${version}\" ] || exit 1",

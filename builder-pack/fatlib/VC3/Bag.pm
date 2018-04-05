@@ -694,7 +694,6 @@ sub find_distribution {
     @wheres = sort { $a->name cmp $b->name } @wheres;
 
     for my $p (@wheres) {
-        warn $p->name;
         for my $w (@{$p->widgets}) {
             my $exit_status = -1;
             eval { $exit_status = $w->source->check_prerequisites() };
@@ -704,7 +703,6 @@ sub find_distribution {
 
             eval { $distribution = $w->compute_os_distribution(); };
             if($@) {
-                warn $p->name . ": $@\n";
                 next;
             }
 

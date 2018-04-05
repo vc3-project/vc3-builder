@@ -22,8 +22,9 @@ find
 fortran
 git
 gmake
-m4
 gtar
+lsb_release
+m4
 openssl
 perl
 python
@@ -79,6 +80,7 @@ gdb                      => 'gdb',
 git                      => 'git',
 gmake                    => 'make',
 gtar                     => 'tar',
+lsb_release              => 'lsb-release',
 m4                       => 'm4',
 openssl                  => 'openssl',
 perl                     => 'perl-devel',
@@ -107,6 +109,7 @@ fortran                  => 'gfortran',
 git                      => 'git',
 gmake                    => 'make',
 gtar                     => 'tar',
+lsb_release              => 'lsb-release',
 m4                       => 'm4',
 openssl                  => 'openssl',
 perl                     => 'libperl-dev',
@@ -150,6 +153,7 @@ fortran                  => 'gcc-fortran',
 git                      => 'git',
 gmake                    => 'make',
 gtar                     => 'tar',
+lsb_release              => 'lsb-release',
 m4                       => 'm4',
 openssl                  => 'openssl',
 perl                     => 'perl',

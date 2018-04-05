@@ -707,6 +707,52 @@ The static version will be available at **vc3-builder-static**.
 The steps above set a local [musl-libc](https://www.musl-libc.org) installation that compile **vc3-builder** into a [static perl](http://software.schmorp.de/pkg/App-Staticperl.html) interpreter.
 
 
+CREATING CONTAINER IMAGES WITH A vc3-builder ENVIRONMENT
+-----------------------------------------------------------
+
+The **vc3-builder** can write its environment configuration to a shell
+configuration profile. This is useful when setting up containers that will
+execute software installed by the **vc3-builder**.
+
+The following is an example for creating a singularity centos7 image using the
+**vc3-builder**.
+
+```sh
+#
+# Singularity image VC3 for centos6
+# Build as:
+# sudo singularity build --sandbox myimage.sandbox singularity.file
+# sudo singularity build myimage myimage.sandbox
+# sudo rm -rf myimage.sandbox
+# Run as:
+# singularity shell myimage
+#
+
+Bootstrap: docker
+From: centos:7
+
+# bring the builder to the image
+%files
+    vc3-builder  /usr/bin/
+
+%environment
+# this file is written by the vc3-builder in %post, and sets the correct paths, etc, for the requirements
+    ENV=/etc/vc3-environment/profile
+    export ENV
+
+%post
+# install common packages instead of using the builder to save some installation.
+	yum install -y cmake bzip2 curl gcc gcc-c++ findutils gfortran git make tar lsb-release m4 openssl perl-devel python-devel strace unzip vim wget which perl-core libc-devel
+	yum -y clean all
+
+# setup the vc3 environment. fill the --require arguments as desired.
+    mkdir -p /etc/vc3-environment
+    /usr/bin/vc3-builder --install /opt/vc3 --distfiles /opt/vc3/files --env-to /etc/vc3-environment/profile --require ... --require ...
+
+%runscript
+    exec /bin/sh "$@"
+```
+
 
 REFERENCE
 ---------

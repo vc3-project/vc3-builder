@@ -10355,7 +10355,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       push @{$expansion->{'LD_LIBRARY_PATH'}}, $ENV{'LD_LIBRARY_PATH'} || qw(/lib /usr/lib /usr/local/lib);
   
       for my $var_name (keys %{$expansion}) {
-          my @values = $self->clean_varialble_repetitions($expansion->{$var_name});
+          my @values = $self->clean_variable_repetitions($expansion->{$var_name});
   
           eval { $expansion->{$var_name} = join(':', @values) };
           if($@) {
@@ -10373,7 +10373,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       print { $sh_f } "\n";
   }
   
-  sub clean_varialble_repetitions {
+  sub clean_variable_repetitions {
       my ($self, $ref) = @_;
   
       my @values = @$ref;
@@ -10863,7 +10863,11 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
   sub environment_variables {
       my ($self, $new_vars) = @_;
   
-      $self->{environment_variables} = $new_vars if($new_vars);
+      $self->{environment_variables} ||= [];
+  
+      if($new_vars) {
+          unshift @{$self->{environment_variables}}, @{$new_vars};
+      }
   
       return $self->{environment_variables};
   }
@@ -13070,10 +13074,13 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
           $self->add_widget_variable('VERSION', $majmin);
           $self->add_widget_variable('VERSION_FULL', $majminbug);
-      }
   
-      if($self->package->options) {
-          $self->add_widget_variable('OPTIONS', @{$self->package->options});
+          if($self->package->options) {
+              $self->add_widget_variable('OPTIONS', @{$self->package->options});
+          }
+  
+          # initialize root variables
+          $self->root_dir();
       }
   
       unless($self->source) {
@@ -13115,8 +13122,6 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   sub add_widget_variable {
       my ($self, $varname, $value) = @_;
   
-      my $vars    = $self->environment_variables || [];
-  
       $varname = $self->widget_var($varname);
   
       my $var = {
@@ -13125,9 +13130,8 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
           clobber  => 1,
           absolute => 1
       };
-      unshift @{$vars}, $var;
   
-      $self->environment_variables($vars);
+      $self->environment_variables([$var]);
   }
   
   sub widget_var {
@@ -13229,18 +13233,13 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   sub environment_variables {
       my ($self, $new_vars) = @_;
   
+      $self->{environment_variables} ||= [];
+  
       if($new_vars) {
-          my @vars = ();
-  
-          if($self->package->environment_variables) {
-              push @vars, @{$self->package->environment_variables};
-          }
-  
-          push @vars, @{$new_vars};
-          $self->{environment_variables} = \@vars;
+          unshift @{$self->{environment_variables}}, @{$new_vars};
       }
   
-      return $self->{environment_variables};
+      return [ @{$self->{environment_variables}}, @{$self->package->environment_variables} ];
   }
   
   sub environment_autovars {
@@ -17642,6 +17641,9 @@ __DATA__
                     "dependencies":{
                         "uuid":[
                             "v1.0"
+                        ],
+                        "zlib":[
+                            "v1.2"
                         ],
                         "fuse":[
                             "v2.9"

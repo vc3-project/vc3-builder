@@ -928,7 +928,7 @@ sub set_environment_variables {
     push @{$expansion->{'LD_LIBRARY_PATH'}}, $ENV{'LD_LIBRARY_PATH'} || qw(/lib /usr/lib /usr/local/lib);
 
     for my $var_name (keys %{$expansion}) {
-        my @values = $self->clean_varialble_repetitions($expansion->{$var_name});
+        my @values = $self->clean_variable_repetitions($expansion->{$var_name});
 
         eval { $expansion->{$var_name} = join(':', @values) };
         if($@) {
@@ -946,7 +946,7 @@ sub set_environment_variables {
     print { $sh_f } "\n";
 }
 
-sub clean_varialble_repetitions {
+sub clean_variable_repetitions {
     my ($self, $ref) = @_;
 
     my @values = @$ref;

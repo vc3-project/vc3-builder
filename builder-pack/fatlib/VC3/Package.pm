@@ -148,7 +148,11 @@ sub options {
 sub environment_variables {
     my ($self, $new_vars) = @_;
 
-    $self->{environment_variables} = $new_vars if($new_vars);
+    $self->{environment_variables} ||= [];
+
+    if($new_vars) {
+        unshift @{$self->{environment_variables}}, @{$new_vars};
+    }
 
     return $self->{environment_variables};
 }

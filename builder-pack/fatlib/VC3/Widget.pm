@@ -65,10 +65,13 @@ sub new {
 
         $self->add_widget_variable('VERSION', $majmin);
         $self->add_widget_variable('VERSION_FULL', $majminbug);
-    }
 
-    if($self->package->options) {
-        $self->add_widget_variable('OPTIONS', @{$self->package->options});
+        if($self->package->options) {
+            $self->add_widget_variable('OPTIONS', @{$self->package->options});
+        }
+
+        # initialize root variables
+        $self->root_dir();
     }
 
     unless($self->source) {
@@ -110,8 +113,6 @@ sub to_hash {
 sub add_widget_variable {
     my ($self, $varname, $value) = @_;
 
-    my $vars    = $self->environment_variables || [];
-
     $varname = $self->widget_var($varname);
 
     my $var = {
@@ -120,9 +121,8 @@ sub add_widget_variable {
         clobber  => 1,
         absolute => 1
     };
-    unshift @{$vars}, $var;
 
-    $self->environment_variables($vars);
+    $self->environment_variables([$var]);
 }
 
 sub widget_var {
@@ -224,18 +224,13 @@ sub wrapper {
 sub environment_variables {
     my ($self, $new_vars) = @_;
 
+    $self->{environment_variables} ||= [];
+
     if($new_vars) {
-        my @vars = ();
-
-        if($self->package->environment_variables) {
-            push @vars, @{$self->package->environment_variables};
-        }
-
-        push @vars, @{$new_vars};
-        $self->{environment_variables} = \@vars;
+        unshift @{$self->{environment_variables}}, @{$new_vars};
     }
 
-    return $self->{environment_variables};
+    return [ @{$self->{environment_variables}}, @{$self->package->environment_variables} ];
 }
 
 sub environment_autovars {

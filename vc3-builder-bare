@@ -244,7 +244,7 @@ sub main {
         "help"  => \$print_help,
         "debug" => \$debug_run,
 
-        "silent:s" => \$silent_option,
+        "silent:s" => sub { my ($o, $s) = @_; $silent_option = $s ? $s : 'ALL'},
 
         "database=s"  => \@databases,
         "require=s"   => \@requires, 

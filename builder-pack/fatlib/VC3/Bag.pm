@@ -1268,7 +1268,7 @@ sub shell_user {
 sub say {
     my ($self, @rest) = @_;
 
-    return if($self->{silent_run} and $self->{silent_run} ne 'plan');
+    return if($self->{silent_run} and $self->{silent_run} eq 'ALL');
 
     print( ('.' x ($self->{indent_level} || 0)), join(' ', @rest), "\n");
 }
@@ -1278,7 +1278,7 @@ sub say_plan {
 
     return if($self->{silent_run} and $self->{silent_run} eq 'plan');
 
-    print( ('.' x ($self->{indent_level} || 0)), join(' ', @rest), "\n");
+    $self->say(@rest);
 }
 
 1;

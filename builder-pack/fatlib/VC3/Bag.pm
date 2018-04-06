@@ -57,18 +57,17 @@ sub new {
     $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
 
     # read the catalog of available packages
-    my $recipes_raw = $self->read_bags($args{databases}, $args{'pkg_opts'});
+    my $recipes_raw = $self->read_bags($args{databases});
 
-    $self->{recipes}{op_sys_distro} = $self->decode_recipes($recipes_raw->{op_sys_distro});
+    $self->{recipes}{op_sys_distro} = $self->decode_recipes($recipes_raw->{op_sys_distro}, $args{pkg_opts});
     # arch, distro, etc.
     $self->set_machine_vars();
 
-    $self->{recipes}{op_sys}  = $self->decode_recipes($recipes_raw->{op_sys});
-    $self->{recipes}{package} = $self->decode_recipes($recipes_raw->{package});
+    $self->{recipes}{op_sys}  = $self->decode_recipes($recipes_raw->{op_sys}, $args{pkg_opts});
+    $self->{recipes}{package} = $self->decode_recipes($recipes_raw->{package}, $args{pkg_opts});
 
-
-    if(%{$args{'pkg_opts'}}) {
-        warn 'The options for these packages were unused: ', join(',', keys %{$args{'pkg_opts'}}) . "\n";
+    if(%{$args{pkg_opts}}) {
+        warn 'The options for these packages were unused: ', join(',', keys %{$args{pkg_opts}}) . "\n";
     }
 
     $self->{no_system} = { map { ( $_ => 1 ), } @{$args{no_sys}} };
@@ -730,7 +729,7 @@ sub widgets_of {
 }
 
 sub read_bags {
-    my ($self, $databases, $pkg_opts) = @_;
+    my ($self, $databases) = @_;
 
     my $recipes  = {};
     $recipes->{package} = {};
@@ -739,11 +738,11 @@ sub read_bags {
 
     for my $filespec (@{$databases}) {
         if(-d $filespec) {
-            $self->read_bag_dir($filespec, 1, $pkg_opts, $recipes);
+            $self->read_bag_dir($filespec, 1, $recipes);
         } elsif(-f $filespec) {
-            $self->read_bag_file($filespec, $pkg_opts, $recipes);
+            $self->read_bag_file($filespec, $recipes);
         } elsif($filespec eq '<internal>') {
-            $self->read_bag_internal($pkg_opts, $recipes);
+            $self->read_bag_internal($recipes);
         }
     }
 
@@ -751,7 +750,7 @@ sub read_bags {
 }
 
 sub read_bag_dir {
-    my ($self, $dir, $depth, $pkg_opts, $recipes) = @_;
+    my ($self, $dir, $depth, $recipes) = @_;
 
     if($depth > 32) {
         die "Maximum directory depth allowed reached.\n";
@@ -761,24 +760,24 @@ sub read_bag_dir {
 
     for my $filespec (@listing) {
         if(-d $filespec) {
-            $self->read_bag_dir($filespec, $depth+1, $pkg_opts, $recipes);
+            $self->read_bag_dir($filespec, $depth+1, $recipes);
         } elsif($filespec =~ m/\.json$/) {
-            $self->read_bag_file($filespec, $pkg_opts, $recipes);
+            $self->read_bag_file($filespec, $recipes);
         }
     }
 }
 
 sub read_bag_file {
-    my ($self, $filename, $pkg_opts, $recipes) = @_;
+    my ($self, $filename, $recipes) = @_;
 
     open(my $catbag_f, '<:encoding(UTF-8)', $filename) ||
     die "Could not open '$filename': $!\n";
 
-    return $self->read_bag_fh($catbag_f, $pkg_opts, $recipes);
+    return $self->read_bag_fh($catbag_f, $recipes);
 }
 
 sub read_bag_internal {
-    my ($self, $pkg_opts, $recipes) = @_;
+    my ($self, $recipes) = @_;
 
     {
         no warnings;
@@ -789,12 +788,12 @@ sub read_bag_internal {
 
     my $catbag_f = *VC3::Builder::DATA;
 
-    return $self->read_bag_fh($catbag_f, $pkg_opts, $recipes);
+    return $self->read_bag_fh($catbag_f, $recipes);
 }
 
 
 sub read_bag_fh {
-    my ($self, $fh, $pkg_opts, $recipes) = @_;
+    my ($self, $fh, $recipes) = @_;
 
     my $contents = do { local($/); <$fh> };
     close($fh);
@@ -830,11 +829,16 @@ sub read_bag_fh {
 } 
 
 sub decode_recipes {
-    my ($self, $raw) = @_;
+    my ($self, $raw, $pkg_opts) = @_;
 
     my $recipes = {};
 
     for my $package_name (keys %{$raw}) {
+        if(exists $pkg_opts->{$package_name}) {
+            $raw->{$package_name}{options} = $pkg_opts->{$package_name};
+            delete $pkg_opts->{$package_name};
+        }
+
         my $pkg = VC3::Package->new($self, $package_name, $raw->{$package_name});
         $recipes->{$package_name} = $pkg;
     }

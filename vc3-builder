@@ -9484,10 +9484,14 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
   
       # read the catalog of available packages
-      $self->{recipes} = $self->decode_bags($args{databases}, $args{'pkg_opts'});
+      my $recipes_raw = $self->read_bags($args{databases}, $args{'pkg_opts'});
   
+      $self->{recipes}{op_sys_distro} = $self->decode_recipes($recipes_raw->{op_sys_distro});
       # arch, distro, etc.
       $self->set_machine_vars();
+  
+      $self->{recipes}{op_sys}  = $self->decode_recipes($recipes_raw->{op_sys});
+      $self->{recipes}{package} = $self->decode_recipes($recipes_raw->{package});
   
   
       if(%{$args{'pkg_opts'}}) {
@@ -10152,7 +10156,7 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       return $pkg->widgets;
   }
   
-  sub decode_bags {
+  sub read_bags {
       my ($self, $databases, $pkg_opts) = @_;
   
       my $recipes  = {};
@@ -10162,18 +10166,18 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       for my $filespec (@{$databases}) {
           if(-d $filespec) {
-              $self->decode_bag_dir($filespec, 1, $pkg_opts, $recipes);
+              $self->read_bag_dir($filespec, 1, $pkg_opts, $recipes);
           } elsif(-f $filespec) {
-              $self->decode_bag_file($filespec, $pkg_opts, $recipes);
+              $self->read_bag_file($filespec, $pkg_opts, $recipes);
           } elsif($filespec eq '<internal>') {
-              $self->decode_bag_internal($pkg_opts, $recipes);
+              $self->read_bag_internal($pkg_opts, $recipes);
           }
       }
   
       return $recipes;
   }
   
-  sub decode_bag_dir {
+  sub read_bag_dir {
       my ($self, $dir, $depth, $pkg_opts, $recipes) = @_;
   
       if($depth > 32) {
@@ -10184,23 +10188,23 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       for my $filespec (@listing) {
           if(-d $filespec) {
-              $self->decode_bag_dir($filespec, $depth+1, $pkg_opts, $recipes);
+              $self->read_bag_dir($filespec, $depth+1, $pkg_opts, $recipes);
           } elsif($filespec =~ m/\.json$/) {
-              $self->decode_bag_file($filespec, $pkg_opts, $recipes);
+              $self->read_bag_file($filespec, $pkg_opts, $recipes);
           }
       }
   }
   
-  sub decode_bag_file {
+  sub read_bag_file {
       my ($self, $filename, $pkg_opts, $recipes) = @_;
   
       open(my $catbag_f, '<:encoding(UTF-8)', $filename) ||
       die "Could not open '$filename': $!\n";
   
-      return $self->decode_bag_fh($catbag_f, $pkg_opts, $recipes);
+      return $self->read_bag_fh($catbag_f, $pkg_opts, $recipes);
   }
   
-  sub decode_bag_internal {
+  sub read_bag_internal {
       my ($self, $pkg_opts, $recipes) = @_;
   
       {
@@ -10212,11 +10216,11 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       my $catbag_f = *VC3::Builder::DATA;
   
-      return $self->decode_bag_fh($catbag_f, $pkg_opts, $recipes);
+      return $self->read_bag_fh($catbag_f, $pkg_opts, $recipes);
   }
   
   
-  sub decode_bag_fh {
+  sub read_bag_fh {
       my ($self, $fh, $pkg_opts, $recipes) = @_;
   
       my $contents = do { local($/); <$fh> };
@@ -10235,27 +10239,35 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       for my $obj (@{$bag_raw}) {
           for my $package_name (keys %{$obj}) {
   
-              if(exists $pkg_opts->{$package_name}) {
-                  $obj->{$package_name}{options} = $pkg_opts->{$package_name};
-                  delete $pkg_opts->{$package_name};
-              }
+              my $pkg_raw = $obj->{$package_name};
   
-              my $pkg = VC3::Package->new($self, $package_name, $obj->{$package_name}, $pkg_opts);
-  
-              if($pkg->type eq 'package') {
-                  $recipes->{package}{$package_name} = $pkg;
-              } elsif($pkg->type eq 'operating-system') {
-                  $recipes->{op_sys}{$package_name} = $pkg;
-              } elsif($pkg->type eq 'operating-system-distribution') {
-                  $recipes->{op_sys_distro}{$package_name} = $pkg;
+              if(!$pkg_raw->{type} || $pkg_raw->{type} eq 'package') {
+                  $recipes->{package}{$package_name} = $pkg_raw;
+              } elsif($pkg_raw->{type} eq 'operating-system') {
+                  $recipes->{op_sys}{$package_name} = $pkg_raw;
+              } elsif($pkg_raw->{type} eq 'operating-system-distribution') {
+                  $recipes->{op_sys_distro}{$package_name} = $pkg_raw;
               } else {
-                  die "I don't know about a package type '" . $pkg->type . "'\n";
+                  die "I don't know about a package type '" . $pkg_raw->{type} . "'\n";
               }
           }
       }
   
       return $recipes;
   } 
+  
+  sub decode_recipes {
+      my ($self, $raw) = @_;
+  
+      my $recipes = {};
+  
+      for my $package_name (keys %{$raw}) {
+          my $pkg = VC3::Package->new($self, $package_name, $raw->{$package_name});
+          $recipes->{$package_name} = $pkg;
+      }
+  
+      return $recipes;
+  }
   
   sub build_widget {
       my ($self, $widget, $sh_on_error, $force_rebuild, $ignore_locks) = @_;
@@ -12780,7 +12792,7 @@ $fatpacked{"VC3/Source/OSNative.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n
   use warnings;
   
   package VC3::Source::OSNative;
-  use base 'VC3::Source::Generic';
+  use base 'VC3::Source::System';
   use Carp;
   
   sub new {
@@ -12799,6 +12811,19 @@ $fatpacked{"VC3/Source/OSNative.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n
               'pref=${VC3_MACHINE_TARGET#' . $json_description->{native} . '}',
               '[ $pref != ${VC3_MACHINE_TARGET} ] || exit 1'
           ];
+      }
+  
+      unless($json_description->{'auto-version'}) {
+  
+          my $dver = $widget->package->bag->distribution;
+          
+          unless($dver =~ s/^.*[^0-9.]([0-9.]+)$/$1/) {
+              die "Could not find version of distribution in '$dver'\n";
+          }
+  
+          $json_description->{'auto-version'} = [
+              "echo VC3_VERSION_SYSTEM: $dver"
+          ]
       }
   
       my $self = $class->SUPER::new($widget, $json_description);
@@ -13079,8 +13104,12 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
               $self->add_widget_variable('OPTIONS', @{$self->package->options});
           }
   
-          # initialize root variables
-          $self->root_dir();
+          # initialize root dir variable. we use unless here becase root_dir
+          # depends on machine target, which is still not set until we process
+          # all the operating-system-distribution's
+          unless($self->package->type eq 'operating-system-distribution') {
+              $self->root_dir();
+          }
       }
   
       unless($self->source) {
@@ -15917,23 +15946,23 @@ sub switch_os {
 
     # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
-        $bag->say('OS trying:         ' . $w->source->type . ' ' . $name . ':' . $w->version);
-
-        if($min and $min > $w->version) {
-            $bag->say('OS fail min:       ' . $w->source->type . ' ' . $name . ':' . $w->version);
-            next;
-        }
-
-        if($max and $max < $w->version) {
-            $bag->say('OS fail max:       ' . $w->source->type . ' ' . $name . ':' . $w->version);
-            next;
-        }
-
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
 
         if($exit_status) {
-            $bag->say('OS fail prereq:    ' . $os . ' ' . $w->source->type);
+            next;
+        }
+
+        my $fmt = sprintf("OS %%-14s %12s %s:%s for %s", $w->source->type, $w->package->name, $w->version, $os);
+        $bag->say(sprintf($fmt, 'trying:'));
+
+        if($min and $min > $w->version) {
+            $bag->say(sprintf($fmt, 'fail min:'));
+            next;
+        }
+
+        if($max and $max < $w->version) {
+            $bag->say(sprintf($fmt, 'fail max:'));
             next;
         }
 
@@ -15942,7 +15971,7 @@ sub switch_os {
             if(check_local_mounts($mount_map)) {
                 return;
             } else {
-                $bag->say('OS fail mounts:    ' . $os . ' ' . $w->source->type);
+                $bag->say(sprintf($fmt, 'fail mounts:'));
                 next;
             }
         }
@@ -15953,7 +15982,7 @@ sub switch_os {
             }
 
             unless($w->wrapper) {
-                $bag->say('OS fail nowrapper: ' . $os . ' ' . $w->source->type);
+                $bag->say(sprintf($fmt, 'fail wrapper:'));
                 die "\n";
                 
             }
@@ -15962,7 +15991,7 @@ sub switch_os {
         };
 
         if($@) {
-            $bag->say('OS failed:         ' . $os . ' ' . $w->source->type . ": $@");
+            $bag->say(sprintf($fmt, 'failed'));
             next;
         } else {
             # payload executed, so we end this builder.
@@ -17630,7 +17659,7 @@ __DATA__
                         ": export PKG_CONFIG_PATH=invalid",
                         "sed -i '305ifind_package (FUSE REQUIRED)' ../CMakeLists.txt",
                         "sed -i '306iset (INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} ${FUSE_INCLUDE_DIR})' ../CMakeLists.txt",
-                        "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC4_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_CRYPTO_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libcrypto.a -DOPENSSL_SSL_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libssl.a -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DFUSE_INCLUDE_DIR:PATH=${VC3_ROOT_FUSE}/include ..",
+                        "cmake -Wno-dev -DINSTALL_MOUNT_SCRIPTS=OFF -DBUILD_SERVER:BOOL=OFF -DBUILD_CVMFS:BOOL=OFF -DBUILD_LIBCVMFS:BOOL=ON -DINSTALL_BASH_COMPLETION:BOOL=OFF -DUUID_LIBRARY=${VC3_ROOT_UUID}/lib/libuuid.a -DUUID_INCLUDE_DIR:PATH=${VC3_ROOT_UUID}/include -DZLIB_LIBRARY=${VC3_ROOT_ZLIB}/lib/libz.a -DZLIB_INCLUDE_DIR:PATH=${VC3_ROOT_ZLIB}/include -DFUSE_INCLUDE_DIR=${VC3_ROOT_FUSE}/include -DFUSE_LIBRARY=${VC3_ROOT_FUSE}/lib/libfuse.a -DOPENSSL_ROOT_DIR:PATH=${VC3_ROOT_OPENSSL} -DOPENSSL_INCLUDE_DIR:PATH=${VC3_ROOT_OPENSSL}/include -DOPENSSL_CRYPTO_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libcrypto.a -DOPENSSL_SSL_LIBRARY:PATH=${VC3_ROOT_OPENSSL}/lib/libssl.a -DCMAKE_INSTALL_PREFIX:PATH=${VC3_PREFIX} -DFUSE_INCLUDE_DIR:PATH=${VC3_ROOT_FUSE}/include ..",
                         "cd cvmfs",
                         "make libcvmfs",
                         "mkdir -p ${VC3_PREFIX}/lib",
@@ -20190,17 +20219,10 @@ __DATA__
         "type":"operating-system",
         "versions":[
             {
-                "version":"7",
+                "version":"auto",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/redhat7"
-                }
-            },
-            {
-                "version":"6",
-                "source":{
-                    "type":"os-native",
-                    "native":"x86_64/redhat6"
+                    "native":"x86_64/redhat"
                 }
             },
             {
@@ -20242,10 +20264,10 @@ __DATA__
         "type":"operating-system",
         "versions":[
             {
-                "version":"16",
+                "version":"auto",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/ubuntu16"
+                    "native":"x86_64/ubuntu"
                 }
             },
             {
@@ -20272,10 +20294,10 @@ __DATA__
         "type":"operating-system",
         "versions":[
             {
-                "version":"9",
+                "version":"auto",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/debian9"
+                    "native":"x86_64/debian"
                 }
             },
             {
@@ -20302,10 +20324,10 @@ __DATA__
         "type":"operating-system",
         "versions":[
             {
-                "version":"42",
+                "version":"auto",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/opensuse42"
+                    "native":"x86_64/opensuse"
                 }
             },
             {

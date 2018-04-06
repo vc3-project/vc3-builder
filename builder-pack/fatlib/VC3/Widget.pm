@@ -70,8 +70,12 @@ sub new {
             $self->add_widget_variable('OPTIONS', @{$self->package->options});
         }
 
-        # initialize root variables
-        $self->root_dir();
+        # initialize root dir variable. we use unless here becase root_dir
+        # depends on machine target, which is still not set until we process
+        # all the operating-system-distribution's
+        unless($self->package->type eq 'operating-system-distribution') {
+            $self->root_dir();
+        }
     }
 
     unless($self->source) {

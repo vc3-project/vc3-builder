@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 package VC3::Source::OSNative;
-use base 'VC3::Source::Generic';
+use base 'VC3::Source::System';
 use Carp;
 
 sub new {
@@ -28,6 +28,19 @@ sub new {
             'pref=${VC3_MACHINE_TARGET#' . $json_description->{native} . '}',
             '[ $pref != ${VC3_MACHINE_TARGET} ] || exit 1'
         ];
+    }
+
+    unless($json_description->{'auto-version'}) {
+
+        my $dver = $widget->package->bag->distribution;
+        
+        unless($dver =~ s/^.*[^0-9.]([0-9.]+)$/$1/) {
+            die "Could not find version of distribution in '$dver'\n";
+        }
+
+        $json_description->{'auto-version'} = [
+            "echo VC3_VERSION_SYSTEM: $dver"
+        ]
     }
 
     my $self = $class->SUPER::new($widget, $json_description);

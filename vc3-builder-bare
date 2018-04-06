@@ -562,23 +562,23 @@ sub switch_os {
 
     # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
-        $bag->say('OS trying:         ' . $w->source->type . ' ' . $name . ':' . $w->version);
-
-        if($min and $min > $w->version) {
-            $bag->say('OS fail min:       ' . $w->source->type . ' ' . $name . ':' . $w->version);
-            next;
-        }
-
-        if($max and $max < $w->version) {
-            $bag->say('OS fail max:       ' . $w->source->type . ' ' . $name . ':' . $w->version);
-            next;
-        }
-
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
 
         if($exit_status) {
-            $bag->say('OS fail prereq:    ' . $os . ' ' . $w->source->type);
+            next;
+        }
+
+        my $fmt = sprintf("OS %%-14s %12s %s:%s for %s", $w->source->type, $w->package->name, $w->version, $os);
+        $bag->say(sprintf($fmt, 'trying:'));
+
+        if($min and $min > $w->version) {
+            $bag->say(sprintf($fmt, 'fail min:'));
+            next;
+        }
+
+        if($max and $max < $w->version) {
+            $bag->say(sprintf($fmt, 'fail max:'));
             next;
         }
 
@@ -587,7 +587,7 @@ sub switch_os {
             if(check_local_mounts($mount_map)) {
                 return;
             } else {
-                $bag->say('OS fail mounts:    ' . $os . ' ' . $w->source->type);
+                $bag->say(sprintf($fmt, 'fail mounts:'));
                 next;
             }
         }
@@ -598,7 +598,7 @@ sub switch_os {
             }
 
             unless($w->wrapper) {
-                $bag->say('OS fail nowrapper: ' . $os . ' ' . $w->source->type);
+                $bag->say(sprintf($fmt, 'fail wrapper:'));
                 die "\n";
                 
             }
@@ -607,7 +607,7 @@ sub switch_os {
         };
 
         if($@) {
-            $bag->say('OS failed:         ' . $os . ' ' . $w->source->type . ": $@");
+            $bag->say(sprintf($fmt, 'failed'));
             next;
         } else {
             # payload executed, so we end this builder.

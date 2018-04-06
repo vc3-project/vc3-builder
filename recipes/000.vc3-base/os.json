@@ -5,17 +5,10 @@
         "type":"operating-system",
         "versions":[
             {
-                "version":"7",
+                "version":"auto",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/redhat7"
-                }
-            },
-            {
-                "version":"6",
-                "source":{
-                    "type":"os-native",
-                    "native":"x86_64/redhat6"
+                    "native":"x86_64/redhat"
                 }
             },
             {
@@ -57,10 +50,10 @@
         "type":"operating-system",
         "versions":[
             {
-                "version":"16",
+                "version":"auto",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/ubuntu16"
+                    "native":"x86_64/ubuntu"
                 }
             },
             {
@@ -87,10 +80,10 @@
         "type":"operating-system",
         "versions":[
             {
-                "version":"9",
+                "version":"auto",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/debian9"
+                    "native":"x86_64/debian"
                 }
             },
             {
@@ -117,10 +110,10 @@
         "type":"operating-system",
         "versions":[
             {
-                "version":"42",
+                "version":"auto",
                 "source":{
                     "type":"os-native",
-                    "native":"x86_64/opensuse42"
+                    "native":"x86_64/opensuse"
                 }
             },
             {

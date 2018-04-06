@@ -57,10 +57,14 @@ sub new {
     $self->set_builder_variables($args{root}, $args{home}, $args{shell}, $args{distfiles}, $args{repository});
 
     # read the catalog of available packages
-    $self->{recipes} = $self->decode_bags($args{databases}, $args{'pkg_opts'});
+    my $recipes_raw = $self->read_bags($args{databases}, $args{'pkg_opts'});
 
+    $self->{recipes}{op_sys_distro} = $self->decode_recipes($recipes_raw->{op_sys_distro});
     # arch, distro, etc.
     $self->set_machine_vars();
+
+    $self->{recipes}{op_sys}  = $self->decode_recipes($recipes_raw->{op_sys});
+    $self->{recipes}{package} = $self->decode_recipes($recipes_raw->{package});
 
 
     if(%{$args{'pkg_opts'}}) {
@@ -725,7 +729,7 @@ sub widgets_of {
     return $pkg->widgets;
 }
 
-sub decode_bags {
+sub read_bags {
     my ($self, $databases, $pkg_opts) = @_;
 
     my $recipes  = {};
@@ -735,18 +739,18 @@ sub decode_bags {
 
     for my $filespec (@{$databases}) {
         if(-d $filespec) {
-            $self->decode_bag_dir($filespec, 1, $pkg_opts, $recipes);
+            $self->read_bag_dir($filespec, 1, $pkg_opts, $recipes);
         } elsif(-f $filespec) {
-            $self->decode_bag_file($filespec, $pkg_opts, $recipes);
+            $self->read_bag_file($filespec, $pkg_opts, $recipes);
         } elsif($filespec eq '<internal>') {
-            $self->decode_bag_internal($pkg_opts, $recipes);
+            $self->read_bag_internal($pkg_opts, $recipes);
         }
     }
 
     return $recipes;
 }
 
-sub decode_bag_dir {
+sub read_bag_dir {
     my ($self, $dir, $depth, $pkg_opts, $recipes) = @_;
 
     if($depth > 32) {
@@ -757,23 +761,23 @@ sub decode_bag_dir {
 
     for my $filespec (@listing) {
         if(-d $filespec) {
-            $self->decode_bag_dir($filespec, $depth+1, $pkg_opts, $recipes);
+            $self->read_bag_dir($filespec, $depth+1, $pkg_opts, $recipes);
         } elsif($filespec =~ m/\.json$/) {
-            $self->decode_bag_file($filespec, $pkg_opts, $recipes);
+            $self->read_bag_file($filespec, $pkg_opts, $recipes);
         }
     }
 }
 
-sub decode_bag_file {
+sub read_bag_file {
     my ($self, $filename, $pkg_opts, $recipes) = @_;
 
     open(my $catbag_f, '<:encoding(UTF-8)', $filename) ||
     die "Could not open '$filename': $!\n";
 
-    return $self->decode_bag_fh($catbag_f, $pkg_opts, $recipes);
+    return $self->read_bag_fh($catbag_f, $pkg_opts, $recipes);
 }
 
-sub decode_bag_internal {
+sub read_bag_internal {
     my ($self, $pkg_opts, $recipes) = @_;
 
     {
@@ -785,11 +789,11 @@ sub decode_bag_internal {
 
     my $catbag_f = *VC3::Builder::DATA;
 
-    return $self->decode_bag_fh($catbag_f, $pkg_opts, $recipes);
+    return $self->read_bag_fh($catbag_f, $pkg_opts, $recipes);
 }
 
 
-sub decode_bag_fh {
+sub read_bag_fh {
     my ($self, $fh, $pkg_opts, $recipes) = @_;
 
     my $contents = do { local($/); <$fh> };
@@ -808,27 +812,35 @@ sub decode_bag_fh {
     for my $obj (@{$bag_raw}) {
         for my $package_name (keys %{$obj}) {
 
-            if(exists $pkg_opts->{$package_name}) {
-                $obj->{$package_name}{options} = $pkg_opts->{$package_name};
-                delete $pkg_opts->{$package_name};
-            }
+            my $pkg_raw = $obj->{$package_name};
 
-            my $pkg = VC3::Package->new($self, $package_name, $obj->{$package_name}, $pkg_opts);
-
-            if($pkg->type eq 'package') {
-                $recipes->{package}{$package_name} = $pkg;
-            } elsif($pkg->type eq 'operating-system') {
-                $recipes->{op_sys}{$package_name} = $pkg;
-            } elsif($pkg->type eq 'operating-system-distribution') {
-                $recipes->{op_sys_distro}{$package_name} = $pkg;
+            if(!$pkg_raw->{type} || $pkg_raw->{type} eq 'package') {
+                $recipes->{package}{$package_name} = $pkg_raw;
+            } elsif($pkg_raw->{type} eq 'operating-system') {
+                $recipes->{op_sys}{$package_name} = $pkg_raw;
+            } elsif($pkg_raw->{type} eq 'operating-system-distribution') {
+                $recipes->{op_sys_distro}{$package_name} = $pkg_raw;
             } else {
-                die "I don't know about a package type '" . $pkg->type . "'\n";
+                die "I don't know about a package type '" . $pkg_raw->{type} . "'\n";
             }
         }
     }
 
     return $recipes;
 } 
+
+sub decode_recipes {
+    my ($self, $raw) = @_;
+
+    my $recipes = {};
+
+    for my $package_name (keys %{$raw}) {
+        my $pkg = VC3::Package->new($self, $package_name, $raw->{$package_name});
+        $recipes->{$package_name} = $pkg;
+    }
+
+    return $recipes;
+}
 
 sub build_widget {
     my ($self, $widget, $sh_on_error, $force_rebuild, $ignore_locks) = @_;

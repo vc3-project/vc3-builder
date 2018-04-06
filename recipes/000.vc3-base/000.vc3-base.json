@@ -2364,7 +2364,7 @@
                 }
             },
             {
-                "version":"v2.7.12",
+                "version":"v2.7.14",
                 "source":{
                     "type":"tarball",
                     "files":[
@@ -2394,7 +2394,7 @@
             }
         ],
         "environment-autovars":[
-            "PATH"
+            "PATH", "LD_LIBRARY_PATH"
         ],
         "environment-variables":[
             {
@@ -2455,7 +2455,7 @@
             }
         ],
         "environment-autovars":[
-            "PATH"
+            "PATH", "LD_LIBRARY_PATH"
         ],
         "environment-variables":[
             {

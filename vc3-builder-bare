@@ -415,13 +415,13 @@ sub main {
         no_sys     => \@no_sys,
         env_vars   => \@extra_env_vars);
 
-    if(defined $list_option) {
-        $bag->list_packages($list_option);
-        exit 0;
-    }
-
 
     push @cleanups, sub { $bag->cleanup() };
+
+    if(defined $list_option) {
+        $bag->list_packages($list_option);
+        exit(0);
+    }
 
     if($require_os and not $no_os_switch) {
         # following call may produce an exec to a container.  original command line

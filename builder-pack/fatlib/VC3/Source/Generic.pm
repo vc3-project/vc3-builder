@@ -310,6 +310,8 @@ sub get_file_from_mirror {
 
         die "Could not download '" . $file . "':\n" . "$response->{status} $response->{reason}";
     }
+
+    die "Could not download '" . $file . "':\n";
 }
 
 sub get_files {

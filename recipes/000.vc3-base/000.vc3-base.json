@@ -1009,27 +1009,6 @@
         ]
     },
 
-    "cvmfs-parrot-libcvmfs-vc3ndcms":{
-        "versions":[
-            {
-                "version":"v2.4.0",
-                "phony":1,
-                "local":1,
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-                        "stat /cvmfs/cms.cern.ch"
-                    ],
-                    "dependencies":{
-                        "parrot-wrapper-vc3ndcms":[
-                            "v6.0.0"
-                        ]
-                    }
-                }
-            }
-        ]
-    },
-
     "cvmfs":{
         "tags":["file systems"],
         "show-in-list":1,
@@ -1068,80 +1047,18 @@
         ]
     },
 
-    "cvmfs-vc3ndcms":{
-        "tags":["file systems"],
-        "show-in-list":1,
-        "versions":[
-            {
-                "version":"auto",
-                "source":{
-                    "type":"system",
-                    "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: $(cvmfs2 -V | sed -r -e 's/CernVM-FS version\\s+([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
-                    ],
-                    "prerequisites":[
-                        "stat /cvmfs/cms.cern.ch"
-                    ],
-                    "recipe":[
-                        "echo \"VC3_ROOT_SYSTEM: /\""
-                    ]
-                },
-                "environment-variables":[
-                    {
-                        "name":"VC3_PARROT_EXTRA_OPTIONS",
-                        "value":"--disable-service=cvmfs",
-                        "absolute":1,
-                        "clobber":1
-                    }
-                ]
-            },
-            {
-                "version":"v2.4.0",
-                "dependencies":{
-                    "cvmfs-parrot-libcvmfs-vc3ndcms":[
-                        "v2.4.0"
-                    ]
-                }
-            }
-        ]
-    },
-
     "parrot-wrapper":{
         "tags":["file systems"],
         "show-in-list":1,
         "versions":[
             {
-                "version":"v6.0.0",
+                "version":"v6.2.10",
                 "wrapper":[
                     "parrot_run",
                     "--dynamic-mounts",
                     "-p", "\"${PARROT_HTTP_PROXY}\"",
                     "--cvmfs-repo-switching",
-                    "${VC3_PARROT_EXTRA_OPTIONS}",
-                    "{}"
-                ],
-                "dependencies":{
-                    "cctools":[
-                        "v6.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "parrot-wrapper-vc3ndcms":{
-        "tags":["file systems"],
-        "versions":[
-            {
-                "version":"v6.0.0",
-                "wrapper":[
-                    "parrot_run",
-                    "--dynamic-mounts",
-                    "-p", "\"${PARROT_HTTP_PROXY}\"",
-                    "--cvmfs-repo-switching",
-                    "--no-flock",
-                    "-M /cvmfs/cms.cern.ch/SITECONF/local=/cvmfs/cms.cern.ch/SITECONF/T3_US_VC3_NotreDame",
-                    "${VC3_PARROT_EXTRA_OPTIONS}",
+                    "$(echo ${VC3_PARROT_EXTRA_OPTIONS} | sed -e 's/:/ /g')",
                     "{}"
                 ],
                 "dependencies":{

@@ -1,0 +1,64 @@
+{
+    "cvmfs-vc3ndcms":{
+        "tags":["file systems"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: $(cvmfs2 -V | sed -r -e 's/CernVM-FS version\\s+([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
+                    ],
+                    "prerequisites":[
+                        "stat /cvmfs/cms.cern.ch"
+                    ],
+                    "recipe":[
+                        "echo \"VC3_ROOT_SYSTEM: /\""
+                    ]
+                },
+                "environment-variables":[
+                    {
+                        "name":"VC3_PARROT_EXTRA_OPTIONS",
+                        "value":"--disable-service=cvmfs",
+                        "absolute":1
+                    }
+                ]
+            },
+            {
+                "version":"v2.4.0",
+                "dependencies":{
+                    "parrot-wrapper-vc3ndcms":[
+                        "v2.4.0"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "parrot-wrapper-vc3ndcms":{
+        "tags":["file systems"],
+        "versions":[
+            {
+                "version":"v2.4.0",
+                "dependencies":{
+                    "parrot-wrapper":[
+                        "v6.2.10"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_PARROT_EXTRA_OPTIONS",
+                "value":"--no-flock",
+                "absolute":1
+            },
+            {
+                "name":"VC3_PARROT_EXTRA_OPTIONS",
+                "value":"-M /cvmfs/cms.cern.ch/SITECONF/local=/cvmfs/cms.cern.ch/SITECONF/T3_US_VC3_NotreDame",
+                "absolute":1
+            }
+        ]
+    }
+}

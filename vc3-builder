@@ -20449,8 +20449,21 @@ __DATA__
         "versions":[
             {
                 "version":"v3.3",
+                "native": "x86_64/redhat6",
                 "prologue": [
                     "source /cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.3/current/el6-x86_64/setup.sh"
+                ],
+                "dependencies":{
+                    "cvmfs-vc3ndcms":[
+                        "v2.4.0"
+                    ]
+                }
+            },
+            {
+                "version":"v3.3",
+                "native": "x86_64/redhat7",
+                "prologue": [
+                    "source /cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.3/current/el7-x86_64/setup.sh"
                 ],
                 "dependencies":{
                     "cvmfs-vc3ndcms":[

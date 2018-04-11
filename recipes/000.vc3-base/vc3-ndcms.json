@@ -62,7 +62,7 @@
         ]
     },
 
-    "oasis-wn-vc3ndcms":{
+    "oasis-wn-rhel6-vc3ndcms":{
         "tags":["environments"],
         "show-in-list":1,
         "versions":[

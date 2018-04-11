@@ -35,11 +35,6 @@
                             "v0.23.0"
                         ]
                     }
-                },
-                "dependencies-disabled":{
-                    "tar":[
-                        "v1.2.0"
-                    ]
                 }
             }
         ]
@@ -3626,7 +3621,10 @@
                     "preface":[
                         "cd unix"
                     ],
-                    "options":"--enable-threads --enable-64bit"
+                    "options":"--enable-threads --enable-64bit",
+                    "postface":[
+                        "ln -s tclsh8.5 ${VC3_PREFIX}/bin/tclsh"
+                    ]
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -4066,6 +4064,108 @@
                 "source":{
                     "type":"system",
                     "executable":"docker"
+                }
+            }
+        ]
+    },
+
+    "spack":{
+        "tags":["software building"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v0.11",
+                "phony":1,
+                "prologue":[
+                    ". ${SPACK_ROOT}/share/spack/setup-env.sh"
+                ],
+                "source":{
+                    "type":"generic",
+                    "phony":1,
+                    "recipe":[
+                        ". ${SPACK_ROOT}/share/spack/setup-env.sh",
+                        "spack load || spack bootstrap"
+                    ]
+                }
+            }
+        ],
+        "dependencies":{
+            "spack-noconf":[
+                "v0.11"
+            ]
+        }
+    },
+
+    "spack-noconf":{
+        "tags":["software building"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"spack"
+                }
+            },
+            {
+                "version":"0.11.2",
+                "source":{
+                    "type":"generic",
+                    "files":[
+                        "spack-0.11.2.tar.gz"
+                    ],
+                    "mirrors":[
+                        "https://github.com/spack/spack/releases/download/v0.11.2/"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf spack-0.11.2.tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"SPACK_ROOT",
+                "value":"${VC3_ROOT_SPACK_NOCONF}",
+                "absolute":1,
+                "clobber":1
+            }
+        ]
+    },
+
+    "environment-modules":{
+        "tags":["software building"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"module"
+                }
+            },
+            {
+                "version":"4.1.2",
+                "source":{
+                    "type":"tarball",
+                    "files":[
+                        "modules-4.1.2.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --with-tclsh=${VC3_ROOT_TCL}/bin/tclsh",
+                        "make",
+                        "make install",
+                        "/bin/echo  -e '#!/bin/sh\neval $(${VC3_ROOT_ENVIRONMENT_MODULES}/bin/modulecmd sh \"$@\")\n' > ${VC3_PREFIX}/bin/module",
+                        "chmod 755 ${VC3_PREFIX}/bin/module"
+                    ]
+                },
+                "environment-autovars":[
+                    "PATH"
+                ],
+                "dependencies":{
+                    "tcl":[
+                        "v8.5.9"
+                    ]
                 }
             }
         ]

@@ -17318,7 +17318,7 @@ __DATA__
                         "mkdir -p ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.10-x86_64-redhat7.tar.gz",
                         "mkdir -p $(python -m site --user-site)",
-                        "cp -r ${VC3_PREFIX}/lib/python${VC3_VERSION_PYTHON}/site-packages $(python -m site --user-site)"
+                        "cp -r ${VC3_PREFIX}/lib/python2.7/site-packages $(python -m site --user-site)"
                     ],
                     "dependencies":{
                         "perl":[
@@ -17345,7 +17345,7 @@ __DATA__
                         "mkdir -p ${VC3_PREFIX}",
                         "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.10-x86_64-redhat6.tar.gz",
                         "mkdir -p $(python -m site --user-site)",
-                        "cp -r ${VC3_PREFIX}/lib/python${VC3_VERSION_PYTHON}/site-packages $(python -m site --user-site)"
+                        "cp -r ${VC3_PREFIX}/lib/python2.6/site-packages $(python -m site --user-site)"
                     ],
                     "dependencies":{
                         "perl":[

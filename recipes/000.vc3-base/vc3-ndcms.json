@@ -60,5 +60,23 @@
                 "absolute":1
             }
         ]
+    },
+
+    "oasis-wn-rhel6-vc3ndcms":{
+        "tags":["environments"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v3.3",
+                "prologue": [
+                    "source /cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.3/current/el6-x86_64/setup.sh"
+                ],
+                "dependencies":{
+                    "cvmfs-vc3ndcms":[
+                        "v2.4.0"
+                    ]
+                }
+            }
+        ]
     }
 }

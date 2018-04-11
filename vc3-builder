@@ -11694,10 +11694,10 @@ $fatpacked{"VC3/Ribbon.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
               if(!$report->{state}) {
                   $state = 'MISSING';
-              #} elsif(!$report->{checksum}) {
-              #     $state = 'MISSING';
-              # } elsif($report->{checksum} ne $self->{checksum}) {
-              # $state = 'OUT_OF_DATE';
+              } elsif(!$report->{checksum}) {
+                  $state = 'MISSING';
+              } elsif($report->{checksum} ne $self->{checksum}) {
+                  $state = 'OUT_OF_DATE';
               } elsif($report->{state} eq 'PROCESSING') {
                   $state = 'PROCESSING';
               } else {
@@ -11705,6 +11705,7 @@ $fatpacked{"VC3/Ribbon.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
               }
           }
       }
+  
   
       return $state;
   }
@@ -12665,6 +12666,7 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
   
       eval {
           my $state = $self->widget->ribbon->state;
+  
           if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony) {
               $result = 0;
           } else {
@@ -13196,7 +13198,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
       my ($self) = @_;
   
       unless($self->{ribbon}) {
-          $self->{ribbon} = VC3::Ribbon->new($self->package->name, $self->bookeeping_dir, $self->package->bag->tmp_dir, $self->checksum);
+          $self->{ribbon} = VC3::Ribbon->new($self->package->name, $self->bookeeping_dir, $self->package->bag->tmp_dir, $self->checksum($self->source->recipe));
       }
   
       return $self->{ribbon};

@@ -84,10 +84,10 @@ sub state {
 
             if(!$report->{state}) {
                 $state = 'MISSING';
-            #} elsif(!$report->{checksum}) {
-            #     $state = 'MISSING';
-            # } elsif($report->{checksum} ne $self->{checksum}) {
-            # $state = 'OUT_OF_DATE';
+            } elsif(!$report->{checksum}) {
+                $state = 'MISSING';
+            } elsif($report->{checksum} ne $self->{checksum}) {
+                $state = 'OUT_OF_DATE';
             } elsif($report->{state} eq 'PROCESSING') {
                 $state = 'PROCESSING';
             } else {
@@ -95,6 +95,7 @@ sub state {
             }
         }
     }
+
 
     return $state;
 }

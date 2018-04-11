@@ -374,6 +374,7 @@ sub execute_recipe {
 
     eval {
         my $state = $self->widget->ribbon->state;
+
         if($state eq 'DONE' && !$force_rebuild && !$self->widget->phony) {
             $result = 0;
         } else {

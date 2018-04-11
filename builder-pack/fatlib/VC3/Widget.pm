@@ -155,7 +155,7 @@ sub ribbon {
     my ($self) = @_;
 
     unless($self->{ribbon}) {
-        $self->{ribbon} = VC3::Ribbon->new($self->package->name, $self->bookeeping_dir, $self->package->bag->tmp_dir, $self->checksum);
+        $self->{ribbon} = VC3::Ribbon->new($self->package->name, $self->bookeeping_dir, $self->package->bag->tmp_dir, $self->checksum($self->source->recipe));
     }
 
     return $self->{ribbon};

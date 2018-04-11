@@ -16,6 +16,7 @@ sub new {
     my ($class, $widget, $json_description) = @_;
 
     $widget->local(1);
+    $widget->phony(1);
 
     my $exe = $json_description->{executable};
 
@@ -69,16 +70,16 @@ sub execute_recipe_unlocked {
             if($line =~ m/^VC3_ROOT_SYSTEM:\s*(?<root>.*)$/) {
                 $root = $+{root};
                 chomp($root);
+
                 # update root from widget with the new information:
                 $self->widget->root_dir($root);
                 last;
             }
         }
         close $f;
-        if(!$root) {
+        unless(defined($root)) {
             die 'Did not produce root directory information.';
         }
-        $root = '' if $root eq '/';
     }
 
     return $result;

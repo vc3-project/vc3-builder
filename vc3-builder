@@ -12918,6 +12918,7 @@ $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
       my ($class, $widget, $json_description) = @_;
   
       $widget->local(1);
+      $widget->phony(1);
   
       my $exe = $json_description->{executable};
   
@@ -12971,16 +12972,16 @@ $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
               if($line =~ m/^VC3_ROOT_SYSTEM:\s*(?<root>.*)$/) {
                   $root = $+{root};
                   chomp($root);
+  
                   # update root from widget with the new information:
                   $self->widget->root_dir($root);
                   last;
               }
           }
           close $f;
-          if(!$root) {
+          unless(defined($root)) {
               die 'Did not produce root directory information.';
           }
-          $root = '' if $root eq '/';
       }
   
       return $result;
@@ -18536,7 +18537,7 @@ __DATA__
                     ],
                     "recipe":[
                         "cmd=$(which python)",
-                        "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
+                        "base=$(echo $cmd | sed -r -n -e 's:(^.*/)bin/python$:\\1:p')",
                         "[ -n \"$base\" ] || exit 1",
                         "echo \"VC3_ROOT_SYSTEM: $base\""
                     ]

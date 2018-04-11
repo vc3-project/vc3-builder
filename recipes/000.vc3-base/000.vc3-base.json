@@ -2369,7 +2369,7 @@
                     ],
                     "recipe":[
                         "cmd=$(which python)",
-                        "base=$(echo $cmd | sed -E -n -e 's:(^.*/)bin/python$:\\1:p')",
+                        "base=$(echo $cmd | sed -r -n -e 's:(^.*/)bin/python$:\\1:p')",
                         "[ -n \"$base\" ] || exit 1",
                         "echo \"VC3_ROOT_SYSTEM: $base\""
                     ]

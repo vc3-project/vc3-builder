@@ -959,6 +959,23 @@
     "vc3-glidein":{
         "versions": [
             {
+                "version":"v1.0",
+                "source":{
+                    "type":"generic",
+                    "mirrors":[
+                        "https://raw.githubusercontent.com/vc3-project/vc3-glidein/master"
+                    ],
+                    "files":[
+                        "vc3-glidein"
+                    ],
+                    "recipe":[
+                        "chmod 755 vc3-glidein",
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "mv vc3-glidein ${VC3_PREFIX}/bin"
+                    ]
+                }
+            },
+            {
                 "version":"v1.0.4",
                 "source":{
                     "type":"tarball",

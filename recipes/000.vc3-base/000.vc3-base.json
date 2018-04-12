@@ -959,14 +959,11 @@
     "vc3-glidein":{
         "versions": [
             {
-                "version":"v1.0",
+                "version":"v1.0.5",
                 "source":{
-                    "type":"generic",
-                    "mirrors":[
-                        "https://raw.githubusercontent.com/vc3-project/vc3-glidein/master"
-                    ],
+                    "type":"tarball",
                     "files":[
-                        "vc3-glidein"
+                        "vc3-glidein-v1.0.5.tar.gz"
                     ],
                     "recipe":[
                         "chmod 755 vc3-glidein",
@@ -976,11 +973,14 @@
                 }
             },
             {
-                "version":"v1.0.4",
+                "version":"v1.0",
                 "source":{
-                    "type":"tarball",
+                    "type":"generic",
+                    "mirrors":[
+                        "https://raw.githubusercontent.com/vc3-project/vc3-glidein/master"
+                    ],
                     "files":[
-                        "vc3-glidein-v1.0.4.tar.gz"
+                        "vc3-glidein"
                     ],
                     "recipe":[
                         "chmod 755 vc3-glidein",

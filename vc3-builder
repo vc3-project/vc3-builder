@@ -17129,11 +17129,11 @@ __DATA__
     "vc3-glidein":{
         "versions": [
             {
-                "version":"v1.1.0",
+                "version":"v1.0.5",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "vc3-glidein-v1.1.0.tar.gz"
+                        "vc3-glidein-v1.0.5.tar.gz"
                     ],
                     "recipe":[
                         "chmod 755 vc3-glidein",
@@ -20320,6 +20320,31 @@ __DATA__
         ]
     },
 
+    "bc":{
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"bc"
+                }
+            },
+            {
+                "version":"v1.0.6",
+                "source":{
+                    "type":"binary",
+                    "native":"x86_64",
+                    "files":[
+                        "bc-x86_64-1.06-1.tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
     "environment-modules":{
         "tags":["software building"],
         "show-in-list":0,
@@ -20357,6 +20382,7 @@ __DATA__
             }
         ]
     }
+
 }
 
 ,

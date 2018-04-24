@@ -4045,6 +4045,31 @@
         ]
     },
 
+    "bc":{
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"system",
+                    "executable":"bc"
+                }
+            },
+            {
+                "version":"v1.0.6",
+                "source":{
+                    "type":"binary",
+                    "native":"x86_64",
+                    "files":[
+                        "bc-x86_64-1.06-1.tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
     "singularity":{
         "tags":["containers"],
         "versions":[

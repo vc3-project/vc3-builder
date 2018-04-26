@@ -16687,315 +16687,6 @@ __DATA__
         ]
     },
 
-    "autopyfactory":{
-        "versions":[
-            {
-                "version":"v0.0.1",
-                "phony":1,
-                "local":1,
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
-                        "[ -d autopyfactory ] || git clone https://github.com/PanDAWMS/autopyfactory.git",
-                        "cd autopyfactory",
-                        "rm -rf build",
-                        "python setup.py install --user",
-                        "mkdir -p ${VC3_SERVICES_HOME}/etc",
-                        "cp -r etc ${VC3_SERVICES_HOME}/etc/autopyfactory"
-                    ]
-                },
-                "dependencies":{
-                    "vc3-infoservice":[
-                        "v0.0.1"
-                    ],
-                    "condor":[
-                        "v8.6"
-                    ]
-                }
-            }
-        ],
-        "environment-variables":[
-            {
-                "name":"APF_HOME",
-                "value":"${VC3_SERVICES_HOME}",
-                "absolute":1,
-                "clobber":1
-            },
-            {
-                "name":"PATH",
-                "value":"${APF_HOME}/bin",
-                "absolute":1
-            }
-        ]
-    },
-
-    "vc3-factory-plugins":{
-        "versions":[
-            {
-                "version":"v0.0.1",
-                "phony":1,
-                "local":1,
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
-                        "[ -d vc3-factory-plugins ] || git clone https://github.com/vc3-project/vc3-factory-plugins.git",
-                        "cd vc3-factory-plugins",
-                        "find . autopyfactory/plugins -name '*.py' | pax -r -w ${VC3_SERVICES_HOME}/lib/python${VC3_VERSION_PYTHON}/",
-                        "cp -r etc/*.conf ${VC3_SERVICES_HOME}/etc"
-                    ]
-                },
-                "dependencies":{
-                    "autopyfactory":[
-                        "v0.0.1"
-                    ],
-                    "pax":[
-                        "v2016.0.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "vc3-factory":{
-        "versions":[
-            {
-                "version":"v0.0.1",
-                "phony":1,
-                "dependencies":{
-                    "vc3-factory-plugins":[
-                        "v0.0.1"
-                    ],
-                    "condor-personal":[
-                        "v8.6.0"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "vc3-services-common-requirements":{
-        "versions":[
-            {
-                "version":"v0.0.1",
-                "phony":1,
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-                        "home=$(python -m site --user-base)",
-                        "mkdir -p ${home}/lib/python",
-                        "mkdir -p ${home}/bin",
-                        "mkdir -p ${home}/etc",
-                        "mkdir -p ${home}/var/log/vc3",
-                        "pip install --user requests==2.7.0 cherrypy==3.2.2 pyYAML"
-                    ]
-                },
-                "dependencies":{
-                    "python":[
-                        "v2.7.12"
-                    ],
-                    "python-pip":[
-                        "v1.8"
-                    ],
-                    "git":[
-                        "v2.12.0"
-                    ]
-                }
-            }
-        ],
-        "environment-variables":[
-            {
-                "name":"VC3_SERVICES_HOME",
-                "value":"$(python -m site --user-base)",
-                "absolute":1,
-                "clobber":1
-            },
-            {
-                "name":"PATH",
-                "value":"${VC3_SERVICES_HOME}/bin",
-                "absolute":1
-            }
-        ]
-    },
-
-    "vc3-pluginmanager":{
-        "versions":[
-            {
-                "version":"v0.1",
-                "phony":1,
-                "local":1,
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd $VC3_INSTALL_USER_HOME/git",
-                        "[ -d sdcc-pluginmanager ] || git clone https://github.com/bnl-sdcc/sdcc-pluginmanager.git",
-                        "cd ${VC3_INSTALL_USER_HOME}/git/sdcc-pluginmanager",
-                        "rm -rf build",
-                        "python setup.py install --user"
-                    ]
-                },
-                "dependencies":{
-                    "vc3-services-common-requirements":[
-                        "v0.0.1"
-                    ]
-                }
-            }
-        ]
-    },
-
-    "vc3-credible":{
-        "versions":[
-            {
-                "version":"v0.1",
-                "phony":1,
-                "local":1,
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
-                        "[ -d credible ] || git clone https://github.com/vc3-project/credible.git",
-                        "cd ${VC3_INSTALL_USER_HOME}/git/credible",
-                        "rm -rf build",
-                        "python setup.py install --user",
-                        "credroot=${VC3_SERVICES_HOME}/var/credible/ssca/defaultca/intermediate",
-                        "cp etc/credible.conf{,.sample} etc/openssl.cnf.*.template ${VC3_SERVICES_HOME}/etc",
-                        "missing=0",
-                        "[ -f $credroot/certs/localhost.cert.pem ]      || missing=1",
-                        "[ -f $credroot/certs/ca-chain.cert.pem ]       || missing=1",
-                        "[ -f $credroot/certs/VC3Admin.cert.pem ]       || missing=1",
-                        "[ -f $credroot/private/localhost.keynopw.pem ] || missing=1",
-                        "[ -f $credroot/private/VC3Admin.keynopw.pem ]  || missing=1",
-                        "if [ \"$missing\" = 1 ]; then",
-                        "   mkdir -p ${credroot}/private",
-                        "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf -d hostcert localhost > /dev/null",
-                        "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf certchain",
-
-                        "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf -d usercert VC3Admin > /dev/null",
-                        "fi"
-                    ]
-                },
-                "dependencies":{
-                    "vc3-services-common-requirements":[
-                        "v0.0.1"
-                    ]
-                }
-            }
-        ],
-        "environment-variables":[
-            {
-                "name":"VC3_SERVICES_CERTS_HOME",
-                "value":"${VC3_SERVICES_HOME}/etc/ssca/certs",
-                "absolute":1,
-                "clobber":1
-            },
-            {
-                "name":"VC3_SERVICES_CERTS_CHAINFILE",
-                "value":"${VC3_SERVICES_CERTS_HOME}/ca-chain.cert.pem",
-                "absolute":1,
-                "clobber":1
-            },
-            {
-                "name":"VC3_SERVICES_CERTS_CERTFILE",
-                "value":"${VC3_SERVICES_CERTS_HOME}/VC3Admin.cert.pem",
-                "absolute":1,
-                "clobber":1
-            },
-            {
-                "name":"VC3_SERVICES_CERTS_KEYFILE",
-                "value":"${VC3_SERVICES_CERTS_HOME}/private/VC3Admin.keynopw.pem",
-                "absolute":1,
-                "clobber":1
-            }
-        ]
-    },
-
-    "vc3-services":{
-        "versions":[
-            {
-                "version":"v0.1",
-                "phony":1,
-                "local":1,
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
-                        "for S in vc3-infoservice vc3-client vc3-master; do",
-                        "    [ -d $S ] || git clone https://github.com/vc3-project/${S}.git",
-                        "    cd $S",
-                        "    rm -rf build",
-                        "    python setup.py install --user",
-                        "    cp etc/*.conf ${VC3_SERVICES_HOME}/etc",
-                        "    cd ..",
-                        "done"
-                    ]
-                },
-                "dependencies":{
-                    "vc3-pluginmanager":[
-                        "v0.0.1"
-                    ],
-                    "vc3-credible":[
-                        "v0.0.1"
-                    ]
-                }
-            }
-        ],
-        "environment-variables":[
-            {
-                "name":"VC3_SERVICES_INFOSERVICE_INFOHOST",
-                "value":"localhost",
-                "absolute":1,
-                "clobber":1
-            },
-            {
-                "name":"VC3_SERVICES_INFOSERVICE_HTTP_PORT",
-                "value":"20333",
-                "absolute":1,
-                "clobber":1
-            },
-            {
-                "name":"VC3_SERVICES_INFOSERVICE_HTTPS_PORT",
-                "value":"20334",
-                "absolute":1,
-                "clobber":1
-            }
-        ]
-    },
-
-    "vc3-builder":{
-        "tags":["environment tools"],
-        "show-in-list":1,
-        "versions":[
-            {
-                "version":"v0.1",
-                "phony":1,
-                "local":1,
-                "source":{
-                    "type":"generic",
-                    "files":[
-                        "vc3-builder"
-                    ],
-                    "mirrors":[
-                        "https://raw.githubusercontent.com/vc3-project/vc3-builder/master"
-                    ],
-                    "recipe":[
-                        "chmod 755 vc3-builder",
-                        "mkdir -p ${VC3_PREFIX}/bin",
-                        "cp vc3-builder ${VC3_PREFIX}/bin"
-                    ],
-                    "dependencies":{
-                        "wget":[
-                            "v1.0.0"
-                        ]
-                    }
-                }
-            }
-        ],
-        "environment-autovars":[
-            "PATH"
-        ]
-    },
-
     "icecube-argonne-demo":{
         "tags":["demos"],
         "show-in-list":1,
@@ -20519,6 +20210,318 @@ __DATA__
                     "image":"docker://virtualclusters/os:opensuse42.3"
                 }
             }
+        ]
+    }
+}
+
+,
+{
+    "autopyfactory":{
+        "versions":[
+            {
+                "version":"v0.0.1",
+                "phony":1,
+                "local":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
+                        "[ -d autopyfactory ] || git clone https://github.com/PanDAWMS/autopyfactory.git",
+                        "cd autopyfactory",
+                        "rm -rf build",
+                        "python setup.py install --user",
+                        "mkdir -p ${VC3_SERVICES_HOME}/etc",
+                        "cp -r etc ${VC3_SERVICES_HOME}/etc/autopyfactory"
+                    ]
+                },
+                "dependencies":{
+                    "vc3-infoservice":[
+                        "v0.0.1"
+                    ],
+                    "condor":[
+                        "v8.6"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"APF_HOME",
+                "value":"${VC3_SERVICES_HOME}",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"PATH",
+                "value":"${APF_HOME}/bin",
+                "absolute":1
+            }
+        ]
+    },
+
+    "vc3-factory-plugins":{
+        "versions":[
+            {
+                "version":"v0.0.1",
+                "phony":1,
+                "local":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
+                        "[ -d vc3-factory-plugins ] || git clone https://github.com/vc3-project/vc3-factory-plugins.git",
+                        "cd vc3-factory-plugins",
+                        "find . autopyfactory/plugins -name '*.py' | pax -r -w ${VC3_SERVICES_HOME}/lib/python${VC3_VERSION_PYTHON}/",
+                        "cp -r etc/*.conf ${VC3_SERVICES_HOME}/etc"
+                    ]
+                },
+                "dependencies":{
+                    "autopyfactory":[
+                        "v0.0.1"
+                    ],
+                    "pax":[
+                        "v2016.0.0"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "vc3-factory":{
+        "versions":[
+            {
+                "version":"v0.0.1",
+                "phony":1,
+                "dependencies":{
+                    "vc3-factory-plugins":[
+                        "v0.0.1"
+                    ],
+                    "condor-personal":[
+                        "v8.6.0"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "vc3-services-common-requirements":{
+        "versions":[
+            {
+                "version":"v0.0.1",
+                "phony":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "home=$(python -m site --user-base)",
+                        "mkdir -p ${home}/lib/python",
+                        "mkdir -p ${home}/bin",
+                        "mkdir -p ${home}/etc",
+                        "mkdir -p ${home}/var/log/vc3",
+                        "pip install --user requests==2.7.0 cherrypy==3.2.2 pyYAML"
+                    ]
+                },
+                "dependencies":{
+                    "python":[
+                        "v2.7.12"
+                    ],
+                    "python-pip":[
+                        "v1.8"
+                    ],
+                    "git":[
+                        "v2.12.0"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_SERVICES_HOME",
+                "value":"$(python -m site --user-base)",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"PATH",
+                "value":"${VC3_SERVICES_HOME}/bin",
+                "absolute":1
+            }
+        ]
+    },
+
+    "vc3-pluginmanager":{
+        "versions":[
+            {
+                "version":"v0.1",
+                "phony":1,
+                "local":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd $VC3_INSTALL_USER_HOME/git",
+                        "[ -d sdcc-pluginmanager ] || git clone https://github.com/bnl-sdcc/sdcc-pluginmanager.git",
+                        "cd ${VC3_INSTALL_USER_HOME}/git/sdcc-pluginmanager",
+                        "rm -rf build",
+                        "python setup.py install --user"
+                    ]
+                },
+                "dependencies":{
+                    "vc3-services-common-requirements":[
+                        "v0.0.1"
+                    ]
+                }
+            }
+        ]
+    },
+
+    "vc3-credible":{
+        "versions":[
+            {
+                "version":"v0.1",
+                "phony":1,
+                "local":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
+                        "[ -d credible ] || git clone https://github.com/vc3-project/credible.git",
+                        "cd ${VC3_INSTALL_USER_HOME}/git/credible",
+                        "rm -rf build",
+                        "python setup.py install --user",
+                        "credroot=${VC3_SERVICES_HOME}/var/credible/ssca/defaultca/intermediate",
+                        "cp etc/credible.conf{,.sample} etc/openssl.cnf.*.template ${VC3_SERVICES_HOME}/etc",
+                        "missing=0",
+                        "[ -f $credroot/certs/localhost.cert.pem ]      || missing=1",
+                        "[ -f $credroot/certs/ca-chain.cert.pem ]       || missing=1",
+                        "[ -f $credroot/certs/VC3Admin.cert.pem ]       || missing=1",
+                        "[ -f $credroot/private/localhost.keynopw.pem ] || missing=1",
+                        "[ -f $credroot/private/VC3Admin.keynopw.pem ]  || missing=1",
+                        "if [ \"$missing\" = 1 ]; then",
+                        "   mkdir -p ${credroot}/private",
+                        "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf -d hostcert localhost > /dev/null",
+                        "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf certchain",
+
+                        "   ${VC3_SERVICES_HOME}/bin/credible -c ${VC3_SERVICES_HOME}/etc/credible.conf -d usercert VC3Admin > /dev/null",
+                        "fi"
+                    ]
+                },
+                "dependencies":{
+                    "vc3-services-common-requirements":[
+                        "v0.0.1"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_SERVICES_CERTS_HOME",
+                "value":"${VC3_SERVICES_HOME}/etc/ssca/certs",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_CERTS_CHAINFILE",
+                "value":"${VC3_SERVICES_CERTS_HOME}/ca-chain.cert.pem",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_CERTS_CERTFILE",
+                "value":"${VC3_SERVICES_CERTS_HOME}/VC3Admin.cert.pem",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_CERTS_KEYFILE",
+                "value":"${VC3_SERVICES_CERTS_HOME}/private/VC3Admin.keynopw.pem",
+                "absolute":1,
+                "clobber":1
+            }
+        ]
+    },
+
+    "vc3-services":{
+        "versions":[
+            {
+                "version":"v0.1",
+                "phony":1,
+                "local":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "mkdir -p ${VC3_INSTALL_USER_HOME}/git && cd ${VC3_INSTALL_USER_HOME}/git",
+                        "for S in vc3-infoservice vc3-client vc3-master; do",
+                        "    [ -d $S ] || git clone https://github.com/vc3-project/${S}.git",
+                        "    cd $S",
+                        "    rm -rf build",
+                        "    python setup.py install --user",
+                        "    cp etc/*.conf ${VC3_SERVICES_HOME}/etc",
+                        "    cd ..",
+                        "done"
+                    ]
+                },
+                "dependencies":{
+                    "vc3-pluginmanager":[
+                        "v0.0.1"
+                    ],
+                    "vc3-credible":[
+                        "v0.0.1"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"VC3_SERVICES_INFOSERVICE_INFOHOST",
+                "value":"localhost",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_INFOSERVICE_HTTP_PORT",
+                "value":"20333",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"VC3_SERVICES_INFOSERVICE_HTTPS_PORT",
+                "value":"20334",
+                "absolute":1,
+                "clobber":1
+            }
+        ]
+    },
+
+    "vc3-builder":{
+        "tags":["environment tools"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v0.1",
+                "phony":1,
+                "local":1,
+                "source":{
+                    "type":"generic",
+                    "files":[
+                        "vc3-builder"
+                    ],
+                    "mirrors":[
+                        "https://raw.githubusercontent.com/vc3-project/vc3-builder/master"
+                    ],
+                    "recipe":[
+                        "chmod 755 vc3-builder",
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "cp vc3-builder ${VC3_PREFIX}/bin"
+                    ],
+                    "dependencies":{
+                        "wget":[
+                            "v1.0.0"
+                        ]
+                    }
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     }
 }

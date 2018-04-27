@@ -1157,7 +1157,7 @@
                     "type":"system",
                     "executable":"cmake",
                     "auto-version":[
-                        "echo VC3_VERSION_SYSTEM: $(cmake --version | sed -r -e 's/cmake version ([0-9]+\\.[0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
+                        "echo VC3_VERSION_SYSTEM: $(cmake --version | sed -r -e 's/cmake version ([0-9]+\\.[0-9]+)(\\.[0-9])?/\\1/')" 
                     ]
                 }
             },
@@ -3762,6 +3762,32 @@
                 "source":{
                     "type":"system",
                     "executable":"singularity"
+                }
+            },
+            {
+                "version":"auto",
+                "prologue":[
+                    "module load singularity"
+                ],
+                "source":{
+                    "type":"generic",
+                    "auto-version":[
+                        "module load singularity",
+                        "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/(([0-9]+\\.){2}[0-9]+).*/\\1/')"
+                    ]
+                }
+            },
+            {
+                "version":"auto",
+                "prologue":[
+                    "module load tacc-singularity"
+                ],
+                "source":{
+                    "type":"generic",
+                    "auto-version":[
+                        "module load tacc-singularity",
+                        "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/(([0-9]+\\.){2}[0-9]+).*/\\1/')"
+                    ]
                 }
             }
         ]

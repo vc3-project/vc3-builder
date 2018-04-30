@@ -16363,6 +16363,14 @@ __DATA__
                     "files":[
                         "sharutils-4.15.tar.gz"
                     ]
+                },
+                "dependencies":{
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
+                    ]
                 }
             }
         ],
@@ -16375,6 +16383,11 @@ __DATA__
         "tags":["compilation tools", "programming languages"],
         "show-in-list":1,
         "versions":[
+            {
+                "version":"auto",
+                "type":"system",
+                "executable":"gcc"
+            },
             {
                 "version":"v4.6.1",
                 "local":1,
@@ -16394,6 +16407,36 @@ __DATA__
                         "value":"lib/gcc/i586-linux-uclibc/4.6.1/include"
                     }
                 ]
+            }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+        ]
+    },
+
+    "gcc-cplusplus":{
+        "tags":["compilation tools", "programming languages"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"auto",
+                "type":"system",
+                "executable":"g++"
+            }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+        ]
+    },
+
+    "gcc-fortran":{
+        "tags":["compilation tools", "programming languages"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"auto",
+                "type":"system",
+                "executable":"gfortran"
             }
         ],
         "environment-autovars":[
@@ -16810,7 +16853,6 @@ __DATA__
                     "    cd ${HOME}",
                     "fi"
                 ],
-
                 "dependencies":{
                     "cvmfs":[
                         "v2.0"
@@ -16981,6 +17023,15 @@ __DATA__
                         ],
                         "uuid":[
                             "v1.0"
+                        ],
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "g++":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
                         ]
                     }
                 }
@@ -17122,6 +17173,15 @@ __DATA__
                         ],
                         "uuid":[
                             "v1.0"
+                        ],
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "g++":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
                         ]
                     }
                 }
@@ -17271,6 +17331,12 @@ __DATA__
                         ],
                         "pcre":[
                             "v8.34"
+                        ],
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
                         ]
                     }
                 }
@@ -17308,7 +17374,15 @@ __DATA__
                     "type":"configure",
                     "files":[
                         "patch-2.7.5.tar.gz"
-                    ]
+                    ],
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 }
             }
         ],
@@ -17443,7 +17517,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 }
             }
         ],
@@ -17509,6 +17591,12 @@ __DATA__
                 "dependencies":{
                     "openssl":[
                         "v1.0.2"
+                    ],
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 },
                 "environment-autovars":[
@@ -17530,7 +17618,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--enable-static=yes --enable-shared=no"
+                    "options":"--enable-static=yes --enable-shared=no",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -17570,6 +17666,12 @@ __DATA__
                     ],
                     "libssh2":[
                         "v1.8.0"
+                    ],
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 }
             }
@@ -17625,6 +17727,12 @@ __DATA__
                     ],
                     "libssh2":[
                         "v1.8.0"
+                    ],
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 }
             }
@@ -17694,6 +17802,12 @@ __DATA__
                     ],
                     "perl-extutils-makemaker":[
                         "v7.24.0"
+                    ],
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 },
                 "environment-autovars":[
@@ -17882,7 +17996,15 @@ __DATA__
                         "../dist/configure --prefix=${VC3_PREFIX} --enable-static --enable-shared --enable-compat185 --enable-dbm --enable-cxx",
                         "make",
                         "make install"
-                    ]
+                    ],
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -17903,7 +18025,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -17942,6 +18072,12 @@ __DATA__
                     ],
                     "python":[
                         "v2.5"
+                    ],
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 },
                 "environment-autovars":[
@@ -17972,6 +18108,12 @@ __DATA__
                 "dependencies":{
                     "gettext":[
                         "v0.19"
+                    ],
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 },
                 "environment-autovars":[
@@ -17993,7 +18135,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary"
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-variables":[
                     {
@@ -18021,7 +18171,15 @@ __DATA__
                     "files":[
                         "pcre-8.39.tar.gz"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 "
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 ",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -18039,7 +18197,15 @@ __DATA__
                     "files":[
                         "fuse-2.9.3.tar.gz"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib  --enable-lib --disable-util"
+                    "options":"--libdir=${VC3_PREFIX}/lib  --enable-lib --disable-util",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -18286,6 +18452,12 @@ __DATA__
                         ],
                         "libffi":[
                             "v3.2.1"
+                        ],
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
                         ]
                     }
                 }
@@ -18347,6 +18519,12 @@ __DATA__
                         ],
                         "libffi":[
                             "v3.2.1"
+                        ],
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
                         ]
                     }
                 }
@@ -18376,7 +18554,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --static"
+                    "options":"--libdir=${VC3_PREFIX}/lib --static",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -18397,7 +18583,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared"
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -18418,7 +18612,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared"
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -18506,6 +18708,12 @@ __DATA__
                     "dependencies":{
                         "help2man":[
                             "v1.0.0"
+                        ],
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
                         ]
                     }
                 },
@@ -18540,7 +18748,15 @@ __DATA__
                     "files":[
                         "help2man-1.43.3.tar.gz"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib"
+                    "options":"--libdir=${VC3_PREFIX}/lib",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH"
@@ -18798,6 +19014,12 @@ __DATA__
                 "dependencies":{
                     "openmpi":[
                         "v1.10"
+                    ],
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 },
                 "environment-autovars":[
@@ -18821,7 +19043,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-shared --disable-dependency-tracking --with-sge --disable-debug"
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-shared --disable-dependency-tracking --with-sge --disable-debug",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -18879,6 +19109,12 @@ __DATA__
                     ],
                     "sqlite3":[
                         "v3.13"
+                    ],
+                    "gcc-cplusplus":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 }
             }
@@ -18942,6 +19178,12 @@ __DATA__
                     ],
                     "sqlite3":[
                         "v3.13"
+                    ],
+                    "gcc-cplusplus":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 }
             }
@@ -18965,7 +19207,15 @@ __DATA__
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static"
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-static",
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -18991,12 +19241,18 @@ __DATA__
                         ": for old glibc we need to manually link librt",
                         "export LDFLAGS=-lrt"
                     ],
-                    "options":"--libdir=${VC3_PREFIX}/lib --enable-glib2 --enable-utilities"
-                },
-                "dependencies":{
-                    "glib":[
-                        "v2"
-                    ]
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-glib2 --enable-utilities",
+                    "dependencies":{
+                        "glib":[
+                            "v2.0"
+                        ],
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -19348,7 +19604,15 @@ __DATA__
                     "type":"configure",
                     "files":[
                         "findutils-4.6.0.tar.gz"
-                    ]
+                    ],
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH"
@@ -19371,8 +19635,7 @@ __DATA__
                         "tar -C ${VC3_INSTALL_USER_HOME}/maker-example-ecoli-01 --strip-components=1 -xpf maker-example-ecoli-01.tar.gz"
                     ]
                 },
-                "dependencies":
-                {
+                "dependencies":{
                     "maker":[
                         "v2.31"
                     ]
@@ -19505,7 +19768,15 @@ __DATA__
                     "options":"--enable-threads --enable-64bit",
                     "postface":[
                         "ln -s tclsh8.5 ${VC3_PREFIX}/bin/tclsh"
-                    ]
+                    ],
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -19530,6 +19801,12 @@ __DATA__
                     "dependencies":{
                         "openmpi":[
                             "v1.10"
+                        ],
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
                         ]
                     }
                 },
@@ -19583,6 +19860,12 @@ __DATA__
                     ],
                     "pcre":[
                         "v8.39"
+                    ],
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
                     ]
                 },
                 "environment-autovars":[
@@ -19684,7 +19967,15 @@ __DATA__
                         "./configure --prefix ${VC3_PREFIX} --with-pic",
                         "make",
                         "make install"
-                    ]
+                    ],
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
@@ -19823,7 +20114,15 @@ __DATA__
                         "./configure --prefix=${VC3_PREFIX} x86_64",
                         "make",
                         "make install"
-                    ]
+                    ],
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 },
                 "environment-autovars":[
                     "PATH"
@@ -20056,7 +20355,15 @@ __DATA__
                     "native":"x86_64",
                     "files":[
                         "bc-x86_64-1.06-1.tar.gz"
-                    ]
+                    ],
+                    "dependencies":{
+                        "gcc":[
+                            "v4.5"
+                        ],
+                        "make":[
+                            "v3.0"
+                        ]
+                    }
                 }
             }
         ],

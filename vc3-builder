@@ -20372,6 +20372,71 @@ __DATA__
         ]
     },
 
+    "libfreetype": {
+        "versions":[
+            {
+                "version":"v2.3.11",
+                "source":{
+                    "type":"binary",
+                    "native":"x86_64/redhat6",
+                    "files":[
+                        "libfreetype-2.3.11-17.el6.x86_64.tar.gz"
+                    ]
+                }
+            },
+            {
+                "version":"v2.3.11",
+                "source":{
+                    "type":"configure",
+                    "files":[
+                        "freetype-2.3.11.src.tar.gz"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib64"
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"LD_LIBRARY_PATH",
+                "value":"lib64"
+            }
+        ]
+    },
+
+    "libaio": {
+        "versions":[
+            {
+                "version":"v0.3.107",
+                "source":{
+                    "type":"binary",
+                    "native":"x86_64/redhat6",
+                    "files":[
+                        "libaio-0.3.107-10.el6.x86_64.tar.gz"
+                    ]
+                }
+            },
+            {
+                "version":"v0.3.107",
+                "source":{
+                    "type":"tarball",
+                    "files":[
+                        "libaio_0.3.107.src.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/lib64",
+                        "make prefix=${VC3_PREFIX} libdir=${VC3_PREFIX}/lib64 install"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"LD_LIBRARY_PATH",
+                "value":"lib64"
+            }
+        ]
+    },
+
     "environment-modules":{
         "tags":["software building"],
         "show-in-list":0,
@@ -20958,7 +21023,13 @@ __DATA__
         ],
         "dependencies":{
             "bc":[
-            "v1.0.6"
+                "v1.0.6"
+            ],
+            "libfreetype":[
+                "v2.3.11"
+            ],
+            "libaio":[
+                "v0.3.107"
             ]
         }
     }

@@ -93,7 +93,13 @@
         ],
         "dependencies":{
             "bc":[
-            "v1.0.6"
+                "v1.0.6"
+            ],
+            "libfreetype":[
+                "v2.3.11"
+            ],
+            "libaio":[
+                "v0.3.107"
             ]
         }
     }

@@ -195,11 +195,8 @@
                     ]
                 },
                 "dependencies":{
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 }
             }
@@ -860,14 +857,11 @@
                         "uuid":[
                             "v1.0"
                         ],
-                        "gcc":[
+                        "gcc-cplusplus":[
                             "v4.5"
                         ],
-                        "g++":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment++":[
+                            "v1.0"
                         ]
                     }
                 }
@@ -1010,14 +1004,11 @@
                         "uuid":[
                             "v1.0"
                         ],
-                        "gcc":[
-                            "v4.5"
-                        ],
                         "g++":[
                             "v4.5"
                         ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment++":[
+                            "v1.0"
                         ]
                     }
                 }
@@ -1168,11 +1159,8 @@
                         "pcre":[
                             "v8.34"
                         ],
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 }
@@ -1212,11 +1200,8 @@
                         "patch-2.7.5.tar.gz"
                     ],
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 }
@@ -1355,11 +1340,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 }
@@ -1428,11 +1410,8 @@
                     "openssl":[
                         "v1.0.2"
                     ],
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 },
                 "environment-autovars":[
@@ -1456,11 +1435,8 @@
                     ],
                     "options":"--enable-static=yes --enable-shared=no",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -1503,11 +1479,8 @@
                     "libssh2":[
                         "v1.8.0"
                     ],
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 }
             }
@@ -1564,11 +1537,8 @@
                     "libssh2":[
                         "v1.8.0"
                     ],
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 }
             }
@@ -1639,11 +1609,8 @@
                     "perl-extutils-makemaker":[
                         "v7.24.0"
                     ],
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 },
                 "environment-autovars":[
@@ -1834,11 +1801,8 @@
                         "make install"
                     ],
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -1863,11 +1827,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -1909,11 +1870,8 @@
                     "python":[
                         "v2.5"
                     ],
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 },
                 "environment-autovars":[
@@ -1945,11 +1903,8 @@
                     "gettext":[
                         "v0.19"
                     ],
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 },
                 "environment-autovars":[
@@ -1973,11 +1928,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared --enable-portable-binary",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -2009,11 +1961,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared --enable-unicode-properties --enable-pcre16 --enable-pcre32 ",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -2035,11 +1984,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib  --enable-lib --disable-util",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -2289,11 +2235,8 @@
                         "libffi":[
                             "v3.2.1"
                         ],
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 }
@@ -2356,11 +2299,8 @@
                         "libffi":[
                             "v3.2.1"
                         ],
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 }
@@ -2392,11 +2332,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --static",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -2421,11 +2358,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --disable-shared",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -2450,11 +2384,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static --enable-shared",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -2545,11 +2476,8 @@
                         "help2man":[
                             "v1.0.0"
                         ],
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -2586,11 +2514,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -2851,11 +2776,8 @@
                     "openmpi":[
                         "v1.10"
                     ],
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 },
                 "environment-autovars":[
@@ -2881,11 +2803,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-shared --disable-dependency-tracking --with-sge --disable-debug",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -3045,11 +2964,8 @@
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib --enable-static",
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -3082,11 +2998,8 @@
                         "glib":[
                             "v2.0"
                         ],
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -3442,11 +3355,8 @@
                         "findutils-4.6.0.tar.gz"
                     ],
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -3606,11 +3516,8 @@
                         "ln -s tclsh8.5 ${VC3_PREFIX}/bin/tclsh"
                     ],
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -3638,11 +3545,8 @@
                         "openmpi":[
                             "v1.10"
                         ],
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -3697,11 +3601,8 @@
                     "pcre":[
                         "v8.39"
                     ],
-                    "gcc":[
-                        "v4.5"
-                    ],
-                    "make":[
-                        "v3.0"
+                    "c-build-environment":[
+                        "v1.0"
                     ]
                 },
                 "environment-autovars":[
@@ -3805,11 +3706,8 @@
                         "make install"
                     ],
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -3952,11 +3850,8 @@
                         "make install"
                     ],
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 },
@@ -4193,11 +4088,8 @@
                         "bc-x86_64-1.06-1.tar.gz"
                     ],
                     "dependencies":{
-                        "gcc":[
-                            "v4.5"
-                        ],
-                        "make":[
-                            "v3.0"
+                        "c-build-environment":[
+                            "v1.0"
                         ]
                     }
                 }
@@ -4304,7 +4196,7 @@
                         "v4.5"
                     ],
                     "make":[
-                        "v3.0"
+                        "v3.5"
                     ]
                 }
             }

@@ -215,8 +215,10 @@
         "versions":[
             {
                 "version":"auto",
-                "type":"system",
-                "executable":"gcc"
+                "source":{
+                    "type":"system",
+                    "executable":"gcc"
+                }
             },
             {
                 "version":"v4.6.1",
@@ -250,8 +252,10 @@
         "versions":[
             {
                 "version":"auto",
-                "type":"system",
-                "executable":"g++"
+                "source":{
+                    "type":"system",
+                    "executable":"g++"
+                }
             }
         ],
         "environment-autovars":[
@@ -265,8 +269,10 @@
         "versions":[
             {
                 "version":"auto",
-                "type":"system",
-                "executable":"gfortran"
+                "source":{
+                    "type":"system",
+                    "executable":"gfortran"
+                }
             }
         ],
         "environment-autovars":[
@@ -4207,16 +4213,6 @@
             {
                 "version":"v2.3.11",
                 "source":{
-                    "type":"binary",
-                    "native":"x86_64/redhat6",
-                    "files":[
-                        "libfreetype-2.3.11-17.el6.x86_64.tar.gz"
-                    ]
-                }
-            },
-            {
-                "version":"v2.3.11",
-                "source":{
                     "type":"configure",
                     "files":[
                         "freetype-2.3.11.src.tar.gz"
@@ -4235,16 +4231,6 @@
 
     "libaio": {
         "versions":[
-            {
-                "version":"v0.3.107",
-                "source":{
-                    "type":"binary",
-                    "native":"x86_64/redhat6",
-                    "files":[
-                        "libaio-0.3.107-10.el6.x86_64.tar.gz"
-                    ]
-                }
-            },
             {
                 "version":"v0.3.107",
                 "source":{
@@ -4303,7 +4289,26 @@
                 }
             }
         ]
-    }
+    },
 
+    "c-build-environment":{
+        "tags":["software building"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"1.0",
+                "type":"generic",
+                "phony":1,
+                "dependencies":{
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
+                    ]
+                }
+            }
+        ]
+    }
 }
 

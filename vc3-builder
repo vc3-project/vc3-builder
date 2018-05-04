@@ -12937,7 +12937,7 @@ $fatpacked{"VC3/Source/System.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".
   
           unless($json_description->{'auto-version'}) {
               $json_description->{'auto-version'} = [
-                  "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/(^|.*[^0-9.])([0-9]+(\\.[0-9]+){0,2}).*/\\2/')"
+                  "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/(^|.* )([0-9]+(\\.[0-9]+){0,2}).*/\\2/')"
               ];
           }
       }
@@ -16385,8 +16385,10 @@ __DATA__
         "versions":[
             {
                 "version":"auto",
-                "type":"system",
-                "executable":"gcc"
+                "source":{
+                    "type":"system",
+                    "executable":"gcc"
+                }
             },
             {
                 "version":"v4.6.1",
@@ -16420,8 +16422,10 @@ __DATA__
         "versions":[
             {
                 "version":"auto",
-                "type":"system",
-                "executable":"g++"
+                "source":{
+                    "type":"system",
+                    "executable":"g++"
+                }
             }
         ],
         "environment-autovars":[
@@ -16435,8 +16439,10 @@ __DATA__
         "versions":[
             {
                 "version":"auto",
-                "type":"system",
-                "executable":"gfortran"
+                "source":{
+                    "type":"system",
+                    "executable":"gfortran"
+                }
             }
         ],
         "environment-autovars":[
@@ -20377,16 +20383,6 @@ __DATA__
             {
                 "version":"v2.3.11",
                 "source":{
-                    "type":"binary",
-                    "native":"x86_64/redhat6",
-                    "files":[
-                        "libfreetype-2.3.11-17.el6.x86_64.tar.gz"
-                    ]
-                }
-            },
-            {
-                "version":"v2.3.11",
-                "source":{
                     "type":"configure",
                     "files":[
                         "freetype-2.3.11.src.tar.gz"
@@ -20405,16 +20401,6 @@ __DATA__
 
     "libaio": {
         "versions":[
-            {
-                "version":"v0.3.107",
-                "source":{
-                    "type":"binary",
-                    "native":"x86_64/redhat6",
-                    "files":[
-                        "libaio-0.3.107-10.el6.x86_64.tar.gz"
-                    ]
-                }
-            },
             {
                 "version":"v0.3.107",
                 "source":{
@@ -20473,8 +20459,27 @@ __DATA__
                 }
             }
         ]
-    }
+    },
 
+    "c-build-environment":{
+        "tags":["software building"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"1.0",
+                "type":"generic",
+                "phony":1,
+                "dependencies":{
+                    "gcc":[
+                        "v4.5"
+                    ],
+                    "make":[
+                        "v3.0"
+                    ]
+                }
+            }
+        ]
+    }
 }
 
 ,

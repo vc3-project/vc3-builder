@@ -44,6 +44,51 @@
         ]
     },
 
+    "centos":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "type":"operating-system",
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"os-native",
+                    "native":"x86_64/redhat"
+                }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-centos7.img"
+                }
+            },
+            {
+                "version":"7.4",
+                "source":{
+                    "type":"docker",
+                    "drop-priviliges":1,
+                    "image":"docker://virtualclusters/os:centos7"
+                }
+            },
+            {
+                "version":"6.9",
+                "source":{
+                    "type":"singularity",
+                    "image":"Singularity.vc3.x86_64-centos6.img"
+                }
+            },
+            {
+                "version":"6.9",
+                "source":{
+                    "type":"docker",
+                    "drop-priviliges":1,
+                    "image":"docker://virtualclusters/os:centos6"
+                }
+            }
+        ]
+    },
+
     "ubuntu":{
         "tags":["operating systems"],
         "show-in-list":1,

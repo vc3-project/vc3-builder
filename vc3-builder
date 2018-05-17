@@ -12826,6 +12826,7 @@ $fatpacked{"VC3/Source/OSNative.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n
           my $dver = $widget->package->bag->distribution;
           
           unless($dver =~ s/^.*[^0-9.]([0-9.]+)$/$1/) {
+              $widget->available(0);
               die "Could not find version of distribution in '$dver'\n";
           }
   
@@ -15955,6 +15956,11 @@ sub switch_os {
 
     # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
+
+        unless($w->available) {
+            next;
+        }
+
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
 
@@ -16868,11 +16874,11 @@ __DATA__
     "vc3-glidein":{
         "versions": [
             {
-                "version":"v1.0.5",
+                "version":"v1.1.0",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "vc3-glidein-v1.0.5.tar.gz"
+                        "vc3-glidein-v1.1.0.tar.gz"
                     ],
                     "recipe":[
                         "chmod 755 vc3-glidein",

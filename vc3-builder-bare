@@ -562,6 +562,11 @@ sub switch_os {
 
     # try to satisfy the os requirement
     for my $w (@{$pkg->widgets}) {
+
+        unless($w->available) {
+            next;
+        }
+
         my $exit_status = -1;
         eval { $exit_status = $w->source->check_prerequisites() };
 

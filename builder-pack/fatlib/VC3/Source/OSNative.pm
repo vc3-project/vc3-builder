@@ -35,6 +35,7 @@ sub new {
         my $dver = $widget->package->bag->distribution;
         
         unless($dver =~ s/^.*[^0-9.]([0-9.]+)$/$1/) {
+            $widget->available(0);
             die "Could not find version of distribution in '$dver'\n";
         }
 

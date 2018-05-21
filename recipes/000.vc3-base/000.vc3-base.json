@@ -698,11 +698,11 @@
     "vc3-glidein":{
         "versions": [
             {
-                "version":"v1.1.0",
+                "version":"v1.1.1",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "vc3-glidein-v1.1.0.tar.gz"
+                        "vc3-glidein-v1.1.1.tar.gz"
                     ],
                     "recipe":[
                         "chmod 755 vc3-glidein",

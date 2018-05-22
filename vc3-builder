@@ -20382,6 +20382,88 @@ __DATA__
 
 ,
 {
+  "tutorial": {
+    "show-in-list":1,
+    "versions": [
+      {
+        "version": "v0.0.1",
+        "source": {
+          "type": "binary",
+          "native": "x86_64",
+          "files":[ "tutorial-0.1.tar.gz" ]
+        }
+      }
+    ],
+    "environment-variables":[
+      {
+        "name":"PATH",
+        "value":"bin"
+      }
+    ]
+  },
+  "connect-client": {
+    "show-in-list":1,
+    "versions": [
+      {
+        "version": "v1.0",
+        "source": {
+          "type": "generic",
+          "files": [ "connect_client-1.0-1.noarch.rpm" ],
+          "recipe": [
+            "rpm -Uvh connect_client-1.0-1.noarch.rpm"
+          ]
+        }
+      }
+    ]
+  },
+  "modules": {
+    "show-in-list":1,
+    "versions": [
+      {
+        "version": "v1.0",
+        "prologue": [
+            "source /cvmfs/oasis.opensciencegrid.org/osg/modules/lmod/current/init/sh"
+        ],
+        "source": {
+          "type": "generic",
+          "dependencies":{
+              "cvmfs":[
+                  "v2.0"
+              ],
+              "tcl": [
+                "v8.5.0"
+              ]
+          }
+        }
+      }
+
+    ]
+  },
+  "osgconnect": {
+    "show-in-list":1,
+    "versions": [
+      {
+        "version": "v0.0.1",
+        "source": {
+          "type": "generic",
+          "prologue": [
+              "source /cvmfs/oasis.opensciencegrid.org/osg/modules/lmod/current/init/sh"
+          ],
+          "dependencies":{
+              "modules":[
+                  "v1.0"
+              ],
+              "tutorial": [
+                "v0.0.1"
+              ]
+          }
+        }
+      }
+    ]
+  }
+}
+,
+{
     "redhat":{
         "tags":["operating systems"],
         "show-in-list":1,

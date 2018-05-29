@@ -31,7 +31,13 @@
           ]
         }
       }
-    ]
+    ],
+    "environment-variables":[
+      {
+        "name":"PYTHONPATH",
+        "value":"${VC3_ROOT_connect-client}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+        "absolute":1        
+      }    
   },
   "modules": {
     "show-in-list":1,

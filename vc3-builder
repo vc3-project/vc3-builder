@@ -10365,10 +10365,12 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   
       $expansion->{'PATH'} ||= [];
       $expansion->{'LD_LIBRARY_PATH'} ||= [];
+      $expansion->{'MODULEPATH'} ||= [];
   
       # use default PATH:
       push @{$expansion->{'PATH'}},            $ENV{'PATH'}            || qw(/bin /usr/bin /usr/local/bin);
       push @{$expansion->{'LD_LIBRARY_PATH'}}, $ENV{'LD_LIBRARY_PATH'} || qw(/lib /usr/lib /usr/local/lib);
+      push @{$expansion->{'MODULEPATH'}},      $ENV{'MODULEPATH'}      || ();
   
       for my $var_name (keys %{$expansion}) {
           my @values = $self->clean_variable_repetitions($expansion->{$var_name});
@@ -20327,33 +20329,16 @@ __DATA__
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "executable":"modulecmd"
-                }
-            },
-            {
-                "version":"4.1.2",
-                "source":{
-                    "type":"tarball",
-                    "files":[
-                        "modules-4.1.2.tar.gz"
-                    ],
-                    "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --with-tclsh=${VC3_ROOT_TCL}/bin/tclsh",
-                        "make",
-                        "make install",
+                    "executable":"modulecmd",
+                    "postface":[
                         "/bin/echo  -e '#!/bin/sh\neval $(${VC3_ROOT_ENVIRONMENT_MODULES}/bin/modulecmd sh \"$@\")\n' > ${VC3_PREFIX}/bin/module",
                         "chmod 755 ${VC3_PREFIX}/bin/module"
                     ]
-                },
-                "environment-autovars":[
-                    "PATH"
-                ],
-                "dependencies":{
-                    "tcl":[
-                        "v8.5.9"
-                    ]
                 }
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 

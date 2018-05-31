@@ -4153,33 +4153,16 @@
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "executable":"modulecmd"
-                }
-            },
-            {
-                "version":"4.1.2",
-                "source":{
-                    "type":"tarball",
-                    "files":[
-                        "modules-4.1.2.tar.gz"
-                    ],
-                    "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} --with-tclsh=${VC3_ROOT_TCL}/bin/tclsh",
-                        "make",
-                        "make install",
+                    "executable":"modulecmd",
+                    "postface":[
                         "/bin/echo  -e '#!/bin/sh\neval $(${VC3_ROOT_ENVIRONMENT_MODULES}/bin/modulecmd sh \"$@\")\n' > ${VC3_PREFIX}/bin/module",
                         "chmod 755 ${VC3_PREFIX}/bin/module"
                     ]
-                },
-                "environment-autovars":[
-                    "PATH"
-                ],
-                "dependencies":{
-                    "tcl":[
-                        "v8.5.9"
-                    ]
                 }
             }
+        ],
+        "environment-autovars":[
+            "PATH"
         ]
     },
 

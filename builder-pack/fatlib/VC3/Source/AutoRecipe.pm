@@ -88,5 +88,9 @@ sub options {
     return $self->{options};
 }
 
+sub autorecipe {
+    die 'No autorecipe defined.';
+}
+
 1;
 

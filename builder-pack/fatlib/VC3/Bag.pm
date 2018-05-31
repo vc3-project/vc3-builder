@@ -938,10 +938,12 @@ sub set_environment_variables {
 
     $expansion->{'PATH'} ||= [];
     $expansion->{'LD_LIBRARY_PATH'} ||= [];
+    $expansion->{'MODULEPATH'} ||= [];
 
     # use default PATH:
     push @{$expansion->{'PATH'}},            $ENV{'PATH'}            || qw(/bin /usr/bin /usr/local/bin);
     push @{$expansion->{'LD_LIBRARY_PATH'}}, $ENV{'LD_LIBRARY_PATH'} || qw(/lib /usr/lib /usr/local/lib);
+    push @{$expansion->{'MODULEPATH'}},      $ENV{'MODULEPATH'}      || ();
 
     for my $var_name (keys %{$expansion}) {
         my @values = $self->clean_variable_repetitions($expansion->{$var_name});

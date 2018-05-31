@@ -12027,7 +12027,7 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
   }
   
   sub setup_wrapper {
-      my ($self, $builder_args, $mount_map) = @_;
+      my ($self, $exe, $builder_args, $mount_map) = @_;
   
       die "Container Source did not define a wrapper.\n";
   }
@@ -12057,7 +12057,7 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
   }
   
   sub prepare_recipe_sandbox {
-      my ($self, $builder_args, $payload_args, $mount_map) = @_;
+      my ($self, $exe, $builder_args, $payload_args, $mount_map) = @_;
   
       $self->get_files();
   
@@ -12086,7 +12086,7 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
       copy($0, $builder_path);
       chmod 0755, $builder_path;
   
-      my $wrapper = $self->setup_wrapper(\@new_builder_args, $mount_map);
+      my $wrapper = $self->setup_wrapper($exe, \@new_builder_args, $mount_map);
   
       $self->widget->wrapper($wrapper);
   }
@@ -12155,12 +12155,6 @@ $fatpacked{"VC3/Source/Container/Docker.pm"} = '#line '.(1+__LINE__).' "'.__FILE
       $json_description->{'images-directory'} = 'images/docker';
       my $self = $class->SUPER::new($widget, $json_description);
   
-      $self->{prerequisites} ||= [];
-      unshift @{$self->{prerequisites}}, 'id -Gn 2> /dev/null | grep docker';
-  
-      $self->{dependencies} ||= {};
-      $self->{dependencies}{'docker'} ||= [];
-  
       $self->drop_priviliges($json_description->{'drop-priviliges'});
   
       return $self;
@@ -12177,11 +12171,16 @@ $fatpacked{"VC3/Source/Container/Docker.pm"} = '#line '.(1+__LINE__).' "'.__FILE
   }
   
   sub setup_wrapper {
-      my ($self, $builder_args, $mount_map) = @_;
+      my ($self, $exe, $builder_args, $mount_map) = @_;
   
       my $bag = $self->widget->package->bag;
   
       my @wrapper;
+      push @wrapper, $exe;
+      push @wrapper, '--require=docker';
+      push @wrapper, '--revar=".*"';
+      push @wrapper, '--';
+  
       push @wrapper, 'docker';
       push @wrapper, 'run';
   
@@ -12258,19 +12257,18 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       $json_description->{'images-directory'} = 'images/singularity';
       my $self = $class->SUPER::new($widget, $json_description);
   
-      $self->{dependencies} ||= {};
-      $self->{dependencies}{'singularity'} ||= [];
-  
-      $self->{prerequisites} ||= [];
-      unshift @{$self->{prerequisites}}, 'which singularity';
-  
       return $self;
   }
   
   sub setup_wrapper {
-      my ($self, $builder_args, $mount_map) = @_;
+      my ($self, $exe, $builder_args, $mount_map) = @_;
   
       my @wrapper;
+      push @wrapper, $exe;
+      push @wrapper, '--require=singularity';
+      push @wrapper, '--revar=".*"';
+      push @wrapper, '--';
+  
       push @wrapper, 'singularity';
       push @wrapper, 'exec';
   
@@ -15993,7 +15991,7 @@ sub switch_os {
 
         eval {
             if($w->source) {
-                $w->source->prepare_recipe_sandbox($builder_args, $payload_args, $mount_map);
+                $w->source->prepare_recipe_sandbox($exe, $builder_args, $payload_args, $mount_map);
             }
 
             unless($w->wrapper) {
@@ -20407,12 +20405,17 @@ __DATA__
       {
         "version": "v1.0",
         "source": {
-          "type": "generic",
-          "files": [ "connect_client-1.0-1.noarch.rpm" ],
-          "recipe": [
-            "rpm -Uvh connect_client-1.0-1.noarch.rpm"
-          ]
+          "type": "binary",
+          "native": "x86_64",
+          "files": [ "connect_client-1.0.linux-x86_64.tar.gz" ]
         }
+      }
+    ],
+    "environment-variables":[
+      {
+        "name":"PYTHONPATH",
+        "value":"${VC3_ROOT_connect-client}/lib/python${VC3_VERSION_PYTHON}/site-packages",
+        "absolute":1        
       }
     ]
   },

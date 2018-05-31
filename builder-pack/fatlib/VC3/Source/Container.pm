@@ -46,7 +46,7 @@ sub new {
 }
 
 sub setup_wrapper {
-    my ($self, $builder_args, $mount_map) = @_;
+    my ($self, $exe, $builder_args, $mount_map) = @_;
 
     die "Container Source did not define a wrapper.\n";
 }
@@ -76,7 +76,7 @@ sub image {
 }
 
 sub prepare_recipe_sandbox {
-    my ($self, $builder_args, $payload_args, $mount_map) = @_;
+    my ($self, $exe, $builder_args, $payload_args, $mount_map) = @_;
 
     $self->get_files();
 
@@ -105,7 +105,7 @@ sub prepare_recipe_sandbox {
     copy($0, $builder_path);
     chmod 0755, $builder_path;
 
-    my $wrapper = $self->setup_wrapper(\@new_builder_args, $mount_map);
+    my $wrapper = $self->setup_wrapper($exe, \@new_builder_args, $mount_map);
 
     $self->widget->wrapper($wrapper);
 }

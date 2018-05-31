@@ -20,12 +20,6 @@ sub new {
     $json_description->{'images-directory'} = 'images/docker';
     my $self = $class->SUPER::new($widget, $json_description);
 
-    $self->{prerequisites} ||= [];
-    unshift @{$self->{prerequisites}}, 'id -Gn 2> /dev/null | grep docker';
-
-    $self->{dependencies} ||= {};
-    $self->{dependencies}{'docker'} ||= [];
-
     $self->drop_priviliges($json_description->{'drop-priviliges'});
 
     return $self;
@@ -42,11 +36,16 @@ sub drop_priviliges {
 }
 
 sub setup_wrapper {
-    my ($self, $builder_args, $mount_map) = @_;
+    my ($self, $exe, $builder_args, $mount_map) = @_;
 
     my $bag = $self->widget->package->bag;
 
     my @wrapper;
+    push @wrapper, $exe;
+    push @wrapper, '--require=docker';
+    push @wrapper, '--revar=".*"';
+    push @wrapper, '--';
+
     push @wrapper, 'docker';
     push @wrapper, 'run';
 

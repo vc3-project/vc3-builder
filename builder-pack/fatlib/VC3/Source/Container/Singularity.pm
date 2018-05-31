@@ -20,19 +20,18 @@ sub new {
     $json_description->{'images-directory'} = 'images/singularity';
     my $self = $class->SUPER::new($widget, $json_description);
 
-    $self->{dependencies} ||= {};
-    $self->{dependencies}{'singularity'} ||= [];
-
-    $self->{prerequisites} ||= [];
-    unshift @{$self->{prerequisites}}, 'which singularity';
-
     return $self;
 }
 
 sub setup_wrapper {
-    my ($self, $builder_args, $mount_map) = @_;
+    my ($self, $exe, $builder_args, $mount_map) = @_;
 
     my @wrapper;
+    push @wrapper, $exe;
+    push @wrapper, '--require=singularity';
+    push @wrapper, '--revar=".*"';
+    push @wrapper, '--';
+
     push @wrapper, 'singularity';
     push @wrapper, 'exec';
 

@@ -599,7 +599,7 @@ sub switch_os {
 
         eval {
             if($w->source) {
-                $w->source->prepare_recipe_sandbox($builder_args, $payload_args, $mount_map);
+                $w->source->prepare_recipe_sandbox($exe, $builder_args, $payload_args, $mount_map);
             }
 
             unless($w->wrapper) {

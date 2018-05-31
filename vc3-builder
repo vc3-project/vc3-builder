@@ -20139,7 +20139,7 @@ __DATA__
                 }
             },
             {
-                "version":"auto",
+                "version":"2.4",
                 "prologue":[
                     "modulecmd sh load singularity"
                 ],
@@ -20152,7 +20152,7 @@ __DATA__
                 }
             },
             {
-                "version":"auto",
+                "version":"2.4",
                 "prologue":[
                     "modulecmd sh load tacc-singularity"
                 ],

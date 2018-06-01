@@ -426,7 +426,9 @@ sub main {
     if($require_os and not $no_os_switch) {
         # following call may produce an exec to a container.  original command line
         # is executed, dropping --require-os.
-        switch_os($bag, $require_os, $0, \@saved_args, \@ARGV, $mount_map); # ARGV is original payload now.
+        my $exe = $0 eq '-e' ? $^X : $0;
+        
+        switch_os($bag, $require_os, $exe, \@saved_args, \@ARGV, $mount_map); # ARGV is original payload now.
     } else {
         unless(check_local_mounts($mount_map)) {
             die "Some mount points do not exists locally and no mounting can be performed natively.\n";

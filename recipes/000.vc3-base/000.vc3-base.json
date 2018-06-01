@@ -3965,7 +3965,8 @@
                 }
             },
             {
-                "version":"2.4",
+                "version":"2.5",
+                "comment":"For Bridges",
                 "prologue":[
                     "eval $(modulecmd sh load singularity)"
                 ],
@@ -3978,14 +3979,15 @@
                 }
             },
             {
-                "version":"2.4",
+                "version":"2.5",
+                "comment":"For TACC-Stampede",
                 "prologue":[
-                    "eval $(modulecmd sh load singularity)"
+                    "eval $(/opt/apps/lmod/lmod/libexec/lmod sh load tacc-singularity)"
                 ],
                 "source":{
                     "type":"generic",
                     "auto-version":[
-                        "eval $(modulecmd sh load singularity)",
+                        "eval $(/opt/apps/lmod/lmod/libexec/lmod sh load tacc-singularity)",
                         "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/(([0-9]+\\.){2}[0-9]+).*/\\1/')"
                     ]
                 }

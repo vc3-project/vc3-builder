@@ -11,7 +11,7 @@ PERL_CC=$(CC)
 
 BARE=../../vc3-builder
 
-COREMODULES=strict warnings English constant overload Tie::RefHash File::Copy File::Temp FindBin Encode POSIX if locale File::Glob integer Sys::Hostname IO::Socket base Time::Local PerlIO encoding
+COREMODULES=strict warnings English constant overload Tie::RefHash File::Copy File::Temp File::stat FindBin Encode POSIX if locale File::Glob integer Sys::Hostname IO::Socket base Time::Local PerlIO encoding Time::gmtime
 MODULES_M=$(patsubst %, -M%, $(COREMODULES))
 
 MUSL_SRC=musl-1.1.15

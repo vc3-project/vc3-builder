@@ -27,10 +27,10 @@ Prefix: %{_prefix}
 
 %prep
 %setup -q -n vc3-builder
-make clean
+# make clean  # we do not clean, as we used the provided vc3-builder
 
 %build
-make
+# make   # we do not make, as we used the provided vc3-builder
 
 %install
 mkdir -p %{buildroot}/%{_bindir}

@@ -30,6 +30,11 @@ sub setup_wrapper {
     push @wrapper, $exe;
     push @wrapper, '--require=singularity';
     push @wrapper, '--revar=".*"';
+    push @wrapper, '--install='    . $self->widget->package->bag->root_dir;
+    push @wrapper, '--home='       . $self->widget->package->bag->home_dir;
+    push @wrapper, '--distfiles='  . $self->widget->package->bag->files_dir;
+    push @wrapper, '--repository=' . $self->widget->package->bag->repository;
+
     push @wrapper, '--';
 
     push @wrapper, 'singularity';

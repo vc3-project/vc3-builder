@@ -1110,7 +1110,11 @@ then
     exit 1
 fi
 
+# load profile for further interactive shells.
 export ENV=$profile_file
+
+# load profile if the exec below is not interactive
+. $profile_file
 
 EOFP
 

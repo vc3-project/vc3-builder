@@ -10537,7 +10537,11 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       exit 1
   fi
   
+  # load profile for further interactive shells.
   export ENV=$profile_file
+  
+  # load profile if the exec below is not interactive
+  . $profile_file
   
   EOFP
   
@@ -12185,6 +12189,11 @@ $fatpacked{"VC3/Source/Container/Docker.pm"} = '#line '.(1+__LINE__).' "'.__FILE
       push @wrapper, $exe;
       push @wrapper, '--require=docker';
       push @wrapper, '--revar=".*"';
+      push @wrapper, '--install='    . $self->widget->package->bag->root_dir;
+      push @wrapper, '--home='       . $self->widget->package->bag->home_dir;
+      push @wrapper, '--distfiles='  . $self->widget->package->bag->files_dir;
+      push @wrapper, '--repository=' . $self->widget->package->bag->repository;
+  
       push @wrapper, '--';
   
       push @wrapper, 'docker';
@@ -12273,6 +12282,11 @@ $fatpacked{"VC3/Source/Container/Singularity.pm"} = '#line '.(1+__LINE__).' "'._
       push @wrapper, $exe;
       push @wrapper, '--require=singularity';
       push @wrapper, '--revar=".*"';
+      push @wrapper, '--install='    . $self->widget->package->bag->root_dir;
+      push @wrapper, '--home='       . $self->widget->package->bag->home_dir;
+      push @wrapper, '--distfiles='  . $self->widget->package->bag->files_dir;
+      push @wrapper, '--repository=' . $self->widget->package->bag->repository;
+  
       push @wrapper, '--';
   
       push @wrapper, 'singularity';

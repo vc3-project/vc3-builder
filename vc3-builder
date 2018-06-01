@@ -23591,7 +23591,7 @@ __DATA__
                 }
             },
             {
-                "version":"2.5",
+                "version":"2.4.1",
                 "comment":"For Bridges",
                 "prologue":[
                     "eval $(modulecmd sh load singularity)"
@@ -23605,7 +23605,7 @@ __DATA__
                 }
             },
             {
-                "version":"2.5",
+                "version":"2.4.2",
                 "comment":"For TACC-Stampede",
                 "prologue":[
                     "eval $(/opt/apps/lmod/lmod/libexec/lmod sh load tacc-singularity)"

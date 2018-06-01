@@ -3965,8 +3965,11 @@
                 }
             },
             {
-                "version":"2.4.1",
+                "version":"2.5",
                 "comment":"For Bridges",
+                "prerequisites":[
+                    "which modulecmd"
+                ],
                 "prologue":[
                     "eval $(modulecmd sh load singularity)"
                 ],
@@ -3979,8 +3982,11 @@
                 }
             },
             {
-                "version":"2.4.2",
+                "version":"2.5",
                 "comment":"For TACC-Stampede",
+                "prerequisites":[
+                    "which /opt/apps/lmod/lmod/libexec/lmod"
+                ],
                 "prologue":[
                     "eval $(/opt/apps/lmod/lmod/libexec/lmod sh load tacc-singularity)"
                 ],

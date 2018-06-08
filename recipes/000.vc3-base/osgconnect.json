@@ -27,7 +27,12 @@
           "type": "binary",
           "native": "x86_64",
           "files": [ "connect_client-1.0.linux-x86_64.tar.gz" ]
-        }
+        },
+        "dependencies":{
+          "python":[
+            "v2.7"
+          ]
+        }        
       }
     ],
     "environment-variables":[

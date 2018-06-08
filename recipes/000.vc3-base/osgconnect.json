@@ -30,7 +30,7 @@
         },
         "dependencies":{
           "python":[
-            "v2.7"
+            "v2.6"
           ]
         }        
       }

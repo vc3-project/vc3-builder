@@ -23846,11 +23846,11 @@ __DATA__
     "show-in-list":1,
     "versions": [
       {
-        "version": "v1.0",
+        "version": "v1.0.1",
         "source": {
           "type": "binary",
           "native": "x86_64",
-          "files": [ "connect_client-1.0.linux-x86_64.tar.gz" ]
+          "files": [ "connect_client-1.0.1.linux-x86_64.tar.gz" ]
         },
         "dependencies":{
           "python":[
@@ -23911,7 +23911,7 @@ __DATA__
                 "v0.0.1"
               ],
               "connect-client": [
-                "v1.0"
+                "v1.0.1"
               ]
           }
         }

@@ -38,9 +38,12 @@
     "environment-variables":[
       {
         "name":"PYTHONPATH",
-        "value":"${VC3_ROOT_connect-client}/lib/python${VC3_VERSION_PYTHON}/site-packages",
-        "absolute":1        
+        "value":"${VC3_ROOT_CONNECT_CLIENT}/lib/python2.6/site-packages",
+        "absolute":1
       }
+    ],
+    "environment-autovars":[
+      "PATH"
     ]
   },
   "modules": {
@@ -82,6 +85,9 @@
               ],
               "tutorial": [
                 "v0.0.1"
+              ],
+              "connect-client": [
+                "v1.0"
               ]
           }
         }

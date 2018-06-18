@@ -102,7 +102,7 @@ sh-4.1$ stat -t /cvmfs/cms.cern.ch
 /cvmfs/cms.cern.ch 4096 9 41ed 0 0 1 256 1 0 1 1409299789 1409299789 1409299789 0 65336
 ```
 
-In this case, the filesystem `cvmfs is not provided natively and the builder
+In this case, the filesystem `cvmfs` is not provided natively and the builder
 tries to fulfill the requirement using the [parrot virtual file system](http://ccl.cse.nd.edu/software/parrot).
 
 

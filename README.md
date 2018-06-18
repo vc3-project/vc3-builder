@@ -49,7 +49,7 @@ software activated. For example, assume the original environment is a RHEL7, but
 ```
 $ cat /etc/redhat-release 
 Red Hat Enterprise Linux Server release 7.4 (Maipo)
-$ ./vc3-builder --install ~/tmp/my-vc3 --require-os redhat6 --require ncbi-blast
+$ ./vc3-builder --install ~/tmp/my-vc3 --require-os redhat:v6.9:v6.9 --require ncbi-blast
 OS trying:         redhat6 os-native
 OS fail prereq:    redhat6 os-native
 OS trying:         redhat6 singularity
@@ -70,11 +70,14 @@ $ ls -d ~/tmp/my-vc3
 /home/btovar/tmp/my-vc3
 ```
 
-In the first stage, the builder verifies the operating system requirement.
-Since the native environment is not RHEL6, it tries to fulfill the requirement
-using a container image. If the native environment would not support
-containers, the builder terminates indicating that the operating system
-requirement cannot be fulfilled.
+In the first stage, the builder verifies the operating system
+requirement. If `redhat:v6.9` had been requested, any RHEL version >=
+6.9 would have been considered satisfactory. By requesting
+`redhat:v6.9:v6.9`, a specific version is enforced. Since the native
+environment is not RHEL6, it tries to fulfill the requirement using a
+container image. If the native environment would not support containers,
+the builder terminates indicating that the operating system requirement
+cannot be fulfilled.
 
 In the second stage, the builder checks if ncbi-blast is already installed.
 Since it is not, it downloads it and sets it up accordingly. As requested, all

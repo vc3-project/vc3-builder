@@ -158,6 +158,34 @@
         ]
     },
 
+    "py-spark":{
+        "tags":["python packages"],
+        "show-in-list": 1,
+        "versions":[
+            {
+                "version":"v2.3.1",
+                "dependencies":{
+                    "spark":[
+                        "v2.2.1"
+                    ],
+                    "python":[
+                        "v2.7"
+                    ],
+                    "python-pip":[
+                        "v9"
+                    ]
+                },
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                       "pip install --user pyspark==2.3.1"
+                    ]
+                }
+            }
+        ]
+    },
+
+
     "pax":{
         "tags":["file utilities"],
         "show-in-list":1,

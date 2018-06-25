@@ -22024,6 +22024,40 @@ __DATA__
         ]
     },
 
+    "python-pip3":{
+        "tags":["python packages"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v9.0.1",
+                "source":{
+                    "type":"generic",
+                    "files":[
+                        "pip-9.0.1.distribution"
+                    ],
+                    "recipe":[
+                        "python3 pip-9.0.1.distribution --user --ignore-installed",
+                        "pip3 install --user -U pip",
+                        "pip3 install --user -U setuptools",
+                        "pip3 install --user -U wheel"
+                    ]
+                },
+                "dependencies":{
+                    "python3":[
+                        "v3.0"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"PATH",
+                "value":"${VC3_INSTALL_USER_HOME}/.local/bin",
+                "absolute":1
+            }
+        ]
+    },
+
     "zlib": {
         "versions":[
             {

@@ -32,6 +32,8 @@ perl
 pkg_config
 python
 python_setuptools
+python3
+python3_setuptools
 strace
 unzip
 vim
@@ -94,6 +96,8 @@ perl                     => 'perl-devel',
 pkg_config               => 'pkg-config',
 python                   => 'python-devel',
 python_setuptools        => 'python-setuptools',
+python3                  => 'python34-devel',
+python3_setuptools       => 'python34-setuptools',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
@@ -103,6 +107,10 @@ which                    => 'which',
 
 $extras_for{centos}{default} = ['perl-core', 'libc-devel'];
 
+$preinstall_for{centos}{default} = [
+	'yum -y install epel-release'
+];
+		
 $postinstall_for{centos}{default} = [
 	'yum -y clean all'
 ];
@@ -128,6 +136,8 @@ perl                     => 'libperl-dev',
 pkg_config               => 'pkg-config',
 python                   => 'python-dev',
 python_setuptools        => 'python-setuptools',
+python3                  => 'python3-dev',
+python3_setuptools       => 'python3-setuptools',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
@@ -177,6 +187,8 @@ perl                     => 'perl',
 pkg_config               => 'pkg-config',
 python                   => 'python-devel',
 python_setuptools        => 'python-setuptools',
+python3                  => 'python3-devel',
+python3_setuptools       => 'python3-setuptools',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',

@@ -16028,7 +16028,7 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
           if($response->{status} == 304) {
               $self->say("local copy of '" . $file . "' was up to date.");
           }
-  
+
           return if $response->{success};
   
           # retries:

@@ -88,7 +88,7 @@ gmake                    => 'make',
 gtar                     => 'tar',
 lsb_release              => 'lsb-release',
 m4                       => 'm4',
-openssl                  => 'openssl',
+openssl                  => 'openssl-devel',
 patch                    => 'patch',
 perl                     => 'perl-devel',
 pkg_config               => 'pkg-config',
@@ -135,7 +135,7 @@ wget                     => 'wget',
 which                    => 'debianutils',
 };
 
-$extras_for{ubuntu}{default} = ['tzdata', 'locales'];
+$extras_for{ubuntu}{default} = ['tzdata', 'locales', 'libssl-dev'];
 
 $preinstall_for{ubuntu}{default} = [
 	"apt-get update"
@@ -171,7 +171,7 @@ gmake                    => 'make',
 gtar                     => 'tar',
 lsb_release              => 'lsb-release',
 m4                       => 'm4',
-openssl                  => 'openssl',
+openssl                  => 'openssl-devel',
 patch                    => 'patch',
 perl                     => 'perl',
 pkg_config               => 'pkg-config',
@@ -510,5 +510,8 @@ EOF
 
 	return $docfile;
 }
+
+# docker login doecker.io
+# docker push docker.io/virtualclusters/os
 
 # vim: set noexpandtab tabstop=4:

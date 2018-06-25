@@ -10,6 +10,7 @@ use warnings;
 
 package VC3::Source::Container;
 use base 'VC3::Source::System';
+use JSON::Tiny;
 use Carp;
 use File::Copy;
 use File::Spec::Functions qw/catfile file_name_is_absolute/;
@@ -87,23 +88,27 @@ sub prepare_recipe_sandbox {
     my $home_target  = $self->add_mount($mount_map, $bag->home_dir,  '/opt/vc3-home');
     my $files_target = $self->add_mount($mount_map, $bag->files_dir, '/opt/vc3-distfiles');
 
+    my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
+    copy($0, $builder_path);
+    chmod 0755, $builder_path;
+
+    my $recipe_path = catfile($bag->tmp_dir, 'vc3-recipes');
+    copy($bag->sh_profile . '.recipes', $recipe_path);
+
     my @new_builder_args;
     push @new_builder_args, catfile($root_target, 'tmp', 'vc3-builder');
     push @new_builder_args, '--no-os-switch';
-    push @new_builder_args, $self->remove_mount_args(@{$builder_args});
+    push @new_builder_args, $self->remove_args(@{$builder_args});
     push @new_builder_args, ('--install',   $root_target);
     push @new_builder_args, ('--distfiles', $files_target);
     push @new_builder_args, ('--home',      $home_target);
+    push @new_builder_args, ('--database',  catfile($root_target, 'tmp', 'vc3-recipes'));
+
 
     if(scalar @{$payload_args} > 0) {
         push @new_builder_args, '--';
         push @new_builder_args, @{$payload_args};
     }
-
-    # hack to clean!
-    my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
-    copy($0, $builder_path);
-    chmod 0755, $builder_path;
 
     my $wrapper = $self->setup_wrapper($exe, \@new_builder_args, $mount_map);
 
@@ -120,24 +125,33 @@ sub add_mount {
     return $mount_map->{$from};
 }
 
-sub remove_mount_args {
+sub remove_args {
     my ($self, @args) = @_;
 
     my @builder_args;
 
-    my $prev_mount = 0;
+    my $prev_no_equal = 0;
     for my $a (@args) {
-        if($prev_mount) {
-            $prev_mount = 0;
-            next;
-        }
-
-        if($a =~ m/^--mount/) {
-            $prev_mount = 1;
+        if($prev_no_equal) {
+            $prev_no_equal = 0;
             next;
         }
 
         if($a =~ m/^--mount=/) {
+            next;
+        }
+
+        if($a =~ m/^--mount$/) {
+            $prev_no_equal = 1;
+            next;
+        }
+
+        if($a =~ m/^--database=/) {
+            next;
+        }
+
+        if($a =~ m/^--database$/) {
+            $prev_no_equal = 1;
             next;
         }
 

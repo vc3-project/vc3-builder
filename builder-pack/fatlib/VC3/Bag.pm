@@ -84,6 +84,20 @@ sub new {
     return $self;
 }
 
+sub to_hash {
+    my ($self) = @_;
+
+    my $bh = {};
+
+    for my $subbag (values %{$self->{recipes}}) {
+        for my $p (values %{$subbag}) {
+            $bh->{$p->name} = $p->original_description();
+        }
+    }
+
+    return $bh;
+}
+
 sub list_packages() {
     my ($self, $option) = @_;
 
@@ -600,6 +614,10 @@ sub cleanup {
             if(-f $self->sh_profile . '.payload') {
                 unlink $self->sh_profile . '.payload';
             }
+
+            if(-f $self->sh_profile . '.recipes') {
+                unlink $self->sh_profile . '.recipes';
+            }
         }
 
         $self->del_builder_variable('VC3_SH_PROFILE_ENV');
@@ -1035,7 +1053,21 @@ sub order_variables {
 sub set_profile {
     my ($self, $profile_file, @command_and_args) = @_;
 
-    my ($env_file, $prog_file, $wrap_file, $pay_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload');
+    my ($env_file, $prog_file, $wrap_file, $pay_file, $rec_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload', '.recipes');
+
+    {
+        # write recipes
+        open(my $sh_f_recp, '>', $rec_file)
+        || die "Could not open file $rec_file $!";
+
+
+        $self->to_hash;
+        my $json = JSON::Tiny::encode_json($self->to_hash);
+        print { $sh_f_recp } "$json";
+        close($sh_f_recp);
+    }
+    
+    print $@;
 
     # write to env file
     open(my $sh_f_env, '>', $env_file)

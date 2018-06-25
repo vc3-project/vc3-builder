@@ -15,10 +15,6 @@ use Carp;
 sub new {
     my ($class, $widget, $json_description) = @_;
 
-    if($json_description->{recipe}) {
-        die "Recipe specified when not needed for '" . $widget->package->name . "'\n";
-    }
-
     # dummy recipe, so Tarball does not complain.
     $json_description->{recipe} = ['dummy'];
 

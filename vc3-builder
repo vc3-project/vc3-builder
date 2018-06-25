@@ -12941,6 +12941,20 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       return $self;
   }
   
+  sub to_hash {
+      my ($self) = @_;
+  
+      my $bh = {};
+  
+      for my $subbag (values %{$self->{recipes}}) {
+          for my $p (values %{$subbag}) {
+              $bh->{$p->name} = $p->original_description();
+          }
+      }
+  
+      return $bh;
+  }
+  
   sub list_packages() {
       my ($self, $option) = @_;
   
@@ -13457,6 +13471,10 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
               if(-f $self->sh_profile . '.payload') {
                   unlink $self->sh_profile . '.payload';
               }
+  
+              if(-f $self->sh_profile . '.recipes') {
+                  unlink $self->sh_profile . '.recipes';
+              }
           }
   
           $self->del_builder_variable('VC3_SH_PROFILE_ENV');
@@ -13892,7 +13910,21 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub set_profile {
       my ($self, $profile_file, @command_and_args) = @_;
   
-      my ($env_file, $prog_file, $wrap_file, $pay_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload');
+      my ($env_file, $prog_file, $wrap_file, $pay_file, $rec_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload', '.recipes');
+  
+      {
+          # write recipes
+          open(my $sh_f_recp, '>', $rec_file)
+          || die "Could not open file $rec_file $!";
+  
+  
+          $self->to_hash;
+          my $json = JSON::Tiny::encode_json($self->to_hash);
+          print { $sh_f_recp } "$json";
+          close($sh_f_recp);
+      }
+      
+      print $@;
   
       # write to env file
       open(my $sh_f_env, '>', $env_file)
@@ -14187,6 +14219,8 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
   
       my $self = bless {}, $class;
   
+      $self->original_description($json_description);
+  
       $self->bag($bag);
       $self->name($name);
       $self->dependencies($json_description->{dependencies});
@@ -14278,6 +14312,14 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
       unless($self->{name}); 
   
       return $self->{name};
+  }
+  
+  sub original_description {
+      my ($self, $new_original) = @_;
+  
+      $self->{original_description} = $new_original if($new_original);
+  
+      return $self->{original_description};
   }
   
   sub dependencies {
@@ -15225,10 +15267,6 @@ $fatpacked{"VC3/Source/AutoRecipe.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"
   sub new {
       my ($class, $widget, $json_description) = @_;
   
-      if($json_description->{recipe}) {
-          die "Recipe specified when not needed for '" . $widget->package->name . "'\n";
-      }
-  
       # dummy recipe, so Tarball does not complain.
       $json_description->{recipe} = ['dummy'];
   
@@ -15431,6 +15469,7 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
   
   package VC3::Source::Container;
   use base 'VC3::Source::System';
+  use JSON::Tiny;
   use Carp;
   use File::Copy;
   use File::Spec::Functions qw/catfile file_name_is_absolute/;
@@ -15508,23 +15547,27 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
       my $home_target  = $self->add_mount($mount_map, $bag->home_dir,  '/opt/vc3-home');
       my $files_target = $self->add_mount($mount_map, $bag->files_dir, '/opt/vc3-distfiles');
   
+      my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
+      copy($0, $builder_path);
+      chmod 0755, $builder_path;
+  
+      my $recipe_path = catfile($bag->tmp_dir, 'vc3-recipes');
+      copy($bag->sh_profile . '.recipes', $recipe_path);
+  
       my @new_builder_args;
       push @new_builder_args, catfile($root_target, 'tmp', 'vc3-builder');
       push @new_builder_args, '--no-os-switch';
-      push @new_builder_args, $self->remove_mount_args(@{$builder_args});
+      push @new_builder_args, $self->remove_args(@{$builder_args});
       push @new_builder_args, ('--install',   $root_target);
       push @new_builder_args, ('--distfiles', $files_target);
       push @new_builder_args, ('--home',      $home_target);
+      push @new_builder_args, ('--database',  catfile($root_target, 'tmp', 'vc3-recipes'));
+  
   
       if(scalar @{$payload_args} > 0) {
           push @new_builder_args, '--';
           push @new_builder_args, @{$payload_args};
       }
-  
-      # hack to clean!
-      my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
-      copy($0, $builder_path);
-      chmod 0755, $builder_path;
   
       my $wrapper = $self->setup_wrapper($exe, \@new_builder_args, $mount_map);
   
@@ -15541,24 +15584,33 @@ $fatpacked{"VC3/Source/Container.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\
       return $mount_map->{$from};
   }
   
-  sub remove_mount_args {
+  sub remove_args {
       my ($self, @args) = @_;
   
       my @builder_args;
   
-      my $prev_mount = 0;
+      my $prev_no_equal = 0;
       for my $a (@args) {
-          if($prev_mount) {
-              $prev_mount = 0;
-              next;
-          }
-  
-          if($a =~ m/^--mount/) {
-              $prev_mount = 1;
+          if($prev_no_equal) {
+              $prev_no_equal = 0;
               next;
           }
   
           if($a =~ m/^--mount=/) {
+              next;
+          }
+  
+          if($a =~ m/^--mount$/) {
+              $prev_no_equal = 1;
+              next;
+          }
+  
+          if($a =~ m/^--database=/) {
+              next;
+          }
+  
+          if($a =~ m/^--database$/) {
+              $prev_no_equal = 1;
               next;
           }
   
@@ -16028,7 +16080,7 @@ $fatpacked{"VC3/Source/Generic.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n"
           if($response->{status} == 304) {
               $self->say("local copy of '" . $file . "' was up to date.");
           }
-
+  
           return if $response->{success};
   
           # retries:

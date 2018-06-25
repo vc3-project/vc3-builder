@@ -20,6 +20,8 @@ sub new {
 
     my $self = bless {}, $class;
 
+    $self->original_description($json_description);
+
     $self->bag($bag);
     $self->name($name);
     $self->dependencies($json_description->{dependencies});
@@ -111,6 +113,14 @@ sub name {
     unless($self->{name}); 
 
     return $self->{name};
+}
+
+sub original_description {
+    my ($self, $new_original) = @_;
+
+    $self->{original_description} = $new_original if($new_original);
+
+    return $self->{original_description};
 }
 
 sub dependencies {

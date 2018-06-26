@@ -20,7 +20,7 @@ sub new {
 
     my $self = bless {}, $class;
 
-    $self->original_description($json_description);
+    $self->original_description(\%{$json_description});
 
     $self->bag($bag);
     $self->name($name);

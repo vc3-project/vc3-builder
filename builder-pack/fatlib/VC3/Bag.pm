@@ -81,6 +81,8 @@ sub new {
     $self->add_manual_variables($args{env_vars});
     $self->add_manual_packages($args{sys_manual});
 
+    $self->write_db();
+
     return $self;
 }
 
@@ -96,6 +98,21 @@ sub to_hash {
     }
 
     return $bh;
+}
+
+sub write_db {
+    my ($self) = @_;
+
+    my $rec_file = $self->sh_profile . '.recipes';
+
+    # write recipes
+    open(my $sh_f_recp, '>', $rec_file)
+    || die "Could not open file $rec_file $!";
+
+
+    my $json = JSON::Tiny::encode_json($self->to_hash);
+    print { $sh_f_recp } "$json";
+    close($sh_f_recp);
 }
 
 sub list_packages() {
@@ -1053,22 +1070,8 @@ sub order_variables {
 sub set_profile {
     my ($self, $profile_file, @command_and_args) = @_;
 
-    my ($env_file, $prog_file, $wrap_file, $pay_file, $rec_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload', '.recipes');
-
-    {
-        # write recipes
-        open(my $sh_f_recp, '>', $rec_file)
-        || die "Could not open file $rec_file $!";
-
-
-        $self->to_hash;
-        my $json = JSON::Tiny::encode_json($self->to_hash);
-        print { $sh_f_recp } "$json";
-        close($sh_f_recp);
-    }
+    my ($env_file, $prog_file, $wrap_file, $pay_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload');
     
-    print $@;
-
     # write to env file
     open(my $sh_f_env, '>', $env_file)
     || die "Could not open file $env_file $!";

@@ -12938,6 +12938,8 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       $self->add_manual_variables($args{env_vars});
       $self->add_manual_packages($args{sys_manual});
   
+      $self->write_db();
+  
       return $self;
   }
   
@@ -12953,6 +12955,21 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
       }
   
       return $bh;
+  }
+  
+  sub write_db {
+      my ($self) = @_;
+  
+      my $rec_file = $self->sh_profile . '.recipes';
+  
+      # write recipes
+      open(my $sh_f_recp, '>', $rec_file)
+      || die "Could not open file $rec_file $!";
+  
+  
+      my $json = JSON::Tiny::encode_json($self->to_hash);
+      print { $sh_f_recp } "$json";
+      close($sh_f_recp);
   }
   
   sub list_packages() {
@@ -13910,22 +13927,8 @@ $fatpacked{"VC3/Bag.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_BAG
   sub set_profile {
       my ($self, $profile_file, @command_and_args) = @_;
   
-      my ($env_file, $prog_file, $wrap_file, $pay_file, $rec_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload', '.recipes');
-  
-      {
-          # write recipes
-          open(my $sh_f_recp, '>', $rec_file)
-          || die "Could not open file $rec_file $!";
-  
-  
-          $self->to_hash;
-          my $json = JSON::Tiny::encode_json($self->to_hash);
-          print { $sh_f_recp } "$json";
-          close($sh_f_recp);
-      }
+      my ($env_file, $prog_file, $wrap_file, $pay_file) = map { $profile_file . $_ } ('.env', '.prologue', '.wrapper', '.payload');
       
-      print $@;
-  
       # write to env file
       open(my $sh_f_env, '>', $env_file)
       || die "Could not open file $env_file $!";
@@ -14219,7 +14222,7 @@ $fatpacked{"VC3/Package.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3
   
       my $self = bless {}, $class;
   
-      $self->original_description($json_description);
+      $self->original_description(\%{$json_description});
   
       $self->bag($bag);
       $self->name($name);
@@ -19308,7 +19311,6 @@ sub main {
         sys_manual => \@sys_manual,
         no_sys     => \@no_sys,
         env_vars   => \@extra_env_vars);
-
 
     push @cleanups, sub { $bag->cleanup() };
 

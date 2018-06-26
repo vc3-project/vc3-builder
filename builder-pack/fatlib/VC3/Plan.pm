@@ -75,18 +75,31 @@ sub add_target {
 
     $self->say("Plan:    $name => [@{[$min || '']}, @{[$max || '']}]");
 
-    my $available = $self->bag->widgets_of($name);
-    for my $widget (@{$available}) {
+    # if this target has been already added, we check that versions are congruent
+    my $p = $self->elements->{$name};
+    my $e;
+    if($p) {
+        $e = $self->refine($p->widget, $p, $min, $max);
+    }
 
-        unless($widget->available) {
-            next;
-        }
+    if($e) {
+        $self->elements->{$name} = $p;
+        $self->say("Using:   $name => [@{[$p->min || '']}, @{[$p->max || '']}]");
+        return 1;
+    } else {
+        my $available = $self->bag->widgets_of($name);
+        for my $widget (@{$available}) {
 
-        # This is a naive search!
-        # We also want to check for different order of targets.
-        if($self->add_widget($widget, $min, $max)) {
-            $self->bag->{indent_level}--;
-            return 1;
+            unless($widget->available) {
+                next;
+            }
+
+            # This is a naive search!
+            # We also want to check for different order of targets.
+            if($self->add_widget($widget, $min, $max)) {
+                $self->bag->{indent_level}--;
+                return 1;
+            }
         }
     }
 
@@ -112,9 +125,7 @@ sub add_main_targets {
     for my $req (@requires) {
         my ($name, $min, $max) = $self->parse_requirement($req);
 
-        my $versions = [];
-        push @{$versions}, $min if($min);
-        push @{$versions}, $max if($max);
+        my $versions = [$min, $max];
 
         $root_entry->{dependencies}{$name} = $versions;
         

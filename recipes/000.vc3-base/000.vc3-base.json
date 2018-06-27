@@ -178,7 +178,8 @@
                 "source":{
                     "type":"generic",
                     "recipe":[
-                       "pip install --user pyspark==2.2.1"
+                       "pip install --user pyspark==2.2.1",
+                       "ln -s $VC3_INSTALL_USER_HOME/.local/lib/python2.7/site-packages/pyspark/python $VC3_ROOT_SPARK"
                     ]
                 }
             }

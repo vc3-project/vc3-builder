@@ -24139,6 +24139,22 @@ __DATA__
         ]
     },
 
+    "centos-python36":{
+        "tags":["operating systems"],
+        "show-in-list":1,
+        "type":"operating-system",
+        "versions":[
+            {
+                "version":"6.9",
+                "source":{
+                    "type":"docker",
+                    "drop-priviliges":1,
+                    "image":"docker://virtualclusters/os:centos6-python36"
+                }
+            }
+        ]
+    },
+
     "ubuntu":{
         "tags":["operating systems"],
         "show-in-list":1,

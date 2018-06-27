@@ -19753,7 +19753,7 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
-                "version":"v2.2.1",
+                "version":"v2.3.1",
                 "dependencies":{
                     "scala":[
                         "v2.12.4"
@@ -19765,7 +19765,7 @@ __DATA__
                 "source":{ 
                     "type":"tarball",
                     "files":[
-                        "spark-2.2.1-bin-hadoop2.7.tgz"
+                        "spark-2.3.1-bin-hadoop2.7.tgz"
                     ],
                     "recipe":[
                         "ls -lha",
@@ -19784,7 +19784,7 @@ __DATA__
         ]
     },
 
-    "py-spark":{
+    "pyspark":{
         "tags":["python packages"],
         "show-in-list": 1,
         "versions":[
@@ -19792,7 +19792,7 @@ __DATA__
                 "version":"v2.3.1",
                 "dependencies":{
                     "spark":[
-                        "v2.2.1"
+                        "v2.3.1"
                     ],
                     "python":[
                         "v2.7"

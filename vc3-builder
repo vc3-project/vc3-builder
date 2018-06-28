@@ -17287,7 +17287,7 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
   
       my ($name, $version) = ($distro =~ m/(.+) (.+)/);
   
-      if($name =~ m/(redhat|rhel|centos)/) {
+      if($name =~ m/(redhat|rhel|centos|scientific)/) {
           $name = 'redhat';
       } elsif($name =~ m/debian/) {
           $name = 'debian';

@@ -727,7 +727,7 @@ sub distro_canonical_name {
 
     my ($name, $version) = ($distro =~ m/(.+) (.+)/);
 
-    if($name =~ m/(redhat|rhel|centos)/) {
+    if($name =~ m/(redhat|rhel|centos|scientific)/) {
         $name = 'redhat';
     } elsif($name =~ m/debian/) {
         $name = 'debian';

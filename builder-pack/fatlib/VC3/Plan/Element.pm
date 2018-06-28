@@ -67,11 +67,13 @@ sub refine {
         return undef;
     }
 
+    # take the more restrictive min
     my $min = $new_min || $self->{min};
     if($new_min && $self->{min}) {
-        $min = $new_min lt $self->{min} ? $new_min : $self->{min};
+        $min = $new_min lt $self->{min} ? $self->{min} : $new_min;
     }
 
+    # take the more restrictive max
     my $max = $new_max || $self->{max};
     if($new_max && $self->{max}) {
         $max = $new_max lt $self->{max} ? $new_max : $self->{max};

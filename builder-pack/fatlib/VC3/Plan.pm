@@ -77,29 +77,29 @@ sub add_target {
 
     # if this target has been already added, we check that versions are congruent
     my $p = $self->elements->{$name};
-    my $e;
     if($p) {
-        $e = $self->refine($p->widget, $p, $min, $max);
+        my $e = $self->refine($p->widget, $p, $min, $max);
+
+        if($e) {
+            $self->elements->{$name} = $e;
+            $self->say("Using:   $name => [@{[$e->min || '']}, @{[$e->max || '']}]");
+            $self->bag->{indent_level}--;
+            return 1;
+        }
     }
 
-    if($e) {
-        $self->elements->{$name} = $p;
-        $self->say("Using:   $name => [@{[$p->min || '']}, @{[$p->max || '']}]");
-        return 1;
-    } else {
-        my $available = $self->bag->widgets_of($name);
-        for my $widget (@{$available}) {
+    my $available = $self->bag->widgets_of($name);
+    for my $widget (@{$available}) {
 
-            unless($widget->available) {
-                next;
-            }
+        unless($widget->available) {
+            next;
+        }
 
-            # This is a naive search!
-            # We also want to check for different order of targets.
-            if($self->add_widget($widget, $min, $max)) {
-                $self->bag->{indent_level}--;
-                return 1;
-            }
+        # This is a naive search!
+        # We also want to check for different order of targets.
+        if($self->add_widget($widget, $min, $max)) {
+            $self->bag->{indent_level}--;
+            return 1;
         }
     }
 

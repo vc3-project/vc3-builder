@@ -14504,29 +14504,29 @@ $fatpacked{"VC3/Plan.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_PL
   
       # if this target has been already added, we check that versions are congruent
       my $p = $self->elements->{$name};
-      my $e;
       if($p) {
-          $e = $self->refine($p->widget, $p, $min, $max);
+          my $e = $self->refine($p->widget, $p, $min, $max);
+  
+          if($e) {
+              $self->elements->{$name} = $e;
+              $self->say("Using:   $name => [@{[$e->min || '']}, @{[$e->max || '']}]");
+              $self->bag->{indent_level}--;
+              return 1;
+          }
       }
   
-      if($e) {
-          $self->elements->{$name} = $p;
-          $self->say("Using:   $name => [@{[$p->min || '']}, @{[$p->max || '']}]");
-          return 1;
-      } else {
-          my $available = $self->bag->widgets_of($name);
-          for my $widget (@{$available}) {
+      my $available = $self->bag->widgets_of($name);
+      for my $widget (@{$available}) {
   
-              unless($widget->available) {
-                  next;
-              }
+          unless($widget->available) {
+              next;
+          }
   
-              # This is a naive search!
-              # We also want to check for different order of targets.
-              if($self->add_widget($widget, $min, $max)) {
-                  $self->bag->{indent_level}--;
-                  return 1;
-              }
+          # This is a naive search!
+          # We also want to check for different order of targets.
+          if($self->add_widget($widget, $min, $max)) {
+              $self->bag->{indent_level}--;
+              return 1;
           }
       }
   
@@ -15073,11 +15073,13 @@ $fatpacked{"VC3/Plan/Element.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<
           return undef;
       }
   
+      # take the more restrictive min
       my $min = $new_min || $self->{min};
       if($new_min && $self->{min}) {
-          $min = $new_min lt $self->{min} ? $new_min : $self->{min};
+          $min = $new_min lt $self->{min} ? $self->{min} : $new_min;
       }
   
+      # take the more restrictive max
       my $max = $new_max || $self->{max};
       if($new_max && $self->{max}) {
           $max = $new_max lt $self->{max} ? $new_max : $self->{max};

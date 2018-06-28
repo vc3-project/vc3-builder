@@ -1033,10 +1033,10 @@
                         "uuid":[
                             "v1.0"
                         ],
-                        "g++":[
+                        "gcc-cplusplus":[
                             "v4.5"
                         ],
-                        "c-build-environment++":[
+                        "c-build-environment":[
                             "v1.0"
                         ]
                     }

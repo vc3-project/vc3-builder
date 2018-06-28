@@ -20580,7 +20580,7 @@ __DATA__
                             "v1.0"
                         ],
                         "gcc-cplusplus":[
-                            "v4.5"
+                            "v4.4"
                         ],
                         "c-build-environment++":[
                             "v1.0"
@@ -20727,7 +20727,7 @@ __DATA__
                             "v1.0"
                         ],
                         "gcc-cplusplus":[
-                            "v4.5"
+                            "v4.4"
                         ],
                         "c-build-environment":[
                             "v1.0"
@@ -22622,7 +22622,7 @@ __DATA__
                         "v3.13"
                     ],
                     "gcc-cplusplus":[
-                        "v4.5"
+                        "v4.4"
                     ],
                     "make":[
                         "v3.0"
@@ -22691,7 +22691,7 @@ __DATA__
                         "v3.13"
                     ],
                     "gcc-cplusplus":[
-                        "v4.5"
+                        "v4.4"
                     ],
                     "make":[
                         "v3.0"
@@ -23940,7 +23940,7 @@ __DATA__
                 "phony":1,
                 "dependencies":{
                     "gcc":[
-                        "v4.5"
+                        "v4.4"
                     ],
                     "make":[
                         "v3.5"

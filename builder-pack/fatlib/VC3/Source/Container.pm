@@ -84,9 +84,9 @@ sub prepare_recipe_sandbox {
     my $bag = $self->widget->package->bag;
     my ($root, $home, $files, $tmp) = ($bag->root_dir, $bag->home_dir, $bag->files_dir, $bag->tmp_dir);
 
-    my $root_target  = $self->add_mount($mount_map, $bag->root_dir,  '/opt/vc3-root');
-    my $home_target  = $self->add_mount($mount_map, $bag->home_dir,  '/opt/vc3-home');
-    my $files_target = $self->add_mount($mount_map, $bag->files_dir, '/opt/vc3-distfiles');
+    my $root_target  = $self->add_mount($mount_map, $bag->root_dir,  '/vc3/vc3-root');
+    my $home_target  = $self->add_mount($mount_map, $bag->home_dir,  '/vc3/vc3-home');
+    my $files_target = $self->add_mount($mount_map, $bag->files_dir, '/vc3/vc3-distfiles');
 
     my $builder_path = catfile($bag->tmp_dir, 'vc3-builder');
     copy($0, $builder_path);

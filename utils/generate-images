@@ -78,7 +78,7 @@ my %package_for;
 ########## CENTOS ########## 
 $package_for{centos}{default} = {
 bc                       => 'bc',
-bzip2                    => 'bzip2-devel',
+bzip2                    => 'bzip2',
 cmake                    => 'cmake',
 cc                       => 'gcc',
 cplusplus                => 'gcc-c++',
@@ -97,7 +97,7 @@ perl                     => 'perl-devel',
 pkg_config               => 'pkg-config',
 python                   => 'python-devel',
 python_setuptools        => 'python-setuptools',
-sqlite                   => 'sqlite-devel',
+sqlite                   => 'sqlite3',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
@@ -111,6 +111,8 @@ $package_for{centos}{7}{python3}            = 'python36-devel';
 $package_for{centos}{7}{python3_setuptools} = 'python36-setuptools';
 
 $extras_for{centos}{default} = ['perl-core', 'libc-devel'];
+
+$extras_for{centos}{6} = ['bzip2-devel', 'libsqlite3-devel'];  # to compile python3.6
 
 $preinstall_for{centos}{default} = [
 	'yum -y install epel-release'
@@ -138,7 +140,7 @@ $postinstall_for{centos}{7} = [
 ########## UBUNTU ########## 
 $package_for{ubuntu}{default} = {
 bc                       => 'bc',
-bzip2                    => 'bzip2-dev',
+bzip2                    => 'bzip2',
 cmake                    => 'cmake',
 cc                       => 'gcc',
 cplusplus                => 'g++',
@@ -158,7 +160,7 @@ python                   => 'python-dev',
 python_setuptools        => 'python-setuptools',
 python3                  => 'python3-dev',
 python3_setuptools       => 'python3-setuptools',
-sqlite                   => 'sqlite-dev',
+sqlite                   => 'sqlite3',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
@@ -190,7 +192,7 @@ $postinstall_for{debian}{default} = [ @{$postinstall_for{ubuntu}{default}} ];
 ########## OPENSUSE ########## 
 $package_for{opensuse}{default} = {
 bc                       => 'bc',
-bzip2                    => 'bzip2-devel',
+bzip2                    => 'bzip2',
 cmake                    => 'cmake',
 cc                       => 'gcc',
 cplusplus                => 'gcc-c++',
@@ -210,7 +212,7 @@ python                   => 'python-devel',
 python_setuptools        => 'python-setuptools',
 python3                  => 'python3-devel',
 python3_setuptools       => 'python3-setuptools',
-sqlite                   => 'sqlite-devel',
+sqlite                   => 'sqlite3',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',

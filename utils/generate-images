@@ -35,6 +35,7 @@ python_setuptools
 python3
 python3_setuptools
 strace
+sqlite
 unzip
 vim
 wget
@@ -77,7 +78,7 @@ my %package_for;
 ########## CENTOS ########## 
 $package_for{centos}{default} = {
 bc                       => 'bc',
-bzip2                    => 'bzip2',
+bzip2                    => 'bzip2-devel',
 cmake                    => 'cmake',
 cc                       => 'gcc',
 cplusplus                => 'gcc-c++',
@@ -96,14 +97,18 @@ perl                     => 'perl-devel',
 pkg_config               => 'pkg-config',
 python                   => 'python-devel',
 python_setuptools        => 'python-setuptools',
-python3                  => 'python34-devel',
-python3_setuptools       => 'python34-setuptools',
+sqlite                   => 'sqlite-devel',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
 wget                     => 'wget',
 which                    => 'which',
 };
+
+# $package_for{centos}{6}{python3}            = from source
+# $package_for{centos}{6}{python3_setuptools} = from source
+$package_for{centos}{7}{python3}            = 'python36-devel';
+$package_for{centos}{7}{python3_setuptools} = 'python36-setuptools';
 
 $extras_for{centos}{default} = ['perl-core', 'libc-devel'];
 
@@ -115,10 +120,25 @@ $postinstall_for{centos}{default} = [
 	'yum -y clean all'
 ];
 
+$postinstall_for{centos}{6} = [
+	'curl -O https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz',
+	'tar xvf Python-*.tgz',
+	'cd Python-*',
+	'./configure --prefix=/usr/',
+	'make',
+	'make install',
+	'cd /',
+	'rm -rf Python-*'
+];
+
+$postinstall_for{centos}{7} = [
+	'ln -s /usr/bin/python3.6 /usr/bin/python3'
+];
+
 ########## UBUNTU ########## 
 $package_for{ubuntu}{default} = {
 bc                       => 'bc',
-bzip2                    => 'bzip2',
+bzip2                    => 'bzip2-dev',
 cmake                    => 'cmake',
 cc                       => 'gcc',
 cplusplus                => 'g++',
@@ -138,6 +158,7 @@ python                   => 'python-dev',
 python_setuptools        => 'python-setuptools',
 python3                  => 'python3-dev',
 python3_setuptools       => 'python3-setuptools',
+sqlite                   => 'sqlite-dev',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
@@ -169,7 +190,7 @@ $postinstall_for{debian}{default} = [ @{$postinstall_for{ubuntu}{default}} ];
 ########## OPENSUSE ########## 
 $package_for{opensuse}{default} = {
 bc                       => 'bc',
-bzip2                    => 'bzip2',
+bzip2                    => 'bzip2-devel',
 cmake                    => 'cmake',
 cc                       => 'gcc',
 cplusplus                => 'gcc-c++',
@@ -189,6 +210,7 @@ python                   => 'python-devel',
 python_setuptools        => 'python-setuptools',
 python3                  => 'python3-devel',
 python3_setuptools       => 'python3-setuptools',
+sqlite                   => 'sqlite-devel',
 strace                   => 'strace',
 unzip                    => 'unzip',
 vim                      => 'vim',
@@ -403,7 +425,7 @@ sub spec_preamble_file_for {
     my ($dist, $version) = @_;
     my @packages;
 	
-	@packages = map { $package_for{$dist}{$version}{$_} || $package_for{$dist}{default}{$_} || die "Undefined dependency $_" } @dependencies;
+	@packages = map { $package_for{$dist}{$version}{$_} || $package_for{$dist}{default}{$_} || warn "Undefined dependency $_\n" } @dependencies;
 
 	if($extras_for{$dist} and $extras_for{$dist}{$version}) {
 		@packages = (@packages, @{$extras_for{$dist}{$version}});

@@ -206,6 +206,14 @@ for my $v (@{$versions_of{opensuse}}) {
 	];
 }
 
+# finishing steps for all:
+
+my $epilogue = [
+	'mkdir -p /vc3/vc3-root/tmp',
+	'mkdir -p /vc3/vc3-home',
+	'mkdir -p /vc3/vc3-distfiles',
+];
+
 unless (caller) {
     main();
 }
@@ -421,6 +429,9 @@ sub spec_preamble_file_for {
 			push @steps, @{$posts};
 		}
 	}
+
+	push @steps, @{$epilogue};
+
 
 	return @steps;
 }

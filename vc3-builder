@@ -21894,13 +21894,19 @@ __DATA__
                         "pip-9.0.1.distribution"
                     ],
                     "recipe":[
-                        "python pip-9.0.1.distribution --user",
+                        "python pip-9.0.1.distribution --user --ignore-installed",
                         "pip install --user -U pip",
-                        ": patch pip, otherwise the lenght of the hash-bang is too long and fails.",
-                        "sed -i ~/.local/lib/python${VC3_VERSION_PYTHON}/site-packages/pip/_internal/wheel.py -e \"/^def fix_script/,/return True/s:firstline =.*:firstline = '#! /usr/bin/env python':\"",
+                        "pip install --user -U wheel",
+                        ": patch pip and wheel, otherwise the lenght of the hash-bang is too long and fails.",
+                        "wheel=\"${VC3_INSTALL_USER_HOME}/.local/lib/python${VC3_VERSION_PYTHON}/site-packages/pip\"",
+                        "if [ -d \"${wheel}/_internal\" ]; then",
+                        "   wheel=\"$wheel/_internal/wheel.py\"",
+                        "else",
+                        "   wheel=\"$wheel/wheel.py\"",
+                        "fi",
+                        "sed -i \"$wheel\" -e \"/^def fix_script/,/return True/s:firstline =.*:firstline = '#! /usr/bin/env python':\"",
                         "sed -i ~/.local/bin/pip -e '1s:.*:#! /usr/bin/env python:'",
-                        "pip install --user -U setuptools",
-                        "pip install --user -U wheel"
+                        "pip install --user -U setuptools"
                     ]
                 },
                 "dependencies":{
@@ -22061,13 +22067,13 @@ __DATA__
                         "pip-9.0.1.distribution"
                     ],
                     "recipe":[
-                        "python3 pip-9.0.1.distribution --user",
+                        "python3 pip-9.0.1.distribution --user --ignore-installed",
                         "pip3 install --user -U pip",
-                        ": patch pip, otherwise the lenght of the hash-bang is too long and fails.",
+                        "pip3 install --user -U wheel",
+                        ": patch pip and wheel, otherwise the lenght of the hash-bang is too long and fails.",
                         "sed -i ~/.local/lib/python${VC3_VERSION_PYTHON3}/site-packages/pip/_internal/wheel.py -e \"/^def fix_script/,/return True/s:firstline =.*:firstline = '#! /usr/bin/env python3':\"",
                         "sed -i ~/.local/bin/pip3 -e '1s:.*:#! /usr/bin/env python3:'",
-                        "pip3 install --user -U setuptools",
-                        "pip3 install --user -U wheel"
+                        "pip3 install --user -U setuptools"
                     ]
                 },
                 "dependencies":{

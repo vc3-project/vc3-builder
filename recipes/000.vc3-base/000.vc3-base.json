@@ -2198,9 +2198,7 @@
                         "pip-9.0.1.distribution"
                     ],
                     "recipe":[
-                        "python pip-9.0.1.distribution --user --ignore-installed",
-                        "pip install --user -U pip",
-                        "pip install --user -U wheel",
+                        "python pip-9.0.1.distribution --user --ignore-installed",                        
                         ": patch pip and wheel, otherwise the lenght of the hash-bang is too long and fails.",
                         "wheel=\"${VC3_INSTALL_USER_HOME}/.local/lib/python${VC3_VERSION_PYTHON}/site-packages/pip\"",
                         "if [ -d \"${wheel}/_internal\" ]; then",
@@ -2210,6 +2208,8 @@
                         "fi",
                         "sed -i \"$wheel\" -e \"/^def fix_script/,/return True/s:firstline =.*:firstline = '#! /usr/bin/env python':\"",
                         "sed -i ~/.local/bin/pip -e '1s:.*:#! /usr/bin/env python:'",
+                        "pip install --user -U pip",
+                        "pip install --user -U wheel",
                         "pip install --user -U setuptools"
                     ]
                 },

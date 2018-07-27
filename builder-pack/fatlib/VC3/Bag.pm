@@ -607,7 +607,7 @@ sub cleanup {
     if($self->{child_pid}) {
         $self->say('Cleaning payload with pid: ' . $self->{child_pid});
         # send HUP to all processes
-        kill -1, -$self->{child_pid};
+        kill -1, $self->{child_pid};
     }
 
     unless($self->preserve_profile) {
@@ -657,7 +657,7 @@ sub cleanup {
         $self->say('Hard terminating for payload with pid: ' . $self->{child_pid});
 
         # KILL to anybody
-        kill -9, -$self->{child_pid};
+        kill -9, $self->{child_pid};
         $self->{child_pid} = undef;
     }
 }

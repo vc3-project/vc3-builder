@@ -21884,14 +21884,18 @@ __DATA__
         "versions":[
             {
                 "version":"v9.0.1",
+                "phony":1,
                 "source":{
                     "type":"generic",
                     "files":[
                         "pip-9.0.1.distribution"
                     ],
                     "recipe":[
-                        "python pip-9.0.1.distribution --user --ignore-installed",
+                        "python pip-9.0.1.distribution --user",
                         "pip install --user -U pip",
+                        ": patch pip, otherwise the lenght of the hash-bang is too long and fails.",
+                        "sed -i ~/.local/lib/python${VC3_VERSION_PYTHON}/site-packages/pip/_internal/wheel.py -e \"/^def fix_script/,/return True/s:firstline =.*:firstline = '#! /usr/bin/env python':\"",
+                        "sed -i ~/.local/bin/pip -e '1s:.*:#! /usr/bin/env python:'",
                         "pip install --user -U setuptools",
                         "pip install --user -U wheel"
                     ]
@@ -22047,14 +22051,18 @@ __DATA__
         "versions":[
             {
                 "version":"v9.0.1",
+                "phony":1,
                 "source":{
                     "type":"generic",
                     "files":[
                         "pip-9.0.1.distribution"
                     ],
                     "recipe":[
-                        "python3 pip-9.0.1.distribution --user --ignore-installed",
+                        "python3 pip-9.0.1.distribution --user",
                         "pip3 install --user -U pip",
+                        ": patch pip, otherwise the lenght of the hash-bang is too long and fails.",
+                        "sed -i ~/.local/lib/python${VC3_VERSION_PYTHON3}/site-packages/pip/_internal/wheel.py -e \"/^def fix_script/,/return True/s:firstline =.*:firstline = '#! /usr/bin/env python3':\"",
+                        "sed -i ~/.local/bin/pip3 -e '1s:.*:#! /usr/bin/env python3:'",
                         "pip3 install --user -U setuptools",
                         "pip3 install --user -U wheel"
                     ]

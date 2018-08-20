@@ -2556,16 +2556,19 @@
         "show-in-list":1,
         "versions":[
             {
-                "version":"v4.3.0",
+                "version":"v4.8.4",
                 "source":{
                     "type":"cmake",
                     "files":[
-                        "xrootd-4.3.0.tar.gz"
+                        "xrootd-4.8.4.tar.gz"
                     ],
                     "options":"-DCMAKE_INSTALL_LIBDIR=lib",
                     "postface":[
                         "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
-                    ]
+                    ],
+                    "mirrors":[
+                        "http://xrootd.org/download/v4.8.4/"
+                    ]                    
                 },
                 "dependencies":{
                     "perl":[

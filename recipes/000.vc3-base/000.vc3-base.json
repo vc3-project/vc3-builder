@@ -1647,7 +1647,10 @@
                     "files":[
                         "git-x86_64-2.7.2-2.tar.gz"
                     ]
-                }
+                },
+                "environment-autovars":[
+                    "PATH"
+                    ]
             },
             {
                 "version":"v2.12.0",

@@ -26,7 +26,7 @@ sub new {
         $json_description->{prerequisites} = [
             ": check if native is prefix of target",
             'pref=${VC3_MACHINE_TARGET#' . $json_description->{native} . '}',
-            '[ $pref != ${VC3_MACHINE_TARGET} ] || exit 1'
+            '[ "$pref" != ${VC3_MACHINE_TARGET} ] || exit 1'
         ];
     }
 

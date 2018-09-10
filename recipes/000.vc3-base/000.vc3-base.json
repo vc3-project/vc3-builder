@@ -70,6 +70,8 @@
     },
 
     "jre":{
+        "tags":["programming languages"],
+        "show-in-list":1,
         "versions":[
             {
                 "version":"v1.8.0_172",

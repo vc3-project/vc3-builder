@@ -879,7 +879,7 @@
         "show-in-list":1,
         "versions":[
             {
-                "version":"v6.2.10",
+                "version":"v7.0.4",
                 "wrapper":[
                     "parrot_run",
                     "--dynamic-mounts",
@@ -890,7 +890,7 @@
                 ],
                 "dependencies":{
                     "cctools":[
-                        "v6.2.10"
+                        "v7.0.4"
                     ]
                 }
             }
@@ -900,11 +900,11 @@
     "parrot-static":{
         "versions":[
             {
-                "version":"v6.2.10",
+                "version":"v7.0.4",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "cctools-6.2.10-source.tar.gz"
+                        "cctools-7.0.4-source.tar.gz"
                     ],
                     "mirrors":[
                         "http://ccl.cse.nd.edu/software/files/"
@@ -969,19 +969,19 @@
     "cctools-binary":{
         "versions":[
             {
-                "version":"v6.2.10",
+                "version":"v7.0.4",
                 "source":{
                     "type":"binary",
                     "native":"x86_64/redhat7",
                     "files":[
-                        "cctools-6.2.10-x86_64-redhat7.tar.gz"
+                        "cctools-7.0.4-x86_64-redhat7.tar.gz"
                     ],
                     "mirrors":[
                         "http://ccl.cse.nd.edu/software/files/"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.10-x86_64-redhat7.tar.gz",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-7.0.4-x86_64-redhat7.tar.gz",
                         "mkdir -p $(python -m site --user-site)",
                         "cp -r ${VC3_PREFIX}/lib/python${VC3_VERSION_PYTHON}/site-packages $(python -m site --user-site)"
                     ],
@@ -996,19 +996,19 @@
                 }
             },
             {
-                "version":"v6.2.10",
+                "version":"v7.0.4",
                 "source":{
                     "type":"binary",
                     "native":"x86_64/redhat6",
                     "files":[
-                        "cctools-6.2.10-x86_64-redhat6.tar.gz"
+                        "cctools-7.0.4-x86_64-redhat6.tar.gz"
                     ],
                     "mirrors":[
                         "http://ccl.cse.nd.edu/software/files/"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-6.2.10-x86_64-redhat6.tar.gz",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-7.0.4-x86_64-redhat6.tar.gz",
                         "mkdir -p $(python -m site --user-site)",
                         "cp -r ${VC3_PREFIX}/lib/python${VC3_VERSION_PYTHON}/site-packages $(python -m site --user-site)"
                     ],
@@ -1044,11 +1044,11 @@
     "cctools-source":{
         "versions":[
             {
-                "version":"v6.2.10",
+                "version":"v7.0.4",
                 "source":{
                     "type":"configure",
                     "files":[
-                        "cctools-6.2.10-source.tar.gz"
+                        "cctools-7.0.4-source.tar.gz"
                     ],
                     "mirrors":[
                         "http://ccl.cse.nd.edu/software/files/"
@@ -1113,18 +1113,18 @@
         "show-in-list":1,
         "versions":[
             {
-                "version":"v6.2.10",
+                "version":"v7.0.4",
                 "dependencies":{
                     "cctools-binary":[
-                        "v6.2.10"
+                        "v7.0.4"
                     ]
                 }
             },
             {
-                "version":"v6.2.10",
+                "version":"v7.0.4",
                 "dependencies":{
                     "cctools-source":[
-                        "v6.2.10"
+                        "v7.0.4"
                     ]
                 }
             }
@@ -1145,7 +1145,7 @@
         "phony":1,
         "versions":[
             {
-                "version":"v7.0.0",
+                "version":"v999.999.999",
                 "source":{
                     "type":"binary",
                     "native":"x86_64/redhat7",
@@ -1170,7 +1170,7 @@
                 }
             },
             {
-                "version":"v7.0.0",
+                "version":"v999.999.999",
                 "source": {
                     "type":"binary",
                     "native":"x86_64/redhat6",
@@ -4041,11 +4041,11 @@
                 }
             },
             {
-                "version":"v6.2.10",
+                "version":"v7.0.4",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "cctools-6.2.10-source.tar.gz"
+                        "cctools-7.0.4-source.tar.gz"
                     ],
                     "recipe":[
                         "CFLAGS=-D__MUSL__ CC=musl-gcc ./configure --prefix ${VC3_PREFIX} --without-system-{doc,apps} --with-readline-path=no --static --with-zlib-path=${VC3_ROOT_MUSL_ZLIB}",

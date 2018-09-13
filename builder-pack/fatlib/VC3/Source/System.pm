@@ -18,7 +18,8 @@ sub new {
     $widget->local(1);
     $widget->phony(1);
 
-    my $exe = $json_description->{executable};
+    my $exe    = $json_description->{executable};
+    my $switch = $json_description->{"version-switch"} || '--version';
 
     if($exe) {
         $json_description->{prerequisites} ||= [];
@@ -33,7 +34,7 @@ sub new {
 
         unless($json_description->{'auto-version'}) {
             $json_description->{'auto-version'} = [
-                "echo VC3_VERSION_SYSTEM: \$($exe --version | head -n1 | sed -r -e 's/(^|.* )([0-9]+(\\.[0-9]+){0,2}).*/\\2/')"
+                "echo VC3_VERSION_SYSTEM: \$($exe $switch | head -n1 | sed -n -r -e \"s/(^|.*[ \\\"'])([0-9]+(\\.[0-9]+){0,2}).*/\\2/p\")"
             ];
         }
     }

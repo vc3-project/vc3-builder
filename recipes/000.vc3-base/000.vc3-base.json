@@ -69,19 +69,17 @@
         ]
     },
 
-    "jre":{
+    "java-jre":{
         "tags":["programming languages"],
-        "show-in-list":1,
         "versions":[
             {
-                "version":"v1.8.0_172",
+                "version":"v1.8.0_181",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "jre-1.8.0_172.tar.gz"
+                        "jre-8u181-linux-x64.tar.gz"
                     ],
                     "recipe":[
-                        "ls -lha",
                         "mkdir -p ${VC3_PREFIX}/{bin,lib}",
                         "cp -r bin/* ${VC3_PREFIX}/bin/",
                         "cp -r lib/* ${VC3_PREFIX}/lib/"
@@ -89,8 +87,44 @@
                 }
             }
         ],
+        "environment-variables":[
+            {
+                "name":"JAVA_HOME",
+                "value":"${VC3_ROOT_JAVA_JRE}",
+                "clobber":1,
+                "absolute":1
+            }
+        ],
         "environment-autovars":[
-            "PATH"
+            "PATH", "LD_LIBRARY_PATH"
+        ]
+    },
+
+    "java-jdk":{
+        "tags":["programming languages"],
+        "versions":[
+            {
+                "version":"v1.8.0_181",
+                "source":{
+                    "type":"tarball",
+                    "files":[
+                        "jdk-8u181-linux-x64.tar.gz"
+                    ],
+                    "recipe":[
+                        "[ -d ${VC3_ROOT_JAVA_JRE} ] || exit 1",
+                        "cp -r bin/* ${VC3_ROOT_JAVA_JRE}/bin/",
+                        "cp -r lib/* ${VC3_ROOT_JAVA_JRE}/lib/"
+                    ] 
+                }
+            }
+        ],
+        "dependencies":{
+            "java-jre":[
+                "v1.8"
+            ]
+        },
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH"
         ]
     },
 
@@ -101,7 +135,7 @@
             {
                 "version":"v2.12.4",
                 "dependencies":{
-                    "jre":[
+                    "java-jre":[
                         "v1.8.0_172"
                     ]
                 },
@@ -235,6 +269,35 @@
          ]
     },
 
+    "maven":{
+        "tags":["packager"],
+        "show-in-list": 1,
+        "versions":[
+            {
+                "version":"v3.5.4",
+                "dependencies":{
+                    "java-jdk":[
+                        "v1.8"
+                    ]
+                },
+                "source":{
+                    "type":"generic",
+                    "mirrors":[
+                        "http://download.nextag.com/apache/maven/maven-3/3.5.4/binaries/"
+                    ],
+                    "files":[
+                        "apache-maven-3.5.4-bin.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf apache-maven-3.5.4-bin.tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
 
     "pax":{
         "tags":["file utilities"],

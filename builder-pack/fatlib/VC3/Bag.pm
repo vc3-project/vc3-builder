@@ -996,7 +996,13 @@ sub set_environment_variables {
 
     for my $var_name (@ordered) {
         my $value = $expansion->{$var_name};
-        print { $sh_f } "export $var_name=\"$value\"\n";
+
+        # if value already starts with quotes, don't add quotes.
+        if($value =~ qr/^\s*("|')/) {
+            print { $sh_f } "export $var_name=$value\n";
+        } else {
+            print { $sh_f } "export $var_name=\"$value\"\n";
+        }
     }
 
     print { $sh_f } "\n";

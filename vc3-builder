@@ -19864,7 +19864,6 @@ __DATA__
                         "scala-2.12.4.tgz"
                     ],
                     "recipe":[
-                        "ls -lha",
                         "mkdir -p ${VC3_PREFIX}/{bin,lib}",
                         "cp -r bin/* ${VC3_PREFIX}/bin/",
                         "cp -r lib/* ${VC3_PREFIX}/lib/"
@@ -19897,7 +19896,6 @@ __DATA__
                         "spark-2.2.1-bin-hadoop2.7.tgz"
                     ],
                     "recipe":[
-                        "ls -lha",
                         "mkdir -p ${VC3_PREFIX}/{bin,jars,sbin}",
                         "cp -r bin/* ${VC3_PREFIX}/bin/",
                         "cp -r jars/* ${VC3_PREFIX}/jars",
@@ -19933,9 +19931,9 @@ __DATA__
                         "spark-xrootd-plugins-v1.0.0.tar.gz"
                     ],
                     "recipe":[
-                        "ls -lha",
                         "cp EOSfs.jar ${VC3_ROOT_SPARK}/jars",
-                        "mkdir ${VC3_PREFIX}/lib",
+                        "mkdir -p ${VC3_PREFIX}/lib",
+                        "chmod 755 libjXrdCl.so",
                         "cp libjXrdCl.so ${VC3_PREFIX}/lib"
                     ]
                 }

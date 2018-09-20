@@ -19906,6 +19906,12 @@ __DATA__
                 }
             }
         ],
+        "environment-variables":[
+            {
+                "name":"PATH",
+                "value":"sbin"
+            }
+        ],
         "environment-autovars":[
             "PATH"
         ]

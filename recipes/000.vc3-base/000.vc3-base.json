@@ -758,7 +758,7 @@
             {
                 "version":"v1.0",
                 "prologue": [
-                    "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"
+                    "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v3.0.1/setup.sh)"
                 ],
                 "dependencies":{
                     "cvmfs":[
@@ -889,6 +889,32 @@
                 "v2.6"
             ]
         },
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
+    "osg-advertise": {
+        "tags":["environments"],
+        "versions": [
+            {
+                "version": "v0.0.1",
+                "source":{ 
+                    "type":"generic",
+                    "mirrors":[
+                        "https://raw.githubusercontent.com/opensciencegrid/osg-flock/master/node-check/osgvo-node-advertise"
+                    ],
+                    "files":[
+                        "osgvo-node-advertise"
+                    ],
+                    "recipe":[
+                        "chmod 755 osgvo-node-advertise",
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "mv osgvo-node-advertise ${VC3_PREFIX}/bin"
+                    ]
+                }
+            }
+        ],
         "environment-autovars":[
             "PATH"
         ]

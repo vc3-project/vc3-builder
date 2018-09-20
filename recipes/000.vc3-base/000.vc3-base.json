@@ -203,6 +203,12 @@
                 }
             }
         ],
+        "environment-variables":[
+            {
+                "name":"PATH",
+                "value":"sbin"
+            }
+        ],
         "environment-autovars":[
             "PATH"
         ]

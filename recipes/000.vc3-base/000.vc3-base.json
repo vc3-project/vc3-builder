@@ -414,11 +414,42 @@
                     "type":"system",
                     "executable":"g++"
                 }
+            },
+            {
+                "version":"5.3.0",
+                "source":{
+                    "type":"system",
+                    "prerequisites":[
+                        "case \"${VC3_MACHINE_TARGET}\" in x86_64/redhat7*);; *) exit 1;; esac",
+                        "stat /cvmfs/cms.cern.ch/slc7_amd64_gcc530/external/gcc/5.3.0"
+                    ],
+                    "recipe":[
+                        "echo \"VC3_ROOT_SYSTEM: /cvmfs/cms.cern.ch/slc7_amd64_gcc530/external/gcc/5.3.0\""
+                    ]
+                }
+            },
+            {
+                "version":"5.3.0",
+                "source":{
+                    "type":"system",
+                    "prerequisites":[
+                        "case \"${VC3_MACHINE_TARGET}\" in x86_64/redhat6*);; *) exit 1;; esac",
+                        "stat /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/gcc/5.3.0"
+                    ],
+                    "recipe":[
+                        "echo \"VC3_ROOT_SYSTEM: /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/gcc/5.3.0\""
+                    ]
+                }
             }
         ],
         "environment-autovars":[
             "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
-        ]
+        ],
+        "dependencies":{
+            "cvmfs":[
+                "v2.0"
+            ]
+        }
     },
 
     "gcc-fortran":{

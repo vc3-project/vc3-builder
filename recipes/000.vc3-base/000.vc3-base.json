@@ -956,7 +956,7 @@
                 "source": {
                     "type":"generic",
                     "mirrors":[
-                        "https://raw.githubusercontent.com/briedel/public_sandbox/master/"
+                        "http://stash.ci-connect.net/~briedel/"
                     ],
                     "files":[
                         "osg-env"

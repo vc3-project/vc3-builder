@@ -20467,7 +20467,7 @@ __DATA__
             {
                 "version":"v1.0",
                 "prologue": [
-                    "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v1/setup.sh)"
+                    "eval $(/cvmfs/icecube.opensciencegrid.org/py2-v3.0.1/setup.sh)"
                 ],
                 "dependencies":{
                     "cvmfs":[
@@ -20600,6 +20600,80 @@ __DATA__
         },
         "environment-autovars":[
             "PATH"
+        ]
+    },
+
+    "osg-advertise": {
+        "tags":["environments"],
+        "versions": [
+            {
+                "version": "v0.0.1",
+                "source":{ 
+                    "type":"generic",
+                    "mirrors":[
+                        "https://raw.githubusercontent.com/opensciencegrid/osg-flock/master/node-check"
+                    ],
+                    "files":[
+                        "osgvo-node-advertise"
+                    ],
+                    "recipe":[
+                        "chmod 755 osgvo-node-advertise",
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "mv osgvo-node-advertise ${VC3_PREFIX}/bin"
+                    ]
+                }
+            },
+            {
+                "version": "v0.0.2",
+                "source": {
+                    "type":"generic",
+                    "mirrors":[
+                        "https://raw.githubusercontent.com/briedel/public_sandbox/master/"
+                    ],
+                    "files":[
+                        "osg-env"
+                    ],
+                    "recipe":[
+                        "chmod 755 osg-env",
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "mv osg-env ${VC3_PREFIX}/bin"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
+    
+
+    "osg-advertise-wrapper": {
+        "tags": ["environments"],
+        "show-in-list": 1,
+        "versions": [
+            {
+                "version": "v0.0.1",
+                "wrapper": [
+                    "osgvo-node-advertise"
+                ],
+                "dependencies": {
+                    "osg-advertise": [
+                        "v0.0.1"
+                    ]
+                }
+            },
+            {
+                "version": "v0.0.2",
+                "prologue": [
+                    "source ${VC3_ROOT_OSG_ADVERTISE}/bin/osg-env"
+                ],
+                "dependencies": {
+                    "osg-advertise": [
+                        "v0.0.2"
+                    ]
+                }
+            }
         ]
     },
 

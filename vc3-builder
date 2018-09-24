@@ -19776,14 +19776,6 @@ __DATA__
         "tags":["programming languages"],
         "versions":[
             {
-                "version":"auto",
-                "source":{
-                    "type":"system",
-                    "executable":"java",
-                    "version-switch":"-version 2>&1"
-                }
-            },
-            {
                 "version":"v1.8.0_181",
                 "source":{
                     "type":"tarball",
@@ -19814,14 +19806,6 @@ __DATA__
     "java-jdk":{
         "tags":["programming languages"],
         "versions":[
-            {
-                "version":"auto",
-                "source":{
-                    "type":"system",
-                    "executable":"javac",
-                    "version-switch":"-version 2>&1"
-                }
-            },
             {
                 "version":"v1.8.0_181",
                 "source":{

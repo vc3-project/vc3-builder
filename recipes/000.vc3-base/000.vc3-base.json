@@ -429,6 +429,12 @@
         "environment-autovars":[
             "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ],
+        "environment-variables":[
+            {
+                "name":"LD_LIBRARY_PATH",
+                "value":"lib64"
+            }
+        ],
         "dependencies":{
             "cvmfs":[
                 "v2.0"

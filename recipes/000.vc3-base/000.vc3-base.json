@@ -2745,7 +2745,7 @@
                     "files":[
                         "xrootd-4.8.4.tar.gz"
                     ],
-                    "options":"-DCMAKE_INSTALL_LIBDIR=lib -DZLIB_INCLUDE_DIR=${VC3_ROOT_ZLIB}/include -DZLIB_LIBRARY=${VC3_ROOT_ZLIB}/lib/libz.a",
+                    "options":"-DCMAKE_INSTALL_LIBDIR=lib",
                     "postface":[
                         "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
                     ],
@@ -2754,17 +2754,11 @@
                     ]                    
                 },
                 "dependencies":{
-                    "gcc-cplusplus":[
-                        "v4.8"
-                    ],
                     "perl":[
                         "v5.10"
                     ],
                     "zlib":[
                         "v1.2"
-                    ],
-                    "openssl":[
-                        "v1.0"
                     ],
                     "fuse":[
                         "v2.9"

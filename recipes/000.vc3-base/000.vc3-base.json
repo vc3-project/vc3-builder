@@ -2754,6 +2754,9 @@
                     ]                    
                 },
                 "dependencies":{
+                    "gcc-cplusplus":[
+                        "v4.8"
+                    ],
                     "perl":[
                         "v5.10"
                     ],

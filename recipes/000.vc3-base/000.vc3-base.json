@@ -410,6 +410,11 @@
                     "recipe":[
                         "echo \"VC3_ROOT_SYSTEM: /cvmfs/cms.cern.ch/slc7_amd64_gcc530/external/gcc/5.3.0\""
                     ]
+                },
+                "dependencies":{
+                    "cvmfs":[
+                        "v2.0"
+                    ]
                 }
             },
             {
@@ -423,6 +428,11 @@
                     "recipe":[
                         "echo \"VC3_ROOT_SYSTEM: /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/gcc/5.3.0\""
                     ]
+                },
+                "dependencies":{
+                    "cvmfs":[
+                        "v2.0"
+                    ]
                 }
             }
         ],
@@ -434,12 +444,7 @@
                 "name":"LD_LIBRARY_PATH",
                 "value":"lib64"
             }
-        ],
-        "dependencies":{
-            "cvmfs":[
-                "v2.0"
-            ]
-        }
+        ]
     },
 
     "gcc-fortran":{

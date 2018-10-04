@@ -716,16 +716,9 @@ sub bosco_fix_path {
 
     my $new_root = catfile($pre, $post); 
 
-    warn "Fixing bosco path...";
-
-    rename $original_root, $new_root;
-
-    # cleanup directory on exit
     push @cleanups, sub { remove_tree($new_root) };
 
-    unless(symlink $new_root, $original_root) {
-        die "Could not make symlink\n";
-    }
+    warn "Fixing bosco path to '$new_root'\n";
 
     return $new_root;
 }

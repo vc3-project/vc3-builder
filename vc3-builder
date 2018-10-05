@@ -18940,9 +18940,10 @@ use VC3::Source;
 package VC3::Builder;
 
 use English qw/-mo_match_vars/;
+use File::Basename qw/basename/;
 use File::Spec::Functions qw/catfile rel2abs file_name_is_absolute/;
 use Getopt::Long qw/GetOptions/;
-use File::Path qw/remove_tree/;
+use File::Path qw/make_path remove_tree/;
 use Cwd;
 
 use Carp qw( confess );
@@ -19636,9 +19637,26 @@ sub bosco_fix_path {
 
     my $new_root = catfile($pre, $post); 
 
-    push @cleanups, sub { remove_tree($new_root) };
-
     warn "Fixing bosco path to '$new_root'\n";
+
+    push @cleanups, sub { remove_tree($new_root) };
+    make_path($new_root);
+
+    my @files = (glob("${original_root}/*"), glob("${original_root}/.*"));
+
+    warn "yyyyyy $original_root \n";
+    warn "xxxxxx @files \n";
+
+    for my $file (@files) {
+        my $base = basename($file);
+
+        next if $base eq '.';
+        next if $base eq '..';
+
+        symlink $file, catfile(${new_root}, $base);
+
+        warn "symlinking $file ${new_root}/$base\n";
+    }
 
     return $new_root;
 }

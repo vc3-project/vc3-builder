@@ -724,9 +724,6 @@ sub bosco_fix_path {
 
     my @files = (glob("${original_root}/*"), glob("${original_root}/.*"));
 
-    warn "yyyyyy $original_root \n";
-    warn "xxxxxx @files \n";
-
     for my $file (@files) {
         my $base = basename($file);
 

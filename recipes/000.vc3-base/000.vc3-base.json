@@ -385,6 +385,14 @@
         ],
         "environment-autovars":[
             "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+        ],
+        "environment-variables":[
+            {
+                "name":"CC",
+                "value":"gcc",
+                "absolute":1,
+                "clobber":1
+            }
         ]
     },
 
@@ -443,6 +451,18 @@
             {
                 "name":"LD_LIBRARY_PATH",
                 "value":"lib64"
+            },
+            {
+                "name":"CC",
+                "value":"gcc",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"CXX",
+                "value":"g++",
+                "absolute":1,
+                "clobber":1
             }
         ]
     },
@@ -4209,7 +4229,15 @@
             "musl":[
                 "v1.0"
             ]
-        }
+        },
+        "environment-variables":[
+            {
+                "name":"CC",
+                "value":"musl-gcc",
+                "absolute":1,
+                "clobber":1
+            }
+        ]
     },
 
     "cctools-statics":{

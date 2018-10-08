@@ -22481,7 +22481,6 @@ __DATA__
                     "files":[
                         "xrootd-4.8.4.tar.gz"
                     ],
-                    "options":"-DCMAKE_INSTALL_LIBDIR=lib",
                     "postface":[
                         "find src -name '*.o' | xargs ar rcs ${VC3_PREFIX}/lib/libxrootd.a"
                     ],
@@ -22521,6 +22520,12 @@ __DATA__
                 "v2.9"
             ]
         },
+        "environment-variables":[
+            {
+                "name":"LD_LIBRARY_PATH",
+                "value":"lib64"
+            }
+        ],
         "environment-autovars":[
             "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ]

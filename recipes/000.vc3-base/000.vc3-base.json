@@ -2777,25 +2777,41 @@
                     "mirrors":[
                         "http://xrootd.org/download/v4.8.4/"
                     ]                    
-                },
-                "dependencies":{
-                    "gcc-cplusplus":[
-                        "v4.8"
+                }
+            },
+            {
+                "version":"v3.0.2",
+                "source":{
+                    "type":"tarball",
+                    "files":[
+                        "xrootd-3.0.2.tar.gz"
                     ],
-                    "perl":[
-                        "v5.10"
-                    ],
-                    "zlib":[
-                        "v1.2"
-                    ],
-                    "fuse":[
-                        "v2.9"
+                    "recipe":[
+                        "sed -i -e'14s/.*/#include <fcntl.h>/' src/XrdOss/XrdOssAio.cc",
+                        "sed -i -e'25s/.*/#define R__SSL_GE_098 yes/' src/XrdCrypto/XrdCryptosslAux.hh",
+                        "./configure.classic --no-arch-subdirs --enable-posix --enable-pwd --enable-ssl --prefix=${VC3_PREFIX}",
+                        "make",
+                        "make install"
                     ]
-                },
-                "environment-autovars":[
-                    "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
-                ]
+                }
             }
+        ],
+        "dependencies":{
+            "gcc-cplusplus":[
+                "v4.8"
+            ],
+            "perl":[
+                "v5.10"
+            ],
+            "zlib":[
+                "v1.2"
+            ],
+            "fuse":[
+                "v2.9"
+            ]
+        },
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ]
     },
 

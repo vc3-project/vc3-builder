@@ -2829,11 +2829,10 @@
                     "recipe":[
                         "mv * ${VC3_PREFIX}",
                         "cd ${VC3_PREFIX}",
-                        "if [ -n \"$SINGULARITY_CONTAINER\" ] || [ -f /.dockerenv ]; then",
+                        "if [ \"$INSIDE_CONTAINER\" = yes ]; then",
                         "   sed -i -e '149d' scripts/perl/configure.pl",
                         "fi",
                         "./scripts/configure",
-                        "exit 1",
                         "make"
                     ],
                     "dependencies":{

@@ -2838,7 +2838,6 @@
                         "   sed -i -e '149d' scripts/perl/configure.pl",
                         "fi",
                         "if perl -e \"$VC3_VERSION_GCC >= 5 ? exit 0 : exit 1\"; then",
-                        "export CFLAGS=\"-fsyntax-only $CFLAGS\"",
                         "export LDFLAGS=\"-pthread\"",
                         "fi",
                         "./scripts/configure",

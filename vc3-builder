@@ -20014,6 +20014,33 @@ __DATA__
         ]
     },
 
+    "minio":{
+        "tags":["file systems"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v2018.11.8",
+                "source":{
+                    "type":"generic",
+                    "files":[
+                        "minio"
+                    ],
+                    "mirrors":[
+                        "https://dl.minio.io/server/minio/release/linux-amd64"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "chmod 755 minio",
+                        "cp minio ${VC3_PREFIX}/bin"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
     "pax":{
         "tags":["file utilities"],
         "show-in-list":1,

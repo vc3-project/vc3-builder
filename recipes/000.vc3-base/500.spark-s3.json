@@ -1,0 +1,174 @@
+{
+    "spark":{
+        "tags":["job execution engines"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v2.2.1",
+                "dependencies":{
+                    "scala":[
+                        "v2.12.4"
+                    ],
+                    "wget":[
+                        "v1.0"
+                    ]
+                },
+                "source":{ 
+                    "type":"tarball",
+                    "files":[
+                        "spark-2.2.1-bin-hadoop2.7.tgz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/{bin,jars,sbin}",
+                        "cp -r bin/* ${VC3_PREFIX}/bin/",
+                        "cp -r jars/* ${VC3_PREFIX}/jars",
+                        "cp -r sbin/* ${VC3_PREFIX}/sbin",
+                        "wget http://download.virtualclusters.org/builder-files/aws-java-sdk-1.7.4.jar -O ${VC3_PREFIX}/jars/aws-java-sdk-1.7.4.jar",
+                        "wget http://download.virtualclusters.org/builder-files/hadoop-aws-2.7.1.jar   -O ${VC3_PREFIX}/jars/hadoop-aws-2.7.1.jar"
+                    ] 
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"PATH",
+                "value":"sbin"
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+    
+    "spark-xrootd":{
+        "tags":["xrootd plugin for spark"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v1.0.0",
+                "dependencies":{
+                    "pyspark":[
+                        "v2.2.1"
+                    ],
+                    "xrootd":[
+                        "v4.8.4"
+                    ]
+                },
+                "source":{
+                    "type":"tarball",
+                    "files":[
+                        "spark-xrootd-plugins-v1.0.0.tar.gz"
+                    ],
+                    "recipe":[
+                        "cp EOSfs.jar ${VC3_ROOT_SPARK}/jars",
+                        "mkdir -p ${VC3_PREFIX}/lib",
+                        "chmod 755 libjXrdCl.so",
+                        "cp libjXrdCl.so ${VC3_PREFIX}/lib"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH"
+        ]
+    },
+    
+    "pyspark":{
+        "tags":["python packages"],
+        "show-in-list": 1,
+        "versions":[
+            {
+                "version":"v2.2.1",
+                "dependencies":{
+                    "spark":[
+                        "v2.2.1"
+                    ],
+                    "python":[
+                        "v2.7"
+                    ],
+                    "python-pip":[
+                        "v9"
+                    ]
+                },
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                       "pip install --user pyspark==2.2.1 matplotlib==2.1.0 histogrammar",
+                       "ln -s $VC3_INSTALL_USER_HOME/.local/lib/python2.7/site-packages/pyspark/python $VC3_ROOT_SPARK"
+                    ]
+                }
+            }
+        ],
+        "environment-variables":[
+            {
+                "name":"SPARK_HOME",
+                "value":"${VC3_ROOT_SPARK}",
+                "clobber":1,
+                "absolute":1
+            },
+            {
+                "name":"PYTHONPATH",
+                "value":"${VC3_INSTALL_USER_HOME}/.local/lib/python2.7/site-packages",
+                "clobber":1,
+                "absolute":1
+            }
+         ]
+    },
+
+    "maven":{
+        "tags":["packager"],
+        "show-in-list": 1,
+        "versions":[
+            {
+                "version":"v3.5.4",
+                "dependencies":{
+                    "java-jdk":[
+                        "v1.8"
+                    ]
+                },
+                "source":{
+                    "type":"generic",
+                    "mirrors":[
+                        "http://download.nextag.com/apache/maven/maven-3/3.5.4/binaries/"
+                    ],
+                    "files":[
+                        "apache-maven-3.5.4-bin.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf apache-maven-3.5.4-bin.tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    },
+
+    "minio":{
+        "tags":["file systems"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v2018.11.8",
+                "source":{
+                    "type":"generic",
+                    "files":[
+                        "minio"
+                    ],
+                    "mirrors":[
+                        "https://dl.minio.io/server/minio/release/linux-amd64"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "chmod 755 minio",
+                        "cp minio ${VC3_PREFIX}/bin"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
+    }
+}

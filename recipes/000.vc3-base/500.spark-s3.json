@@ -23,6 +23,7 @@
                         "cp -r bin/* ${VC3_PREFIX}/bin/",
                         "cp -r jars/* ${VC3_PREFIX}/jars",
                         "cp -r sbin/* ${VC3_PREFIX}/sbin",
+                        "mkdir -p ${VC3_PREFIX}/etc/hadoop/conf",
                         "wget http://download.virtualclusters.org/builder-files/aws-java-sdk-1.7.4.jar -O ${VC3_PREFIX}/jars/aws-java-sdk-1.7.4.jar",
                         "wget http://download.virtualclusters.org/builder-files/hadoop-aws-2.7.1.jar   -O ${VC3_PREFIX}/jars/hadoop-aws-2.7.1.jar"
                     ] 

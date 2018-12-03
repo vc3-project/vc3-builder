@@ -63,7 +63,7 @@
         "show-in-list":1,
         "versions":[
             {
-                "version":"v2.12.4",
+                "version":"v2.11.12",
                 "dependencies":{
                     "java-jre":[
                         "v1.8.0"
@@ -72,7 +72,7 @@
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "scala-2.12.4.tgz"
+                        "scala-2.11.12.tgz"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}/{bin,lib}",

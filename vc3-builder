@@ -24114,7 +24114,7 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
-                "version":"v2.12.4",
+                "version":"v2.11.12",
                 "dependencies":{
                     "java-jre":[
                         "v1.8.0"
@@ -24123,7 +24123,7 @@ __DATA__
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "scala-2.12.4.tgz"
+                        "scala-2.11.12.tgz"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}/{bin,lib}",
@@ -24145,10 +24145,10 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
-                "version":"v2.2.1",
+                "version":"v2.4.0",
                 "dependencies":{
                     "scala":[
-                        "v2.12.4"
+                        "v2.11.12"
                     ],
                     "wget":[
                         "v1.0"
@@ -24157,7 +24157,7 @@ __DATA__
                 "source":{ 
                     "type":"tarball",
                     "files":[
-                        "spark-2.2.1-bin-hadoop2.7.tgz"
+                        "spark-2.4.0-bin-without-hadoop.tgz"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}/{bin,jars,sbin}",
@@ -24166,7 +24166,7 @@ __DATA__
                         "cp -r sbin/* ${VC3_PREFIX}/sbin",
                         "mkdir -p ${VC3_PREFIX}/etc/hadoop/conf",
                         "wget http://download.virtualclusters.org/builder-files/aws-java-sdk-1.7.4.jar -O ${VC3_PREFIX}/jars/aws-java-sdk-1.7.4.jar",
-                        "wget http://download.virtualclusters.org/builder-files/hadoop-aws-2.7.1.jar   -O ${VC3_PREFIX}/jars/hadoop-aws-2.7.1.jar"
+                        "wget http://download.virtualclusters.org/builder-files/hadoop-aws-2.8.5.jar   -O ${VC3_PREFIX}/jars/hadoop-aws-2.8.5.jar"
                     ] 
                 }
             }
@@ -24190,7 +24190,7 @@ __DATA__
                 "version":"v1.0.0",
                 "dependencies":{
                     "pyspark":[
-                        "v2.2.1"
+                        "v2.4.0"
                     ],
                     "xrootd":[
                         "v4.8.4"
@@ -24220,10 +24220,10 @@ __DATA__
         "show-in-list": 1,
         "versions":[
             {
-                "version":"v2.2.1",
+                "version":"v2.4.0",
                 "dependencies":{
                     "spark":[
-                        "v2.2.1"
+                        "v2.4.0"
                     ],
                     "python":[
                         "v2.7"
@@ -24235,7 +24235,7 @@ __DATA__
                 "source":{
                     "type":"generic",
                     "recipe":[
-                       "pip install --user pyspark==2.2.1 matplotlib==2.1.0 histogrammar",
+                       "pip install --user pyspark==2.4.0 matplotlib==2.1.0 histogrammar",
                        "ln -s $VC3_INSTALL_USER_HOME/.local/lib/python2.7/site-packages/pyspark/python $VC3_ROOT_SPARK"
                     ]
                 }
@@ -24305,6 +24305,38 @@ __DATA__
                         "mkdir -p ${VC3_PREFIX}/bin",
                         "chmod 755 minio",
                         "cp minio ${VC3_PREFIX}/bin"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ],
+        "dependencies":{
+            "minio-client":[
+                "v2.4.0"
+            ]
+        }
+    },
+
+    "minio-client":{
+        "tags":["file system tools"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"v2018.11.8",
+                "source":{
+                    "type":"generic",
+                    "files":[
+                        "mc"
+                    ],
+                    "mirrors":[
+                        "https://dl.minio.io/client/mc/release/linux-amd64"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "chmod 755 mc",
+                        "cp mc ${VC3_PREFIX}/bin"
                     ]
                 }
             }

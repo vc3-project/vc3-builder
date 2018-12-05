@@ -24643,45 +24643,11 @@ __DATA__
                 }
             },
             {
-                "version":"auto",
+                "version":"v0.6.1",
                 "source":{
                     "type":"generic",
                     "recipe":[
-                        "pip3 install --user -U"
-                    ]
-                },
-                "dependencies":{
-                    "python3":[
-                        "v3.6"
-                    ],
-                    "python3-pip":[
-                        "v9.0"
-                    ]
-                }
-            },
-            {
-                "version":"v0.5.1",
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-                        "pip3 install --user -U parsl==0.5.1"
-                    ]
-                },
-                "dependencies":{
-                    "python3":[
-                        "v3.6"
-                    ],
-                    "python3-pip":[
-                        "v9.0"
-                    ]
-                }
-            },
-            {
-                "version":"v2251204",
-                "source":{
-                    "type":"generic",
-                    "recipe":[
-            "pip3 install --user git+https://github.com/Parsl/parsl.git@225120429a5bde4f875cb1907065869fd38d01d4"
+                        "pip3 install --user -U parsl==0.6.1"
                     ]
                 },
                 "dependencies":{

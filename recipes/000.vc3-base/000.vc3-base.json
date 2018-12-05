@@ -2403,7 +2403,7 @@
                         "pip3 install --user -U wheel",
                         "pip3 install --user -U setuptools",
                         ": patch pip and wheel, otherwise the lenght of the hash-bang is too long and fails.",
-                        "sed -i ~/.local/lib/python${VC3_VERSION_PYTHON3}/site-packages/pip/_internal/wheel.py -e \"/^def fix_script/,/return True/s:firstline =.*:firstline = '#! /usr/bin/env python3':\""
+                        "sed -i ~/.local/lib/python${VC3_VERSION_PYTHON3}/site-packages/pip/_internal/wheel.py -e \"/^def fix_script/,/return True/s:firstline =.*:firstline = b'#! /usr/bin/env python3':\""
                     ]
                 },
                 "dependencies":{

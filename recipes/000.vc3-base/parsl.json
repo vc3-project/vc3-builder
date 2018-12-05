@@ -1,0 +1,68 @@
+{
+    "parsl":{
+        "tags":["python packages", "parallel scripting"],
+        "show-in-list":1,
+        "versions":[
+            {
+                "version":"auto",
+                "source":{
+                    "type":"generic",
+                    "auto-version":[
+            "python3 -c 'import parsl.version; print(\"VC3_VERSION_SYSTEM: {}\".format(parsl.version.VERSION))'"
+                    ]
+                }
+            },
+            {
+                "version":"auto",
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "pip3 install --user -U"
+                    ]
+                },
+                "dependencies":{
+                    "python3":[
+                        "v3.6"
+                    ],
+                    "python3-pip":[
+                        "v9.0"
+                    ]
+                }
+            },
+            {
+                "version":"v0.5.1",
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "pip3 install --user -U parsl==0.5.1"
+                    ]
+                },
+                "dependencies":{
+                    "python3":[
+                        "v3.6"
+                    ],
+                    "python3-pip":[
+                        "v9.0"
+                    ]
+                }
+            },
+            {
+                "version":"v2251204",
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+            "pip3 install --user git+https://github.com/Parsl/parsl.git@225120429a5bde4f875cb1907065869fd38d01d4"
+                    ]
+                },
+                "dependencies":{
+                    "python3":[
+                        "v3.6"
+                    ],
+                    "python3-pip":[
+                        "v9.0"
+                    ]
+                }
+            }
+        ]
+    }
+}

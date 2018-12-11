@@ -21960,6 +21960,11 @@ __DATA__
                 "name":"PATH",
                 "value":"${VC3_INSTALL_USER_HOME}/.local/bin",
                 "absolute":1
+            },
+            {
+                "name":"PYTHONUSERBASE",
+                "value":"${VC3_INSTALL_USER_HOME}/.local",
+                "absolute":1
             }
         ]
     },
@@ -22128,6 +22133,11 @@ __DATA__
             {
                 "name":"PATH",
                 "value":"${VC3_INSTALL_USER_HOME}/.local/bin",
+                "absolute":1
+            },
+            {
+                "name":"PYTHONUSERBASE",
+                "value":"${VC3_INSTALL_USER_HOME}/.local",
                 "absolute":1
             }
         ]

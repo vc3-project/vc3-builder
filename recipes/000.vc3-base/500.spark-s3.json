@@ -5,28 +5,27 @@
         "versions":[
             {
                 "version":"v2.4.0",
-                "dependencies":{
-                    "scala":[
-                        "v2.11.12"
-                    ],
-                    "wget":[
-                        "v1.0"
-                    ]
-                },
                 "source":{ 
                     "type":"tarball",
                     "files":[
-                        "spark-2.4.0-bin-without-hadoop.tgz"
+                        "spark-2.4.0-bin-vc3-custom-spark.tgz",
+                        "aws-jars-1.11.234.tar.gz"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}/{bin,jars,sbin}",
                         "cp -r bin/* ${VC3_PREFIX}/bin/",
                         "cp -r jars/* ${VC3_PREFIX}/jars",
                         "cp -r sbin/* ${VC3_PREFIX}/sbin",
-                        "mkdir -p ${VC3_PREFIX}/etc/hadoop/conf",
-                        "wget http://download.virtualclusters.org/builder-files/aws-java-sdk-1.7.4.jar -O ${VC3_PREFIX}/jars/aws-java-sdk-1.7.4.jar",
-                        "wget http://download.virtualclusters.org/builder-files/hadoop-aws-2.8.5.jar   -O ${VC3_PREFIX}/jars/hadoop-aws-2.8.5.jar"
-                    ] 
+                        "tar -C ${VC3_PREFIX}/jars --strip-components=1 -xf aws-jars-*.tar.gz"
+                    ]
+                },
+                "dependencies":{
+                    "scala":[
+                        "v2.11.12"
+                    ],
+                    "hadoop":[
+                        "v3.1"
+                    ]
                 }
             }
         ],
@@ -34,6 +33,23 @@
             {
                 "name":"PATH",
                 "value":"sbin"
+            },
+            {
+                "name":"SPARK_HOME",
+                "value":"${VC3_ROOT_SPARK}",
+                "clobber":1,
+                "absolute":1
+            },
+            {
+                "name":"SPARK_DIST_CLASSPATH",
+                "value":"${JAVA_HOME}",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"SPARK_DIST_CLASSPATH",
+                "value":"$(${VC3_ROOT_HADOOP}/bin/hadoop classpath)",
+                "absolute":1
             }
         ],
         "environment-autovars":[
@@ -102,48 +118,12 @@
         ],
         "environment-variables":[
             {
-                "name":"SPARK_HOME",
-                "value":"${VC3_ROOT_SPARK}",
-                "clobber":1,
-                "absolute":1
-            },
-            {
                 "name":"PYTHONPATH",
                 "value":"${VC3_INSTALL_USER_HOME}/.local/lib/python2.7/site-packages",
                 "clobber":1,
                 "absolute":1
             }
          ]
-    },
-
-    "maven":{
-        "tags":["packager"],
-        "show-in-list": 1,
-        "versions":[
-            {
-                "version":"v3.5.4",
-                "dependencies":{
-                    "java-jdk":[
-                        "v1.8"
-                    ]
-                },
-                "source":{
-                    "type":"generic",
-                    "mirrors":[
-                        "http://download.nextag.com/apache/maven/maven-3/3.5.4/binaries/"
-                    ],
-                    "files":[
-                        "apache-maven-3.5.4-bin.tar.gz"
-                    ],
-                    "recipe":[
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf apache-maven-3.5.4-bin.tar.gz"
-                    ]
-                }
-            }
-        ],
-        "environment-autovars":[
-            "PATH"
-        ]
     },
 
     "minio":{
@@ -202,6 +182,47 @@
         ],
         "environment-autovars":[
             "PATH"
+        ]
+    },
+
+    "hadoop":{
+        "tags":["filesystems"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"v3.1.1",
+                "dependencies":{
+                    "java-jre":[
+                        "v1.8.0"
+                    ]
+                },
+                "source":{
+                    "type":"generic",
+                    "files":[
+                        "hadoop-3.1.1.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf hadoop-*tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH"
+        ],
+        "environment-variables":[
+            {
+                "name":"HADOOP_HOME",
+                "value":"${VC3_ROOT_HADOOP}",
+                "absolute":1,
+                "clobber":1
+            },
+            {
+                "name":"HADOOP_CONF_DIR",
+                "value":"${VC3_ROOT_HADOOP}/etc/hadoop",
+                "absolute":1,
+                "clobber":1
+            }
         ]
     }
 }

@@ -85,5 +85,32 @@
         "environment-autovars":[
             "PATH"
         ]
+    },
+
+    "maven":{
+        "tags":["packager"],
+        "show-in-list": 1,
+        "versions":[
+            {
+                "version":"v3.6.0",
+                "dependencies":{
+                    "java-jdk":[
+                        "v1.8"
+                    ]
+                },
+                "source":{
+                    "type":"generic",
+                    "files":[
+                        "apache-maven-3.6.0-bin.tar.gz"
+                    ],
+                    "recipe":[
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xf apache-maven-3.6.0-bin.tar.gz"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ]
     }
 }

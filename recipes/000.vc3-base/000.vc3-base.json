@@ -4068,12 +4068,12 @@
     "cctools-statics":{
         "versions":[
             {
-                "version":"v6.0.16",
+                "version":"v7.0.9",
                 "source":{
                     "type":"binary",
                     "native":"x86_64",
                     "files":[
-                        "cctools-statics-6.0.16-x86_64.tar.gz"
+                        "cctools-statics-7.0.9.tar.gz"
                     ],
                     "recipe":[
                         "mkdir -p ${VC3_PREFIX}",
@@ -4103,6 +4103,27 @@
         ],
         "environment-autovars":[
             "PATH"
+        ]
+    },
+
+    "cctools-wq-worker":{
+        "versions":[
+            {
+                "version":"v999.999.999",
+                "phony":1,
+                "source":{
+                    "type":"generic",
+                    "recipe":[
+                        "CCLPLATFORM=$(/cclsoftware/cclplatform.sh)",
+                        "CCLSOFTWARE=\"/cclsoftware/$CCLPLATFORM\"",
+                        "mkdir -p $VC3_PREFIX/bin",
+                        "cp \"${CCLSOFTWARE}/cctools/${CCTOOLS_ND}/bin/work_queue_worker\" $VC3_PREFIX/bin"
+                    ]
+                },
+                "environment-autovars":[
+                    "PATH"
+                ]
+            }
         ]
     },
 

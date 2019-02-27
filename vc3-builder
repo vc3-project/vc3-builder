@@ -23825,8 +23825,10 @@ __DATA__
                 "source":{
                     "type":"generic",
                     "recipe":[
-                        "CCLPLATFORM=$(/cclsoftware/cclplatform.sh)",
-                        "CCLSOFTWARE=\"/cclsoftware/$CCLPLATFORM\"",
+                        "CCTOOLS_ND=${CCTOOLS_ND:-stable}",
+                        "AFS=/afs/crc.nd.edu/group/ccl/software",
+                        "CCLPLATFORM=$(${AFS}/cclplatform.sh)",
+                        "CCLSOFTWARE=\"${AFS}/$CCLPLATFORM\"",
                         "mkdir -p $VC3_PREFIX/bin",
                         "cp \"${CCLSOFTWARE}/cctools/${CCTOOLS_ND}/bin/work_queue_worker\" $VC3_PREFIX/bin"
                     ]
@@ -24059,6 +24061,26 @@ __DATA__
                 "name":"LD_LIBRARY_PATH",
                 "value":"lib64"
             }
+        ]
+    },
+
+    "libmysql":{
+        "tags":["software building"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"5.6.20",
+                "source":{
+                    "type":"cmake",
+                    "files":[
+                        "mysql-5.6.20.tar.gz"
+                    ],
+                    "options":"-DCMAKE_INSTALL_PREFIX=${VC3_PREFIX} -DCMAKE_BUILD_TYPE=Release -DWITH_READLINE=OFF"
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH"
         ]
     },
 

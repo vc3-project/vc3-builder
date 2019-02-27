@@ -4373,6 +4373,30 @@
         ]
     },
 
+    "gridftp":{
+        "tags":["software building"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"5.0.3",
+                "source":{
+                    "type":"tarball",
+                    "files":[
+                        "gt5.0.3-all-source-installer.tar.gz"
+                    ],
+                    "recipe":[
+                        "./configure --prefix=${VC3_PREFIX} --with-flavor=gcc64 --with-gsiopensshargs='--enable-static-only'",
+                        "make -j1 gridftp",
+                        "make -j1 install"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH"
+        ]
+    },
+
     "environment-modules":{
         "tags":["software building"],
         "show-in-list":0,

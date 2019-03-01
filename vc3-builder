@@ -20925,20 +20925,14 @@ __DATA__
         "show-in-list":1,
         "versions":[
             {
-                "version":"v3.0.2",
+                "version":"v3.0.12",
                 "source":{
                     "type":"configure",
                     "files":[
-                        "swig-3.0.2.tar.gz"
+                        "swig-3.0.12.tar.gz"
                     ],
                     "options":"--libdir=${VC3_PREFIX}/lib",
                     "dependencies":{
-                        "python":[
-                            "v2.6"
-                        ],
-                        "perl":[
-                            "v5.8"
-                        ],
                         "pcre":[
                             "v8.34"
                         ],

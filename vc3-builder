@@ -20948,6 +20948,34 @@ __DATA__
         ]
     },
 
+    "e2fsprogs":{
+        "tags":["file systems"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"v1.44.5",
+                "source":{
+                    "type":"configure",
+                    "files":[
+                        "e2fsprogs-1.44.5.tar.gz"
+                    ],
+                    "preface":[
+                        "export LN='/bin/cp -pR'"
+                    ],
+                    "options":"--libdir=${VC3_PREFIX}/lib --enable-symlink-install",
+                    "dependencies":{
+                        "c-build-environment":[
+                            "v1.0"
+                        ]
+                    }
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH", "LD_LIBRARY_PATH"
+        ]
+    },
+
     "patch":{
         "tags":["file utilities", "compilation tools"],
         "show-in-list":1,

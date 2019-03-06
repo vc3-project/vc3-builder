@@ -247,7 +247,6 @@ sub environment_autovars {
     $mappings{C_INCLUDE_PATH}     = 'include';
     $mappings{CPLUS_INCLUDE_PATH} = 'include';
     $mappings{PKG_CONFIG_PATH}    = 'lib/pkgconfig';
-    $mappings{PYTHONPATH}         = 'lib/python${VC3_VERSION_PYTHON}/site-packages';
     $mappings{PERL5LIB}           = 'lib/perl5/site_perl';
 
     if($new_autovars) {

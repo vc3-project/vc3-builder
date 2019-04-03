@@ -2447,6 +2447,8 @@
                         "pip-9.0.1.distribution"
                     ],
                     "recipe":[
+                        ": updating pip3 is broken for now",
+                        "if pip3 --help; then exit 0; fi",
                         "python3 pip-9.0.1.distribution --user --ignore-installed",
                         ": patch pip otherwise the lenght of the hash-bang is too long and fails. both after install and update",
                         "sed -i ~/.local/bin/pip3 -e '1s:.*:#! /usr/bin/env python3:'",

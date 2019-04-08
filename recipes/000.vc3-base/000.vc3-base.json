@@ -931,7 +931,7 @@
                         "gcc-cplusplus":[
                             "v4.4"
                         ],
-                        "c-build-environment++":[
+                        "c-build-environment":[
                             "v1.0"
                         ]
                     }
@@ -1991,16 +1991,13 @@
                     "preface":[
                         "export CFLAGS=-fPIC"
                     ],
-                    "options":"--enable-static --enable-shared",
+                    "options":"--enable-static=yes --enable-shared=yes --enable-gettext=no",
                     "postface":[
                         "make install-dev install-lib",
                         "chmod -v 755 ${VC3_PREFIX}/lib/libattr.so"
                     ]
                 },
                 "dependencies":{
-                    "gettext":[
-                        "v0.19"
-                    ],
                     "c-build-environment":[
                         "v1.0"
                     ]

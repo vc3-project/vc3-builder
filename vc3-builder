@@ -24802,6 +24802,62 @@ __DATA__
 
 ,
 {
+    "parrot-static-binary":{
+        "tags":["file systems"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"v7.0.11",
+                "source":{
+                    "type":"tarball",
+                    "files":[
+                        "parrot-static-v7.0.11.tar.gz"
+                    ],
+                    "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/bin",
+                        "mv parrot_static_run ${VC3_PREFIX}/bin"
+                    ]
+                }
+            }
+        ],
+        "environment-autovars":[
+            "PATH"
+        ],
+        "environment-variables":[
+            {
+                "name":"PARROT_HTTP_PROXY",
+                "value":":;DIRECT",
+                "clobber":1,
+                "absolute":1
+            }
+        ]
+    },
+
+    "parrot-static-wrapper":{
+        "tags":["file systems"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"v7.0.11",
+                "wrapper":[
+                    "parrot_static_run",
+                    "--dynamic-mounts",
+                    "-p", "\"${PARROT_HTTP_PROXY}\"",
+                    "--cvmfs-repo-switching",
+                    "$(echo ${VC3_PARROT_EXTRA_OPTIONS} | sed -e 's/:/ /g')",
+                    "{}"
+                ],
+                "dependencies":{
+                    "parrot-static-binary":[
+                        "v6.2.6"
+                    ]
+                }
+            }
+        ]
+    }
+}
+,
+{
     "parsl":{
         "tags":["python packages", "parallel scripting"],
         "show-in-list":1,

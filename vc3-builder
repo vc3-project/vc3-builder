@@ -22019,6 +22019,14 @@ __DATA__
                 "source":{
                     "type":"system",
                     "executable":"python",
+                    "prerequisites":[
+                        ": check that dev files are available",
+                        "version=$(python -c 'import sys; print \"%d.%d\" % (sys.version_info[0], sys.version_info[1])')",
+                        "gcc -xc - <<EOF",
+                        "#include <python${version}/Python.h>",
+                        "int main() { return 0; }",
+                        "EOF"
+                    ],
                     "auto-version":[
                         "python -c 'import sys; print \"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2])'"
                     ],
@@ -22084,6 +22092,14 @@ __DATA__
                 "source":{
                     "type":"system",
                     "executable":"python3",
+                    "prerequisites":[
+                        ": check that dev files are available",
+                        "version=$(python3 -c 'import sys; print \"%d.%d\" % (sys.version_info[0], sys.version_info[1])')",
+                        "gcc -xc - <<EOF",
+                        "#include <python${version}/Python.h>",
+                        "int main() { return 0; }",
+                        "EOF"
+                    ],
                     "auto-version":[
                         "python3 -c 'import sys; print(\"VC3_VERSION_SYSTEM: %d.%d.%d\" % (sys.version_info[0], sys.version_info[1], sys.version_info[2]))'"
                     ],

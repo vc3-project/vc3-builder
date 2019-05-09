@@ -895,22 +895,20 @@
     "parrot-static":{
         "versions":[
             {
-                "version":"v7.0.6",
+                "version":"v7.0.11",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "cctools-7.0.6-source.tar.gz"
+                        "cctools-7.0.11-source.tar.gz"
                     ],
                     "mirrors":[
                         "http://ccl.cse.nd.edu/software/files/"
                     ],
                     "recipe":[
+                        "mkdir -p ${VC3_PREFIX}/bin",
                         "./configure --prefix ${VC3_PREFIX} --without-system-sand --without-system-allpairs --without-system-wavefront --without-system-makeflow --without-system-umbrella --without-system-prune --without-system-resource_monitor --without-system-doc --with-zlib-path ${VC3_ROOT_ZLIB} --with-cvmfs-path ${VC3_ROOT_LIBCVMFS} --with-uuid-path ${VC3_ROOT_UUID} --with-openssl-path ${VC3_ROOT_OPENSSL} --with-fuse-path ${VC3_ROOT_FUSE} --with-globus-path no --with-irods-path no --with-mysql-path no --with-xrootd-path no",
                         "make",
-                        "cd parrot/src",
-                        "make parrot_cvmfs_static_run",
-                        "mkdir -p ${VC3_PREFIX}/bin",
-                        "cp parrot_cvmfs_static_run ${VC3_PREFIX}/bin"
+                        "(cd parrot/src && make parrot_cvmfs_static_run && cp parrot_cvmfs_static_run ${VC3_PREFIX}/bin)"
                     ],
                     "dependencies":{
                         "zlib":[
@@ -4028,11 +4026,11 @@
         "show-in-list":1,
         "versions":[
             {
-                "version":"v1.1.15",
+                "version":"v1.1.22",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "musl-1.1.15.tar.gz"
+                        "musl-1.1.22.tar.gz"
                     ],
                     "recipe":[
                         "./configure --prefix=${VC3_PREFIX} x86_64",
@@ -4089,36 +4087,52 @@
     "cctools-statics":{
         "versions":[
             {
-                "version":"v7.0.9",
+                "version":"v7.0.11",
                 "source":{
-                    "type":"binary",
-                    "native":"x86_64",
+                    "type":"tarball",
+                    "mirrors":[
+                        "http://ccl.cse.nd.edu/software/files/"
+                    ],
                     "files":[
-                        "cctools-statics-7.0.9.tar.gz"
+                        "cctools-7.0.11-source.tar.gz"
                     ],
                     "recipe":[
-                        "mkdir -p ${VC3_PREFIX}",
-                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-statics-*.tar.gz"
-                    ]
+                        ": first work queue and makeflow",
+                        "CFLAGS=-D__MUSL__ CC=musl-gcc ./configure --prefix ${VC3_PREFIX} --without-system-{doc,apps,chirp} --with-readline-path=no --static --with-zlib-path=${VC3_ROOT_MUSL_ZLIB}",
+                        "(cd dttools/src          && make && make install)",
+                        "(cd work_queue/src       && make && make install)",
+                        "(cd batch_job/src        && make && make install)",
+                        "(cd makeflow/src         && make && make install)",
+                        "(cd resource_monitor/src && make resource_monitor && cp resource_monitor ${VC3_PREFIX}/bin)"
+                    ],
+                    "dependencies":{
+                        "openssl":[
+                            "v1.0"
+                        ],
+                        "c-build-environment":[
+                            "v1.0"
+                        ],
+                        "musl-zlib":[
+                            "v1.2.0"
+                        ],
+                        "musl":[
+                            "v1.0"
+                        ]
+                    }
                 }
             },
             {
                 "version":"v7.0.6",
                 "source":{
-                    "type":"tarball",
+                    "type":"binary",
+                    "native":"x86_64",
                     "files":[
-                        "cctools-7.0.6-source.tar.gz"
+                        "cctools-statics-7.0.6.tar.gz"
                     ],
                     "recipe":[
-                        "CFLAGS=-D__MUSL__ CC=musl-gcc ./configure --prefix ${VC3_PREFIX} --without-system-{doc,apps} --with-readline-path=no --static --with-zlib-path=${VC3_ROOT_MUSL_ZLIB}",
-                        "make",
-                        "make install"
-                    ],
-                    "dependencies":{
-                        "musl-zlib":[
-                            "v1.2.0"
-                        ]
-                    }
+                        "mkdir -p ${VC3_PREFIX}",
+                        "tar -C ${VC3_PREFIX} --strip-components=1 -xpf cctools-statics-*.tar.gz"
+                    ]
                 }
             }
         ],

@@ -319,6 +319,16 @@
                         "sed-x86_64-4.2.tar.gz"
                     ]
                 }
+            },
+            {
+                "version":"v4.7",
+                "local":1,
+                "source":{
+                    "type":"configure",
+                    "files":[
+                        "sed-4.7.tar.gz"
+                    ]
+                }
             }
         ],
         "environment-autovars":[

@@ -379,7 +379,9 @@
                 "source":{
                     "type":"system",
                     "executable":"which"
-                },
+                }
+            },
+            {
                 "version":"v2.20.0",
                 "source":{
                     "type":"binary",
@@ -387,6 +389,20 @@
                     "files":[
                         "which-x86_64-2.20-1.tar.gz"
                     ]
+                }
+            },
+            {
+                "version":"v2.21.0",
+                "source":{
+                    "type":"configure",
+                    "files":[
+                        "which-2.21.tar.gz"
+                    ],
+                    "dependencies":{
+                        "c-build-environment":[
+                            "v1.0"
+                        ]
+                    }
                 }
             }
         ],

@@ -734,6 +734,8 @@ sub distro_canonical_name {
         $name = 'ubuntu';
     } elsif($name =~ m/opensuse/) {
         $name = 'opensuse';
+    } else {
+        $name =~ s/[^A-z0-9_]/_/g;
     }
 
     return "$name$version";

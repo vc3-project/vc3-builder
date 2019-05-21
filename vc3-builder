@@ -17464,6 +17464,8 @@ $fatpacked{"VC3/Widget.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'VC3_
           $name = 'ubuntu';
       } elsif($name =~ m/opensuse/) {
           $name = 'opensuse';
+      } else {
+          $name =~ s/[^A-z0-9_]/_/g;
       }
   
       return "$name$version";

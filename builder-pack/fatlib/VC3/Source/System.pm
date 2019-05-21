@@ -11,6 +11,7 @@ use warnings;
 package VC3::Source::System;
 use base 'VC3::Source::Generic';
 use Carp;
+use File::Basename;
 use File::Which qw(which);
 
 sub new {
@@ -27,9 +28,11 @@ sub new {
         my $path = which($exe);
 
         if(defined $path) {
+            my $dirname = dirname(${path});
+
             unless($json_description->{recipe}) {
                 $json_description->{recipe} = [
-                    "bin=\$(dirname ${path})",
+                    "bin=${dirname}",
                     "echo VC3_ROOT_SYSTEM: \${bin%%bin}"
                 ];
             }

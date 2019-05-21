@@ -590,8 +590,8 @@ sub setup_build_shell {
     unless $build_in;
 
     # redirect all output to our log file.
-    print { $build_in } 'exec 1>> ' . $self->build_log . "\n";
-    print { $build_in } "exec 2>&1\n";
+    print { $build_in } 'exec 1>> ' . $self->build_log . " || echo Could not redirect stdout to logfile.\n";
+    print { $build_in } "exec 2>&1                         || echo Could not redirect stderr to logfile.\n";
     print { $build_in } "set -ex\n";
 
     # return the stdin of the shell, and the pid so we can wait for it.

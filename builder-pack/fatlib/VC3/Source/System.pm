@@ -22,6 +22,11 @@ sub new {
     my $switch = $json_description->{"version-switch"} || '--version';
 
     if($exe) {
+        unless($exe eq 'which') {
+            # we can't use which as a dependency for which
+            $json_description->{dependencies}{'which'} ||= ['v1.0'];
+        }
+
         $json_description->{prerequisites} ||= [];
         unshift @{$json_description->{prerequisites}}, "which $exe";
 

@@ -9,7 +9,7 @@ use Module::CoreList;
 
 my $min_version = 5.008008; # i.e., 5.008008, version on RHEL 5
 
-my @all_modules = qx(../vc3-pilot-bare --debug-modules-used);
+my @all_modules = qx(../vc3-builder-bare --debug-modules-used);
 
 for my $module (@all_modules) {
     chomp($module);

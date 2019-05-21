@@ -29,13 +29,13 @@
                             "v3.0"
                         ],
                         "sed":[
-                            "v4.2.0"
+                            "v1.0"
                         ],
                         "pkg-config":[
                             "v0.23.0"
                         ],
                         "which":[
-                            "v1.00.0"
+                            "v1.0"
                         ]
                     }
                 }
@@ -327,7 +327,12 @@
                     "type":"configure",
                     "files":[
                         "sed-4.7.tar.gz"
-                    ]
+                    ],
+                    "dependencies":{
+                        "c-build-environment":[
+                            "v1.0"
+                        ]
+                    }
                 }
             }
         ],

@@ -11,6 +11,7 @@ use warnings;
 package VC3::Source::System;
 use base 'VC3::Source::Generic';
 use Carp;
+use File::Which qw(which);
 
 sub new {
     my ($class, $widget, $json_description) = @_;
@@ -22,25 +23,23 @@ sub new {
     my $switch = $json_description->{"version-switch"} || '--version';
 
     if($exe) {
-        unless($exe eq 'which') {
-            # we can't use which as a dependency for which
-            $json_description->{dependencies}{'which'} ||= ['v1.0'];
-        }
-
         $json_description->{prerequisites} ||= [];
-        unshift @{$json_description->{prerequisites}}, "which $exe";
+        my $path = which($exe);
 
-        unless($json_description->{recipe}) {
-            $json_description->{recipe} = [
-                "bin=\$(dirname \$(which $exe))",
-                "echo VC3_ROOT_SYSTEM: \${bin%%bin}"
-            ];
-        }
-
-        unless($json_description->{'auto-version'}) {
-            $json_description->{'auto-version'} = [
-                "echo VC3_VERSION_SYSTEM: \$($exe $switch | head -n1 | sed -n -r -e \"s/(^|.*[ \\\"'])([0-9]+(\\.[0-9]+){0,2}).*/\\2/p\")"
-            ];
+        if(defined $path) {
+            unless($json_description->{recipe}) {
+                $json_description->{recipe} = [
+                    "bin=\$(dirname ${path})",
+                    "echo VC3_ROOT_SYSTEM: \${bin%%bin}"
+                ];
+            }
+            unless($json_description->{'auto-version'}) {
+                $json_description->{'auto-version'} = [
+                    "echo VC3_VERSION_SYSTEM: \$(${path} $switch | head -n1 | sed -n -r -e \"s/(^|.*[ \\\"'])([0-9]+(\\.[0-9]+){0,2}).*/\\2/p\")"
+                ];
+            }
+        } else {
+            unshift @{$json_description->{prerequisites}}, "exit 1";
         }
     }
 

@@ -663,6 +663,21 @@
         ]
     },
 
+    "user-profile-environment":{
+        "tags":["environments"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"v1.0",
+                "prologue": [
+                    "if [ -e /etc/profile ]; then",
+                    "  source /etc/profile",
+                    "fi"
+                ]
+            }
+        ]
+    },
+
     "atlas-local-root-base-environment":{
         "tags":["environments"],
         "show-in-list":1,

@@ -20535,6 +20535,21 @@ __DATA__
         ]
     },
 
+    "user-profile-environment":{
+        "tags":["environments"],
+        "show-in-list":0,
+        "versions":[
+            {
+                "version":"v1.0",
+                "prologue": [
+                    "if [ -e /etc/profile ]; then",
+                    "  source /etc/profile",
+                    "fi"
+                ]
+            }
+        ]
+    },
+
     "atlas-local-root-base-environment":{
         "tags":["environments"],
         "show-in-list":1,
@@ -20598,11 +20613,11 @@ __DATA__
     "vc3-glidein":{
         "versions": [
             {
-                "version":"v1.1.4",
+                "version":"v1.1.5",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "vc3-glidein-v1.1.4.tar.gz"
+                        "vc3-glidein-v1.1.5.tar.gz"
                     ],
                     "recipe":[
                         "chmod 755 vc3-glidein",

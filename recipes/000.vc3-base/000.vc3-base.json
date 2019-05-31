@@ -4315,6 +4315,19 @@
             },
             {
                 "version":"2.5",
+                "comment":"Temporarily for Notre Dame",
+                "source":{
+                    "type":"generic",
+                    "auto-version":[
+                        "echo VC3_VERSION_SYSTEM: $(singularity --version | sed -r -e 's/(([0-9]+\\.){2}[0-9]+).*/\\1/')"
+                    ],
+                    "prerequisites":[
+                        "command -v singularity"
+                    ]
+                }
+            },
+            {
+                "version":"2.5",
                 "comment":"For Bridges",
                 "prologue":[
                     "eval $(modulecmd sh load singularity)"

@@ -4303,14 +4303,31 @@
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "executable":"singularity"
+                    "executable":"shifter"
+                }
+            },
+            {
+                "version":"2.5",
+                "comment":"For Blue-Waters",
+                "prologue":[
+                    "eval $(/opt/modules/default/bin/modulecmd bash load shifter)"
+                ],
+                "source":{
+                    "type":"generic",
+                    "auto-version":[
+                        "eval $(/opt/modules/default/bin/modulecmd bash load shifter)",
+                        "echo VC3_VERSION_SYSTEM: $(which shifter | sed -r -e 's/(([0-9]+\\.){2}[0-9]+).*/\\1/')"
+                    ],
+                    "prerequisites":[
+                        "which /opt/modules/default/bin/modulecmd"
+                    ]
                 }
             },
             {
                 "version":"auto",
                 "source":{
                     "type":"system",
-                    "executable":"shifter"
+                    "executable":"singularity"
                 }
             },
             {
@@ -4357,23 +4374,6 @@
                     ],
                     "prerequisites":[
                         "which /opt/apps/lmod/lmod/libexec/lmod"
-                    ]
-                }
-            },
-            {
-                "version":"2.5",
-                "comment":"For Blue-Waters",
-                "prologue":[
-                    "eval $(/opt/modules/default/bin/modulecmd bash load shifter)"
-                ],
-                "source":{
-                    "type":"generic",
-                    "auto-version":[
-                        "eval $(/opt/modules/default/bin/modulecmd bash load shifter)",
-                        "echo VC3_VERSION_SYSTEM: $(which shifter | sed -r -e 's/(([0-9]+\\.){2}[0-9]+).*/\\1/')"
-                    ],
-                    "prerequisites":[
-                        "which /opt/modules/default/bin/modulecmd"
                     ]
                 }
             }

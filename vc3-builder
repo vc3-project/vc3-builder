@@ -20598,11 +20598,11 @@ __DATA__
     "vc3-glidein":{
         "versions": [
             {
-                "version":"v1.1.5",
+                "version":"v1.1.6",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "vc3-glidein-v1.1.5.tar.gz"
+                        "vc3-glidein-v1.1.6.tar.gz"
                     ],
                     "recipe":[
                         "chmod 755 vc3-glidein",

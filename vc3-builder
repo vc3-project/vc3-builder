@@ -23952,7 +23952,7 @@ __DATA__
                         "musl-1.1.22.tar.gz"
                     ],
                     "recipe":[
-                        "./configure --prefix=${VC3_PREFIX} x86_64",
+                        "./configure --prefix=${VC3_PREFIX} --disable-shared x86_64",
                         "make",
                         "make install"
                     ],

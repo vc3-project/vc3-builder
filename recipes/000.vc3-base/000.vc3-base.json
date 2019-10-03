@@ -4080,6 +4080,8 @@
                         "musl-1.1.23.tar.gz"
                     ],
                     "recipe":[
+                        ": patch to fix segfaults of static binaries with binutils 2.31 ",
+                        "sed -i tools/musl-gcc.specs.sh   -e '/^-dynamic-linker/s:^:--build-id :'",
                         "./configure --prefix=${VC3_PREFIX} --disable-shared x86_64",
                         "make",
                         "make install"

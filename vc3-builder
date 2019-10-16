@@ -24182,6 +24182,14 @@ __DATA__
             },
             {
                 "version":"2.5",
+                "comment":"For NERSC",
+                "source":{
+                    "type":"system",
+                    "executable":"shifter"
+                }
+            },
+            {
+                "version":"2.5",
                 "comment":"For Blue-Waters",
                 "prologue":[
                     "eval $(/opt/modules/default/bin/modulecmd bash load shifter)"

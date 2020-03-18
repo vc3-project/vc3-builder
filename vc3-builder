@@ -38939,11 +38939,11 @@ __DATA__
     "libcvmfs":{
         "versions":[
             {
-                "version":"v2.4",
+                "version":"v2.7.1",
                 "source":{
                     "type":"tarball",
                     "files":[
-                        "cvmfs-70dfa0d62.tar.gz"
+                        "cvmfs-2.7.1.tar.gz"
                     ],
                     "recipe":[
                         "export CPLUS_INCLUDE_PATH=${VC3_ROOT_UUID}/include",                                           

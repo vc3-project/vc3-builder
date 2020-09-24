@@ -42086,11 +42086,11 @@ __DATA__
         "show-in-list":0,
         "versions":[
             {
-                "version":"5.6.20",
+                "version":"5.6.48",
                 "source":{
                     "type":"cmake",
                     "files":[
-                        "mysql-5.6.20.tar.gz"
+                        "mysql-5.6.48.tar.gz"
                     ],
                     "options":"-DCMAKE_INSTALL_PREFIX=${VC3_PREFIX} -DCMAKE_BUILD_TYPE=Release -DWITH_READLINE=OFF"
                 }

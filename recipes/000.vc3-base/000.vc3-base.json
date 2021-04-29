@@ -4350,9 +4350,16 @@
                     ],
                     "prerequisites":[
                         "command -v singularity",
-                        "SINGULARITY_CACHEDIR=$PWD singularity exec docker://alpine pwd"
+                        "PATH=$PATH:/usr/sbin SINGULARITY_CACHEDIR=$PWD singularity exec docker://alpine pwd"
                     ]
-                }
+                },
+                "environment-variables":[
+                    {
+                        "name":"PATH",
+                        "value":"/usr/sbin",
+                        "absolute":1
+                    }
+                ]
             },
             {
                 "version":"2.5",

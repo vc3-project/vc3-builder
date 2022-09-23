@@ -38,7 +38,7 @@ my $pwd            = getcwd();
 my $vc3_root       = catfile(${pwd}, 'vc3-root');
 my $vc3_distfiles  = catfile(${pwd}, 'vc3-distfiles');
 my $vc3_user_home  = 'vc3-home';
-my $vc3_repository = "http://download.virtualclusters.org/builder-files";
+my $vc3_repository = "https://s3.ssl-hep.org/vc3-repository-70e707f3-6df8-41f6-adb2-fa5ecba1548d/builder-files";
 
 my $shell          = '/bin/sh';
 

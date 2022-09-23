@@ -38,7 +38,7 @@ $(MUSL_SRC): | $(MUSL_SRC).tar.gz
 	tar zxpf $(MUSL_SRC).tar.gz
 
 $(MUSL_SRC).tar.gz:
-	curl -o "$@" -z "$@" http://download.virtualclusters.org/builder-files/$@
+	curl -o "$@" -z "$@" https://s3.ssl-hep.org/vc3-repository-70e707f3-6df8-41f6-adb2-fa5ecba1548d/builder-files/$@
 
 .PHONY: clean distclean
 

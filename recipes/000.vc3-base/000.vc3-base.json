@@ -1496,8 +1496,6 @@
                         "openssl-1.0.2h.tar.gz"
                     ],
                     "recipe":[
-                        ": ./config shared -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib-dynamic -Wl,-rpath=${VC3_PREFIX}/lib",
-                        ": ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib zlib no-shared",
                         "./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib -D_GNU_SOURCE -DOPENSSL_NO_HEARTBEAT -Wl,-rpath=${VC3_PREFIX}/lib shared no-zlib no-comp no-weak-ssl-ciphers",
                         "make depend",
                         "make build_all",
@@ -1515,6 +1513,41 @@
             "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
         ]
     },
+
+    "openssl-static":{
+        "versions":[
+            {
+                "version":"v1.0.2",
+                "source":{
+                    "type":"tarball",
+                    "files":[
+                        "openssl-1.0.2h.tar.gz"
+                    ],
+                    "recipe":[
+                        "CC=musl-gcc ./config -fPIC --prefix=${VC3_PREFIX} --libdir=lib -DOPENSSL_NO_HEARTBEAT -Wl,-rpath=${VC3_PREFIX}/lib no-shared no-zlib no-comp no-weak-ssl-ciphers",
+                        "make depend",
+                        "make build_all",
+                        "make install_sw"
+                    ]
+                },
+                "dependencies":{
+                    "perl":[
+                        "v5.10"
+                    ]
+                },
+                "musl-zlib":[
+                    "v1.2.0"
+                ],
+                "musl":[
+                    "v1.0"
+                ]
+            }
+        ],
+        "environment-autovars":[
+            "LD_LIBRARY_PATH", "PKG_CONFIG_PATH", "LIBRARY_PATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH"
+        ]
+    },
+
 
     "libssh2":{
         "versions":[

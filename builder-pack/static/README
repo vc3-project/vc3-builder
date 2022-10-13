@@ -1,0 +1,11 @@
+To compile statically:
+
+vc3-builder --require openssl-static --require musl --require musl-zlib
+
+libz.so from the system gets in the way, so move it temporarily:
+sudo mv /usr/lib64/libz.so{,b}
+sudo mv /usr/lib64/libz.a{,b} # if present
+sudo cp ${VC3_ROOT_MUSL_ZLIB}/lib/libz.a /usr/lib64/
+make
+sudo mv /usr/lib64/libz.so{b,}
+sudo mv /usr/lib64/libz.a{b,} # if present

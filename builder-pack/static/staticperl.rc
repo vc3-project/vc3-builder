@@ -3,7 +3,7 @@ EXTRA_MODULES=
 STATICPERL=${PWD}/build
 DLCACHE=${PWD}/cache
 PERL_VERSION=5.24.0
-PERL_CONFIGURE="-Dcc=${PWD}/musl/bin/musl-gcc -Duse64bitint -Uuselargefiles -Uusethreads"
+PERL_CONFIGURE="-Dcc=musl-gcc -Duse64bitint -Uuselargefiles -Uusethreads -A append:libs=' '${VC3_ROOT_MUSL_ZLIB}/lib/libz.a"
 
 preconfigure() {
     for sym in d_stdiobase d_stdstdio d_finitel\
@@ -23,6 +23,10 @@ preconfigure() {
     do
                 PERL_CONFIGURE="$PERL_CONFIGURE -U$sym"
     done
+}
+
+postinstall() {
+	echo nop
 }
 
 
